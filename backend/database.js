@@ -1,11 +1,11 @@
-//Database configuration using mysql2/promise
+// backend/database.js
 import mysql from 'mysql2/promise';
 
 // Configuração do banco de dados
 const pool = mysql.createPool({
     host: 'localhost',
     user: 'root',
-    password: '40028922', // sua senha do MySQL aqui
+    password: '40028922',
     database: 'gestao_documental',
     waitForConnections: true,
     connectionLimit: 10,

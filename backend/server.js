@@ -186,7 +186,7 @@ app.get('/api/consulta-cnpj/:cnpj', async (req, res) => {
     }
 });
 
-// ✅ ROTAS DE EMPRESAS
+// ✅ ROTAS DE EMPRESAS (ATUALIZADAS)
 app.get('/api/empresas', async (req, res) => {
     try {
         console.log('Buscando empresas...');
@@ -204,7 +204,20 @@ app.post('/api/empresas', async (req, res) => {
         console.log('=== TENTANDO CRIAR EMPRESA ===');
         console.log('Body recebido:', req.body);
 
-        const { razao_social, nome_fantasia, cnpj, telefone, email, endereco } = req.body;
+        const { 
+            razao_social, 
+            nome_fantasia, 
+            cnpj, 
+            telefone, 
+            email, 
+            endereco,
+            login_municipal,
+            senha_municipal,
+            login_estadual,
+            senha_estadual,
+            simples_nacional,
+            observacoes
+        } = req.body;
 
         // Validação dos campos obrigatórios
         if (!razao_social || !cnpj || !telefone || !email) {
@@ -226,8 +239,25 @@ app.post('/api/empresas', async (req, res) => {
         
         console.log('Inserindo no banco de dados...');
         const [result] = await pool.execute(
-            'INSERT INTO empresas (razao_social, nome_fantasia, cnpj, telefone, email, endereco) VALUES (?, ?, ?, ?, ?, ?)',
-            [razao_social, nome_fantasia || null, cnpj, telefone, email, endereco || null]
+            `INSERT INTO empresas 
+            (razao_social, nome_fantasia, cnpj, telefone, email, endereco, 
+             login_municipal, senha_municipal, login_estadual, senha_estadual, 
+             simples_nacional, observacoes) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+                razao_social, 
+                nome_fantasia || null, 
+                cnpj, 
+                telefone, 
+                email, 
+                endereco || null,
+                login_municipal || null,
+                senha_municipal || null,
+                login_estadual || null,
+                senha_estadual || null,
+                simples_nacional || false,
+                observacoes || null
+            ]
         );
         
         console.log('✅ EMPRESA CRIADA COM SUCESSO - ID:', result.insertId);
@@ -257,16 +287,46 @@ app.post('/api/empresas', async (req, res) => {
 app.put('/api/empresas/:id', async (req, res) => {
     try {
         const empresaId = req.params.id;
-        const { razao_social, nome_fantasia, cnpj, telefone, email, endereco } = req.body;
+        const { 
+            razao_social, 
+            nome_fantasia, 
+            cnpj, 
+            telefone, 
+            email, 
+            endereco,
+            login_municipal,
+            senha_municipal,
+            login_estadual,
+            senha_estadual,
+            simples_nacional,
+            observacoes
+        } = req.body;
         
         console.log(`Atualizando empresa ID: ${empresaId}`, req.body);
         
         const [result] = await pool.execute(
             `UPDATE empresas SET 
                 razao_social = ?, nome_fantasia = ?, cnpj = ?, 
-                telefone = ?, email = ?, endereco = ?
+                telefone = ?, email = ?, endereco = ?,
+                login_municipal = ?, senha_municipal = ?,
+                login_estadual = ?, senha_estadual = ?,
+                simples_nacional = ?, observacoes = ?
             WHERE id = ?`,
-            [razao_social, nome_fantasia || null, cnpj, telefone, email, endereco || null, empresaId]
+            [
+                razao_social, 
+                nome_fantasia || null, 
+                cnpj, 
+                telefone, 
+                email, 
+                endereco || null,
+                login_municipal || null,
+                senha_municipal || null,
+                login_estadual || null,
+                senha_estadual || null,
+                simples_nacional || false,
+                observacoes || null,
+                empresaId
+            ]
         );
         
         if (result.affectedRows === 0) {
@@ -656,6 +716,48 @@ app.get('/api/documentos/:id/download', async (req, res) => {
     }
 });
 
+// ✅ ROTAS DE RESPONSÁVEIS
+app.get('/api/responsaveis', async (req, res) => {
+    try {
+        console.log('Buscando responsáveis...');
+        const [rows] = await pool.execute(`
+            SELECT r.*, e.razao_social as empresa_nome 
+            FROM responsaveis r 
+            LEFT JOIN empresas e ON r.empresa_id = e.id 
+            ORDER BY r.nome ASC
+        `);
+        console.log(`Encontrados ${rows.length} responsáveis`);
+        res.json(rows);
+    } catch (error) {
+        console.error('Erro ao listar responsáveis:', error);
+        res.status(500).json({ error: 'Erro ao listar responsáveis' });
+    }
+});
+
+app.post('/api/responsaveis', async (req, res) => {
+    try {
+        const { nome, email, telefone, funcao, empresa_id } = req.body;
+        
+        if (!nome || !email || !telefone || !funcao || !empresa_id) {
+            return res.status(400).json({ error: 'Preencha todos os campos obrigatórios' });
+        }
+        
+        const [result] = await pool.execute(
+            'INSERT INTO responsaveis (nome, email, telefone, funcao, empresa_id) VALUES (?, ?, ?, ?, ?)',
+            [nome, email, telefone, funcao, empresa_id]
+        );
+        
+        res.status(201).json({ 
+            id: result.insertId, 
+            message: 'Responsável criado com sucesso'
+        });
+        
+    } catch (error) {
+        console.error('Erro ao criar responsável:', error);
+        res.status(500).json({ error: 'Erro ao criar responsável' });
+    }
+});
+
 // ✅ DASHBOARD
 app.get('/api/dashboard', async (req, res) => {
     try {
@@ -752,24 +854,6 @@ app.get('/api/dashboard/estatisticas', async (req, res) => {
     }
 });
 
-// ✅ RESPONSÁVEIS
-app.get('/api/responsaveis', async (req, res) => {
-    try {
-        console.log('Buscando responsáveis...');
-        const [rows] = await pool.execute(`
-            SELECT r.*, e.razao_social as empresa_nome 
-            FROM responsaveis r 
-            LEFT JOIN empresas e ON r.empresa_id = e.id 
-            ORDER BY r.nome ASC
-        `);
-        console.log(`Encontrados ${rows.length} responsáveis`);
-        res.json(rows);
-    } catch (error) {
-        console.error('Erro ao listar responsáveis:', error);
-        res.status(500).json({ error: 'Erro ao listar responsáveis' });
-    }
-});
-
 // ✅ SERVIR FRONTEND
 app.get('/', (req, res) => {
     console.log('Servindo frontend...');
@@ -777,7 +861,7 @@ app.get('/', (req, res) => {
 });
 
 // Rota catch-all para SPA
-app.use((req, res) => {
+app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, '../frontend/index.html'));
 });
 

@@ -284,7 +284,7 @@ class App {
         }
     }
 
- renderResultadosDashboard(data) {
+   renderResultadosDashboard(data) {
     const totalDocumentos = data.estatisticas.documentos || 0;
     
     if (totalDocumentos === 0) {
@@ -323,100 +323,102 @@ class App {
         </div>
     `;
 }
+    renderTabelaDocumentosDashboard(documentos) {
+        if (!documentos || documentos.length === 0) {
+            return `
+                <div class="text-center py-4">
+                    <i class="fas fa-search fa-2x text-muted mb-2"></i>
+                    <p class="text-muted">Nenhum documento encontrado com os filtros aplicados</p>
+                    <button class="btn btn-outline-primary btn-sm" onclick="app.limparFiltrosDashboard()">
+                        <i class="fas fa-times"></i> Limpar Filtros
+                    </button>
+                </div>
+            `;
+        }
 
-   renderTabelaDocumentosDashboard(documentos) {
-    if (!documentos || documentos.length === 0) {
         return `
-            <div class="text-center py-4">
-                <i class="fas fa-search fa-2x text-muted mb-2"></i>
-                <p class="text-muted">Nenhum documento encontrado com os filtros aplicados</p>
-                <button class="btn btn-outline-primary btn-sm" onclick="app.limparFiltrosDashboard()">
-                    <i class="fas fa-times"></i> Limpar Filtros
-                </button>
+            <div class="table-responsive">
+                <table class="table table-hover table-sm">
+                    <thead>
+                        <tr>
+                            <th>Documento</th>
+                            <th>Empresa</th>
+                            <th>Tipo</th>
+                            <th>Emissão</th>
+                            <th>Vencimento</th>
+                            <th>Status</th>
+                            <th>Dias</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${documentos.map(doc => {
+                            const status = this.getDocumentStatus(doc);
+                            const statusClass = this.getDocumentStatusClass(status);
+                            const statusText = this.getDocumentStatusText(status);
+                            const dias = this.calculateDiasRestantes(doc.data_vencimento);
+                            
+                            return `
+                                <tr class="${status === 'expired' ? 'table-danger' : status === 'expiring' ? 'table-warning' : ''}">
+                                    <td>
+                                        <strong>${doc.nome}</strong>
+                                        ${doc.observacoes ? `<br><small class="text-muted">${doc.observacoes.substring(0, 30)}${doc.observacoes.length > 30 ? '...' : ''}</small>` : ''}
+                                    </td>
+                                    <td>${doc.empresa_nome || doc.razao_social || 'N/A'}</td>
+                                    <td><span class="badge bg-secondary">${doc.tipo}</span></td>
+                                    <td>${this.formatDate(doc.data_emissao)}</td>
+                                    <td>${this.formatDate(doc.data_vencimento)}</td>
+                                    <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+                                    <td>
+                                        <span class="badge ${dias < 0 ? 'bg-danger' : dias <= 30 ? 'bg-warning' : 'bg-success'}">
+                                            ${dias < 0 ? 'Vencido' : `${dias}d`}
+                                        </span>
+                                    </td>
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
             </div>
         `;
     }
 
-    return `
-        <div class="table-responsive">
-            <table class="table table-hover table-sm">
-                <thead>
-                    <tr>
-                        <th>Documento</th>
-                        <th>Empresa</th>
-                        <th>Tipo</th>
-                        <th>Emissão</th>
-                        <th>Vencimento</th>
-                        <th>Status</th>
-                        <th>Dias</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${documentos.map(doc => {
-                        const status = this.getDocumentStatus(doc);
-                        const statusClass = this.getDocumentStatusClass(status);
-                        const statusText = this.getDocumentStatusText(status);
-                        const dias = this.calculateDiasRestantes(doc.data_vencimento);
-                        
-                        return `
-                            <tr class="${status === 'expired' ? 'table-danger' : status === 'expiring' ? 'table-warning' : ''}">
-                                <td>
-                                    <strong>${doc.nome}</strong>
-                                    ${doc.observacoes ? `<br><small class="text-muted">${doc.observacoes.substring(0, 30)}${doc.observacoes.length > 30 ? '...' : ''}</small>` : ''}
-                                </td>
-                                <td>${doc.empresa_nome || doc.razao_social || 'N/A'}</td>
-                                <td><span class="badge bg-secondary">${doc.tipo}</span></td>
-                                <td>${this.formatDate(doc.data_emissao)}</td>
-                                <td>${this.formatDate(doc.data_vencimento)}</td>
-                                <td><span class="status-badge ${statusClass}">${statusText}</span></td>
-                                <td>
-                                    <span class="badge ${dias < 0 ? 'bg-danger' : dias <= 30 ? 'bg-warning' : 'bg-success'}">
-                                        ${dias < 0 ? 'Vencido' : `${dias}d`}
-                                    </span>
-                                </td>
-                            </tr>
-                        `;
-                    }).join('')}
-                </tbody>
-            </table>
-        </div>
-    `;
-}
     renderDocumentosProximosTable(documentos) {
         if (!documentos || documentos.length === 0) {
             return '<div class="text-center py-4"><i class="fas fa-check-circle fa-2x text-muted mb-2"></i><p class="text-muted">Nenhum documento próximo do vencimento</p></div>';
         }
 
         return `
-            <table class="table table-hover table-sm">
-                <thead>
-                    <tr>
-                        <th>Documento</th>
-                        <th>Empresa</th>
-                        <th>Vencimento</th>
-                        <th>Dias Restantes</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${documentos.map(doc => {
-                        const dias = this.calculateDiasRestantes(doc.data_vencimento);
-                        const statusClass = this.getDocumentStatusClass('expiring');
-                        return `
-                            <tr>
-                                <td>
-                                    <strong>${doc.nome}</strong>
-                                    <br><small class="text-muted">${doc.tipo}</small>
-                                </td>
-                                <td>${doc.empresa_nome || 'N/A'}</td>
-                                <td>${this.formatDate(doc.data_vencimento)}</td>
-                                <td><strong>${dias}</strong> dias</td>
-                                <td><span class="status-badge ${statusClass}">Vencendo</span></td>
-                            </tr>
-                        `;
-                    }).join('')}
-                </tbody>
-            </table>
+            <div class="table-responsive">
+                <table class="table table-hover table-sm">
+                    <thead>
+                        <tr>
+                            <th>Documento</th>
+                            <th>Empresa</th>
+                            <th>Vencimento</th>
+                            <th>Dias Restantes</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${documentos.map(doc => {
+                            const dias = this.calculateDiasRestantes(doc.data_vencimento);
+                            const statusClass = this.getDocumentStatusClass('expiring');
+                            return `
+                                <tr>
+                                    <td>
+                                        <strong>${doc.nome}</strong>
+                                        <br><small class="text-muted">${doc.tipo}</small>
+                                    </td>
+                                    <td>${doc.empresa_nome || 'N/A'}</td>
+                                    <td>${this.formatDate(doc.data_vencimento)}</td>
+                                    <td><strong>${dias}</strong> dias</td>
+                                    <td><span class="status-badge ${statusClass}">Vencendo</span></td>
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
+            </div>
         `;
     }
 
@@ -458,7 +460,7 @@ class App {
     }
 
     // ✅ MÉTODOS PARA FILTROS DO DASHBOARD
-  async aplicarFiltrosDashboard() {
+    async aplicarFiltrosDashboard() {
     const status = document.getElementById('filtroStatus').value;
     const empresaId = document.getElementById('filtroEmpresa').value;
     const search = document.getElementById('pesquisaDashboard').value;
@@ -535,7 +537,8 @@ renderResultadosComFiltros(documentos) {
         </div>
     `;
 }
-   limparFiltrosDashboard() {
+
+ limparFiltrosDashboard() {
     // Limpar campos de filtro
     document.getElementById('filtroStatus').value = '';
     document.getElementById('filtroEmpresa').value = '';
@@ -549,30 +552,46 @@ renderResultadosComFiltros(documentos) {
         this.showAlert('Funcionalidade de exportação em desenvolvimento', 'info');
     }
 
+    // ✅ MÉTODOS PARA EMPRESAS
     async renderEmpresas() {
-        const empresas = await this.apiRequest('/empresas');
-        
-        return `
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h1 class="page-title">Empresas</h1>
-                <button class="btn btn-primary" onclick="app.openEmpresaModal()">
-                    <i class="fas fa-plus"></i> Nova Empresa
-                </button>
-            </div>
+        try {
+            const empresas = await this.apiRequest('/empresas');
+            
+            return `
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h1 class="page-title">
+                        <i class="fas fa-building me-2"></i>Empresas
+                    </h1>
+                    <button class="btn btn-primary" onclick="app.openEmpresaModal()">
+                        <i class="fas fa-plus"></i> Nova Empresa
+                    </button>
+                </div>
 
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <span>Lista de Empresas</span>
-                    <span class="badge bg-primary">${empresas.length} empresas</span>
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span>Lista de Empresas</span>
+                        <span class="badge bg-primary">${empresas.length} empresas</span>
+                    </div>
+                    <div class="card-body">
+                        ${empresas.length === 0 ? 
+                            '<div class="text-center py-5"><i class="fas fa-building fa-3x text-muted mb-3"></i><p class="text-muted">Nenhuma empresa cadastrada</p><button class="btn btn-primary mt-2" onclick="app.openEmpresaModal()">Cadastrar Primeira Empresa</button></div>' : 
+                            this.renderEmpresasTable(empresas)
+                        }
+                    </div>
                 </div>
-                <div class="card-body">
-                    ${empresas.length === 0 ? 
-                        '<div class="text-center py-5"><i class="fas fa-building fa-3x text-muted mb-3"></i><p class="text-muted">Nenhuma empresa cadastrada</p><button class="btn btn-primary mt-2" onclick="app.openEmpresaModal()">Cadastrar Primeira Empresa</button></div>' : 
-                        this.renderEmpresasTable(empresas)
-                    }
+            `;
+        } catch (error) {
+            console.error('Erro ao carregar empresas:', error);
+            return `
+                <div class="alert alert-danger">
+                    <h4>Erro ao carregar empresas</h4>
+                    <p>${error.message}</p>
+                    <button class="btn btn-primary" onclick="app.loadPage('empresas')">
+                        Tentar Novamente
+                    </button>
                 </div>
-            </div>
-        `;
+            `;
+        }
     }
 
     renderEmpresasTable(empresas) {
@@ -584,7 +603,7 @@ renderResultadosComFiltros(documentos) {
                             <th>Razão Social</th>
                             <th>CNPJ</th>
                             <th>Telefone</th>
-                            <th>E-mail</th>
+                            <th>Regime</th>
                             <th>Data Cadastro</th>
                             <th>Ações</th>
                         </tr>
@@ -592,15 +611,25 @@ renderResultadosComFiltros(documentos) {
                     <tbody>
                         ${empresas.map(empresa => `
                             <tr>
-                                <td>${empresa.razao_social}</td>
+                                <td>
+                                    <strong>${empresa.razao_social}</strong>
+                                    ${empresa.nome_fantasia ? `<br><small class="text-muted">${empresa.nome_fantasia}</small>` : ''}
+                                </td>
                                 <td>${this.formatCNPJ(empresa.cnpj)}</td>
                                 <td>${empresa.telefone}</td>
-                                <td>${empresa.email}</td>
+                                <td>
+                                    <span class="badge ${empresa.simples_nacional ? 'bg-success' : 'bg-info'}">
+                                        ${empresa.simples_nacional ? 'Simples Nacional' : 'Demais Regimes'}
+                                    </span>
+                                </td>
                                 <td>${this.formatDate(empresa.created_at)}</td>
                                 <td>
                                     <div class="btn-group btn-group-sm">
                                         <button class="btn btn-outline-warning" onclick="app.editEmpresa(${empresa.id})" title="Editar">
                                             <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-outline-info" onclick="app.viewEmpresa(${empresa.id})" title="Ver Detalhes">
+                                            <i class="fas fa-eye"></i>
                                         </button>
                                         <button class="btn btn-outline-danger" onclick="app.deleteEmpresa(${empresa.id})" title="Excluir">
                                             <i class="fas fa-trash"></i>
@@ -615,11 +644,323 @@ renderResultadosComFiltros(documentos) {
         `;
     }
 
+    // ✅ MÉTODO openEmpresaModal ATUALIZADO
+    openEmpresaModal(empresa = null) {
+        const title = empresa ? 'Editar Empresa' : 'Nova Empresa';
+        const isSimplesNacional = empresa ? (empresa.simples_nacional ? 'checked' : '') : 'checked';
+        
+        const content = `
+            <form id="empresaForm">
+                <input type="hidden" id="empresaId" value="${empresa?.id || ''}">
+                
+                <!-- Seção de Consulta CNPJ (apenas para novo cadastro) -->
+                ${!empresa ? `
+                <div class="mb-4 p-3 bg-light rounded">
+                    <h6><i class="fas fa-search me-2"></i>Consulta por CNPJ</h6>
+                    <div class="row g-2">
+                        <div class="col-md-8">
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="cnpjConsulta" 
+                                   placeholder="Digite o CNPJ (apenas números)"
+                                   maxlength="18">
+                        </div>
+                        <div class="col-md-4">
+                            <button type="button" 
+                                    class="btn btn-outline-primary w-100" 
+                                    onclick="app.consultarCNPJ()"
+                                    id="btnConsultarCNPJ">
+                                <i class="fas fa-search me-1"></i> Consultar
+                            </button>
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <small class="text-muted">
+                            Digite o CNPJ e clique em consultar para preencher os dados automaticamente
+                        </small>
+                    </div>
+                    <div id="cnpjConsultaStatus" class="mt-2"></div>
+                </div>
+                ` : ''}
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label required-field">CNPJ *</label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="cnpj" 
+                                   value="${empresa?.cnpj || ''}" 
+                                   required
+                                   oninput="app.formatarCNPJ(this)">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label required-field">Razão Social *</label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="razaoSocial" 
+                                   value="${empresa?.razao_social || ''}" 
+                                   required>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Nome Fantasia</label>
+                    <input type="text" 
+                           class="form-control" 
+                           id="nomeFantasia" 
+                           value="${empresa?.nome_fantasia || ''}">
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label required-field">Telefone *</label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="telefone" 
+                                   value="${empresa?.telefone || ''}" 
+                                   required>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label required-field">E-mail *</label>
+                            <input type="email" 
+                                   class="form-control" 
+                                   id="email" 
+                                   value="${empresa?.email || ''}" 
+                                   required>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- NOVOS CAMPOS ADICIONADOS -->
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Login Municipal</label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="loginMunicipal" 
+                                   value="${empresa?.login_municipal || ''}"
+                                   placeholder="Login para acesso ao sistema municipal">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Senha Municipal</label>
+                            <input type="password" 
+                                   class="form-control" 
+                                   id="senhaMunicipal" 
+                                   value="${empresa?.senha_municipal || ''}"
+                                   placeholder="Senha para acesso ao sistema municipal">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Login Estadual</label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="loginEstadual" 
+                                   value="${empresa?.login_estadual || ''}"
+                                   placeholder="Login para acesso ao sistema estadual">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Senha Estadual</label>
+                            <input type="password" 
+                                   class="form-control" 
+                                   id="senhaEstadual" 
+                                   value="${empresa?.senha_estadual || ''}"
+                                   placeholder="Senha para acesso ao sistema estadual">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- REGIME TRIBUTÁRIO -->
+                <div class="mb-3">
+                    <label class="form-label">Regime Tributário</label>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="simplesNacional" 
+                               id="simplesNacionalSim" value="true" ${isSimplesNacional}>
+                        <label class="form-check-label" for="simplesNacionalSim">
+                            Simples Nacional
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="simplesNacional" 
+                               id="simplesNacionalNao" value="false" ${empresa && !empresa.simples_nacional ? 'checked' : ''}>
+                        <label class="form-check-label" for="simplesNacionalNao">
+                            Demais Regimes (Lucro Presumido/Real)
+                        </label>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Observações</label>
+                    <textarea class="form-control" 
+                              id="observacoes" 
+                              rows="3"
+                              placeholder="Observações adicionais sobre a empresa">${empresa?.observacoes || ''}</textarea>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Endereço</label>
+                    <textarea class="form-control" 
+                              id="endereco" 
+                              rows="2">${empresa?.endereco || ''}</textarea>
+                </div>
+            </form>
+        `;
+
+        this.showModal(title, content, () => this.saveEmpresa());
+        
+        // Adicionar máscara ao CNPJ de consulta se for um novo cadastro
+        if (!empresa) {
+            setTimeout(() => {
+                const cnpjConsulta = document.getElementById('cnpjConsulta');
+                if (cnpjConsulta) {
+                    cnpjConsulta.addEventListener('input', function(e) {
+                        app.formatarCNPJConsulta(e.target);
+                    });
+                }
+            }, 100);
+        }
+    }
+
+    // ✅ MÉTODO saveEmpresa ATUALIZADO
+    async saveEmpresa() {
+        const simplesNacional = document.querySelector('input[name="simplesNacional"]:checked')?.value === 'true';
+        
+        const formData = {
+            razao_social: document.getElementById('razaoSocial').value,
+            nome_fantasia: document.getElementById('nomeFantasia').value,
+            cnpj: document.getElementById('cnpj').value.replace(/\D/g, ''),
+            telefone: document.getElementById('telefone').value.substring(0, 50),
+            email: document.getElementById('email').value,
+            endereco: document.getElementById('endereco').value,
+            login_municipal: document.getElementById('loginMunicipal').value,
+            senha_municipal: document.getElementById('senhaMunicipal').value,
+            login_estadual: document.getElementById('loginEstadual').value,
+            senha_estadual: document.getElementById('senhaEstadual').value,
+            simples_nacional: simplesNacional,
+            observacoes: document.getElementById('observacoes').value
+        };
+
+        const id = document.getElementById('empresaId').value;
+        
+        try {
+            if (id) {
+                await this.apiRequest(`/empresas/${id}`, {
+                    method: 'PUT',
+                    body: formData
+                });
+                this.showAlert('Empresa atualizada com sucesso!', 'success');
+            } else {
+                await this.apiRequest('/empresas', {
+                    method: 'POST',
+                    body: formData
+                });
+                this.showAlert('Empresa criada com sucesso!', 'success');
+            }
+
+            bootstrap.Modal.getInstance(document.getElementById('dynamicModal')).hide();
+            this.loadPage('empresas');
+        } catch (error) {
+            this.showAlert(`Erro ao salvar empresa: ${error.message}`, 'danger');
+        }
+    }
+
+    async editEmpresa(id) {
+        try {
+            const empresa = await this.apiRequest(`/empresas/${id}`);
+            this.openEmpresaModal(empresa);
+        } catch (error) {
+            this.showAlert(`Erro ao carregar empresa: ${error.message}`, 'danger');
+        }
+    }
+
+    async viewEmpresa(id) {
+        try {
+            const empresa = await this.apiRequest(`/empresas/${id}`);
+            
+            const content = `
+                <div class="empresa-details">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Informações Básicas</h6>
+                            <p><strong>Razão Social:</strong> ${empresa.razao_social}</p>
+                            <p><strong>Nome Fantasia:</strong> ${empresa.nome_fantasia || 'Não informado'}</p>
+                            <p><strong>CNPJ:</strong> ${this.formatCNPJ(empresa.cnpj)}</p>
+                            <p><strong>Regime Tributário:</strong> 
+                                <span class="badge ${empresa.simples_nacional ? 'bg-success' : 'bg-info'}">
+                                    ${empresa.simples_nacional ? 'Simples Nacional' : 'Demais Regimes'}
+                                </span>
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Contato</h6>
+                            <p><strong>Telefone:</strong> ${empresa.telefone}</p>
+                            <p><strong>E-mail:</strong> ${empresa.email}</p>
+                            <p><strong>Endereço:</strong> ${empresa.endereco || 'Não informado'}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="row mt-3">
+                        <div class="col-md-6">
+                            <h6>Acessos Municipais</h6>
+                            <p><strong>Login:</strong> ${empresa.login_municipal || 'Não informado'}</p>
+                            <p><strong>Senha:</strong> ${empresa.senha_municipal ? '••••••••' : 'Não informada'}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Acessos Estaduais</h6>
+                            <p><strong>Login:</strong> ${empresa.login_estadual || 'Não informado'}</p>
+                            <p><strong>Senha:</strong> ${empresa.senha_estadual ? '••••••••' : 'Não informada'}</p>
+                        </div>
+                    </div>
+                    
+                    ${empresa.observacoes ? `
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <h6>Observações</h6>
+                            <p>${empresa.observacoes}</p>
+                        </div>
+                    </div>
+                    ` : ''}
+                </div>
+            `;
+            
+            this.showModal('Detalhes da Empresa', content, null);
+            
+        } catch (error) {
+            this.showAlert(`Erro ao carregar detalhes: ${error.message}`, 'danger');
+        }
+    }
+
+    async deleteEmpresa(id) {
+        if (confirm('Tem certeza que deseja excluir esta empresa?')) {
+            try {
+                await this.apiRequest(`/empresas/${id}`, { method: 'DELETE' });
+                this.showAlert('Empresa excluída com sucesso!', 'success');
+                this.loadPage('empresas');
+            } catch (error) {
+                this.showAlert(`Erro ao excluir empresa: ${error.message}`, 'danger');
+            }
+        }
+    }
+
+    // ✅ MÉTODOS PARA DOCUMENTOS
     async renderDocumentos() {
         try {
             const documentos = await this.apiRequest('/documentos');
-            const empresas = await this.apiRequest('/empresas');
-            const responsaveis = await this.apiRequest('/responsaveis');
             
             return `
                 <div class="documentos-module">
@@ -639,7 +980,7 @@ renderResultadosComFiltros(documentos) {
 
                     <!-- Formulário de Documento (inicialmente oculto) -->
                     <div id="formulario-documento" style="display: none;">
-                        ${this.renderFormularioDocumento(empresas, responsaveis)}
+                        ${await this.renderFormularioDocumento()}
                     </div>
                 </div>
             `;
@@ -735,400 +1076,134 @@ renderResultadosComFiltros(documentos) {
         `;
     }
 
-    renderFormularioDocumento(empresas, responsaveis) {
-        return `
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0" id="titulo-formulario">Cadastrar Novo Documento</h5>
-                    <button class="btn btn-outline-secondary btn-sm" onclick="app.voltarParaLista()">
-                        <i class="fas fa-arrow-left"></i> Voltar para Lista
-                    </button>
-                </div>
-                <div class="card-body">
-                    <form id="formDocumento" onsubmit="app.salvarDocumento(event)">
-                        <input type="hidden" id="documentoId">
-                        
-                        <!-- Mensagens de status -->
-                        <div id="mensagemStatus"></div>
-
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label required-field">Tipo de Documento</label>
-                                    <select class="form-select" id="tipo" required>
-                                        <option value="">Selecione o tipo...</option>
-                                        <option value="Alvará">Alvará</option>
-                                        <option value="Licença">Licença</option>
-                                        <option value="Certidão">Certidão</option>
-                                        <option value="Contrato">Contrato</option>
-                                        <option value="Declaração">Declaração</option>
-                                        <option value="Outros">Outros</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label required-field">Nome do Documento</label>
-                                    <input type="text" class="form-control" id="nome" 
-                                           placeholder="Ex: Alvará de Funcionamento" required>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label required-field">Empresa</label>
-                                    <select class="form-select" id="empresa_id" required>
-                                        <option value="">Selecione a empresa...</option>
-                                        ${empresas.map(empresa => `
-                                            <option value="${empresa.id}">
-                                                ${empresa.razao_social} 
-                                                ${empresa.nome_fantasia ? `- ${empresa.nome_fantasia}` : ''}
-                                            </option>
-                                        `).join('')}
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label required-field">Responsável</label>
-                                    <select class="form-select" id="responsavel_id" required>
-                                        <option value="">Selecione o responsável...</option>
-                                        ${responsaveis.map(resp => `
-                                            <option value="${resp.id}">
-                                                ${resp.nome} - ${resp.funcao}
-                                            </option>
-                                        `).join('')}
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label required-field">Data de Emissão</label>
-                                    <input type="date" class="form-control" id="data_emissao" required>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label required-field">Data de Vencimento</label>
-                                    <input type="date" class="form-control" id="data_vencimento" required>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label">Observações</label>
-                            <textarea class="form-control" id="observacoes" rows="3" 
-                                      placeholder="Adicione observações sobre este documento..."></textarea>
-                        </div>
-
-                        <div class="mb-4">
-                            <label class="form-label">Anexar Arquivo</label>
-                            <div class="file-upload" onclick="document.getElementById('arquivo').click()">
-                                <i class="fas fa-cloud-upload-alt"></i>
-                                <p>Clique para selecionar o arquivo</p>
-                                <p class="small text-muted">Formatos: PDF, JPG, PNG (Máx. 10MB)</p>
-                                <input type="file" id="arquivo" style="display: none;" 
-                                       accept=".pdf,.jpg,.jpeg,.png" onchange="app.handleFileSelect(this.files)">
-                            </div>
-                            <div id="infoArquivo" class="file-info"></div>
-                        </div>
-
-                        <div class="d-flex gap-2">
-                            <button type="submit" class="btn btn-primary" id="btnSalvar">
-                                <i class="fas fa-save"></i> Salvar Documento
-                            </button>
-                            <button type="button" class="btn btn-outline-secondary" onclick="app.voltarParaLista()">
-                                <i class="fas fa-times"></i> Cancelar
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        `;
-    }
-
-    async renderResponsaveis() {
-        const responsaveis = await this.apiRequest('/responsaveis');
-        
-        return `
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h1 class="page-title">Responsáveis</h1>
-                <button class="btn btn-primary" onclick="app.openResponsavelModal()">
-                    <i class="fas fa-plus"></i> Novo Responsável
-                </button>
-            </div>
-
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <span>Lista de Responsáveis</span>
-                    <span class="badge bg-primary">${responsaveis.length} responsáveis</span>
-                </div>
-                <div class="card-body">
-                    ${responsaveis.length === 0 ? 
-                        '<div class="text-center py-5"><i class="fas fa-users fa-3x text-muted mb-3"></i><p class="text-muted">Nenhum responsável cadastrado</p></div>' : 
-                        this.renderResponsaveisTable(responsaveis)
-                    }
-                </div>
-            </div>
-        `;
-    }
-
-    renderResponsaveisTable(responsaveis) {
-        return `
-            <div class="table-responsive">
-                <table class="table table-hover">
-                    <thead>
-                        <tr>
-                            <th>Nome</th>
-                            <th>E-mail</th>
-                            <th>Telefone</th>
-                            <th>Função</th>
-                            <th>Empresa</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${responsaveis.map(resp => `
-                            <tr>
-                                <td>${resp.nome}</td>
-                                <td>${resp.email}</td>
-                                <td>${resp.telefone}</td>
-                                <td><span class="badge bg-secondary">${resp.funcao}</span></td>
-                                <td>${resp.empresa_nome || 'N/A'}</td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            </div>
-        `;
-    }
-
-    // ========== MÉTODOS PARA CONSULTA CNPJ ==========
-
-    openEmpresaModal(empresa = null) {
-        const title = empresa ? 'Editar Empresa' : 'Nova Empresa';
-        const content = `
-            <form id="empresaForm">
-                <input type="hidden" id="empresaId" value="${empresa?.id || ''}">
-                
-                <!-- Seção de Consulta CNPJ (apenas para novo cadastro) -->
-                ${!empresa ? `
-                <div class="mb-4 p-3 bg-light rounded">
-                    <h6><i class="fas fa-search me-2"></i>Consulta por CNPJ</h6>
-                    <div class="row g-2">
-                        <div class="col-md-8">
-                            <input type="text" 
-                                   class="form-control" 
-                                   id="cnpjConsulta" 
-                                   placeholder="Digite o CNPJ (apenas números)"
-                                   maxlength="18">
-                        </div>
-                        <div class="col-md-4">
-                            <button type="button" 
-                                    class="btn btn-outline-primary w-100" 
-                                    onclick="app.consultarCNPJ()"
-                                    id="btnConsultarCNPJ">
-                                <i class="fas fa-search me-1"></i> Consultar
-                            </button>
-                        </div>
-                    </div>
-                    <div class="mt-2">
-                        <small class="text-muted">
-                            Digite o CNPJ e clique em consultar para preencher os dados automaticamente
-                        </small>
-                    </div>
-                    <div id="cnpjConsultaStatus" class="mt-2"></div>
-                </div>
-                ` : ''}
-                
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label class="form-label required-field">CNPJ *</label>
-                            <input type="text" 
-                                   class="form-control" 
-                                   id="cnpj" 
-                                   value="${empresa?.cnpj || ''}" 
-                                   required
-                                   oninput="app.formatarCNPJ(this)">
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label class="form-label required-field">Razão Social *</label>
-                            <input type="text" 
-                                   class="form-control" 
-                                   id="razaoSocial" 
-                                   value="${empresa?.razao_social || ''}" 
-                                   required>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label">Nome Fantasia</label>
-                    <input type="text" 
-                           class="form-control" 
-                           id="nomeFantasia" 
-                           value="${empresa?.nome_fantasia || ''}">
-                </div>
-
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label class="form-label required-field">Telefone *</label>
-                            <input type="text" 
-                                   class="form-control" 
-                                   id="telefone" 
-                                   value="${empresa?.telefone || ''}" 
-                                   required>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label class="form-label required-field">E-mail *</label>
-                            <input type="email" 
-                                   class="form-control" 
-                                   id="email" 
-                                   value="${empresa?.email || ''}" 
-                                   required>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label">Endereço</label>
-                    <textarea class="form-control" 
-                              id="endereco" 
-                              rows="2">${empresa?.endereco || ''}</textarea>
-                </div>
-            </form>
-        `;
-
-        this.showModal(title, content, () => this.saveEmpresa());
-        
-        // Adicionar máscara ao CNPJ de consulta se for um novo cadastro
-        if (!empresa) {
-            setTimeout(() => {
-                const cnpjConsulta = document.getElementById('cnpjConsulta');
-                if (cnpjConsulta) {
-                    cnpjConsulta.addEventListener('input', function(e) {
-                        app.formatarCNPJConsulta(e.target);
-                    });
-                }
-            }, 100);
-        }
-    }
-
-    async consultarCNPJ() {
-        const cnpjInput = document.getElementById('cnpjConsulta');
-        const cnpj = cnpjInput.value.replace(/\D/g, '');
-        const statusDiv = document.getElementById('cnpjConsultaStatus');
-        const btnConsultar = document.getElementById('btnConsultarCNPJ');
-        
-        // Validação básica do CNPJ
-        if (cnpj.length !== 14) {
-            statusDiv.innerHTML = `
-                <div class="alert alert-warning alert-sm">
-                    <i class="fas fa-exclamation-triangle"></i> CNPJ deve ter 14 dígitos
-                </div>
-            `;
-            return;
-        }
-        
+    async renderFormularioDocumento() {
         try {
-            // Mostrar loading
-            btnConsultar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Consultando...';
-            btnConsultar.disabled = true;
-            statusDiv.innerHTML = `
-                <div class="alert alert-info alert-sm">
-                    <i class="fas fa-sync fa-spin"></i> Consultando CNPJ na Receita Federal...
+            const empresas = await this.apiRequest('/empresas');
+            const responsaveis = await this.apiRequest('/responsaveis');
+            
+            return `
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0" id="titulo-formulario">Cadastrar Novo Documento</h5>
+                        <button class="btn btn-outline-secondary btn-sm" onclick="app.voltarParaLista()">
+                            <i class="fas fa-arrow-left"></i> Voltar para Lista
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <form id="formDocumento" onsubmit="app.salvarDocumento(event)">
+                            <input type="hidden" id="documentoId">
+                            
+                            <!-- Mensagens de status -->
+                            <div id="mensagemStatus"></div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label required-field">Tipo de Documento</label>
+                                        <select class="form-select" id="tipo" required>
+                                            <option value="">Selecione o tipo...</option>
+                                            <option value="Alvará">Alvará</option>
+                                            <option value="Licença">Licença</option>
+                                            <option value="Certidão">Certidão</option>
+                                            <option value="Contrato">Contrato</option>
+                                            <option value="Declaração">Declaração</option>
+                                            <option value="Outros">Outros</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label required-field">Nome do Documento</label>
+                                        <input type="text" class="form-control" id="nome" 
+                                               placeholder="Ex: Alvará de Funcionamento" required>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label required-field">Empresa</label>
+                                        <select class="form-select" id="empresa_id" required>
+                                            <option value="">Selecione a empresa...</option>
+                                            ${empresas.map(empresa => `
+                                                <option value="${empresa.id}">
+                                                    ${empresa.razao_social} 
+                                                    ${empresa.nome_fantasia ? `- ${empresa.nome_fantasia}` : ''}
+                                                </option>
+                                            `).join('')}
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label required-field">Responsável</label>
+                                        <select class="form-select" id="responsavel_id" required>
+                                            <option value="">Selecione o responsável...</option>
+                                            ${responsaveis.map(resp => `
+                                                <option value="${resp.id}">
+                                                    ${resp.nome} - ${resp.funcao}
+                                                </option>
+                                            `).join('')}
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label required-field">Data de Emissão</label>
+                                        <input type="date" class="form-control" id="data_emissao" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label required-field">Data de Vencimento</label>
+                                        <input type="date" class="form-control" id="data_vencimento" required>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Observações</label>
+                                <textarea class="form-control" id="observacoes" rows="3" 
+                                          placeholder="Adicione observações sobre este documento..."></textarea>
+                            </div>
+
+                            <div class="mb-4">
+                                <label class="form-label">Anexar Arquivo</label>
+                                <div class="file-upload" onclick="document.getElementById('arquivo').click()">
+                                    <i class="fas fa-cloud-upload-alt"></i>
+                                    <p>Clique para selecionar o arquivo</p>
+                                    <p class="small text-muted">Formatos: PDF, JPG, PNG (Máx. 10MB)</p>
+                                    <input type="file" id="arquivo" style="display: none;" 
+                                           accept=".pdf,.jpg,.jpeg,.png" onchange="app.handleFileSelect(this.files)">
+                                </div>
+                                <div id="infoArquivo" class="file-info"></div>
+                            </div>
+
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-primary" id="btnSalvar">
+                                    <i class="fas fa-save"></i> Salvar Documento
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary" onclick="app.voltarParaLista()">
+                                    <i class="fas fa-times"></i> Cancelar
+                                </button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
             `;
-            
-            console.log(`Consultando CNPJ: ${cnpj}`);
-            
-            const response = await fetch(`/api/consulta-cnpj/${cnpj}`);
-            const data = await response.json();
-            
-            if (!response.ok) {
-                throw new Error(data.error || 'Erro na consulta');
-            }
-            
-            // Preencher os campos com os dados da consulta
-            this.preencherDadosEmpresa(data);
-            
-            statusDiv.innerHTML = `
-                <div class="alert alert-success alert-sm">
-                    <i class="fas fa-check-circle"></i> Dados da empresa carregados com sucesso!
-                </div>
-            `;
-            
-            // Focar no próximo campo
-            document.getElementById('telefone').focus();
-            
         } catch (error) {
-            console.error('Erro na consulta de CNPJ:', error);
-            statusDiv.innerHTML = `
-                <div class="alert alert-danger alert-sm">
-                    <i class="fas fa-times-circle"></i> ${error.message}
+            return `
+                <div class="alert alert-danger">
+                    <h4>Erro ao carregar formulário</h4>
+                    <p>${error.message}</p>
                 </div>
             `;
-        } finally {
-            // Restaurar botão
-            btnConsultar.innerHTML = '<i class="fas fa-search me-1"></i> Consultar';
-            btnConsultar.disabled = false;
         }
     }
-
-    preencherDadosEmpresa(data) {
-        // Limitar o telefone para 50 caracteres
-        const telefoneLimitado = data.telefone ? data.telefone.substring(0, 50) : '';
-        
-        document.getElementById('cnpj').value = data.cnpj || '';
-        document.getElementById('razaoSocial').value = data.razao_social || '';
-        document.getElementById('nomeFantasia').value = data.nome_fantasia || '';
-        document.getElementById('telefone').value = telefoneLimitado;
-        document.getElementById('email').value = data.email || '';
-        document.getElementById('endereco').value = data.endereco || '';
-    }
-
-    formatarCNPJ(input) {
-        let value = input.value.replace(/\D/g, '');
-        
-        if (value.length <= 14) {
-            value = value.replace(/(\d{2})(\d)/, '$1.$2');
-            value = value.replace(/(\d{3})(\d)/, '$1.$2');
-            value = value.replace(/(\d{3})(\d)/, '$1/$2');
-            value = value.replace(/(\d{4})(\d{1,2})$/, '$1-$2');
-        }
-        
-        input.value = value;
-    }
-
-    formatarCNPJConsulta(input) {
-        let value = input.value.replace(/\D/g, '');
-        
-        if (value.length <= 14) {
-            value = value.replace(/(\d{2})(\d)/, '$1.$2');
-            value = value.replace(/(\d{3})(\d)/, '$1.$2');
-            value = value.replace(/(\d{3})(\d)/, '$1/$2');
-            value = value.replace(/(\d{4})(\d{1,2})$/, '$1-$2');
-        }
-        
-        input.value = value;
-    }
-
-    formatCNPJ(cnpj) {
-        if (!cnpj) return 'N/A';
-        return cnpj.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
-    }
-
-    // ========== MÉTODOS PARA DOCUMENTOS ==========
 
     abrirFormularioNovoDocumento() {
         document.getElementById('lista-documentos').style.display = 'none';
@@ -1140,6 +1215,17 @@ renderResultadosComFiltros(documentos) {
         document.getElementById('formulario-documento').style.display = 'none';
         document.getElementById('lista-documentos').style.display = 'block';
         this.limparFormularioDocumento();
+    }
+
+    limparFormularioDocumento() {
+        document.getElementById('formDocumento').reset();
+        document.getElementById('documentoId').value = '';
+        document.getElementById('titulo-formulario').textContent = 'Cadastrar Novo Documento';
+        document.getElementById('infoArquivo').className = 'file-info';
+        document.getElementById('infoArquivo').innerHTML = '';
+        this.arquivoSelecionado = null;
+        this.documentoAtual = null;
+        this.limparMensagemDocumento();
     }
 
     handleFileSelect(files) {
@@ -1168,17 +1254,6 @@ renderResultadosComFiltros(documentos) {
             <small>Tamanho: ${(file.size / 1024 / 1024).toFixed(2)} MB</small>
         `;
         infoArquivo.className = 'file-info show';
-    }
-
-    limparFormularioDocumento() {
-        document.getElementById('formDocumento').reset();
-        document.getElementById('documentoId').value = '';
-        document.getElementById('titulo-formulario').textContent = 'Cadastrar Novo Documento';
-        document.getElementById('infoArquivo').className = 'file-info';
-        document.getElementById('infoArquivo').innerHTML = '';
-        this.arquivoSelecionado = null;
-        this.documentoAtual = null;
-        this.limparMensagemDocumento();
     }
 
     async salvarDocumento(event) {
@@ -1335,6 +1410,85 @@ renderResultadosComFiltros(documentos) {
         div.innerHTML = '';
     }
 
+    // ✅ MÉTODOS PARA RESPONSÁVEIS
+    async renderResponsaveis() {
+        try {
+            const responsaveis = await this.apiRequest('/responsaveis');
+            
+            return `
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h1 class="page-title">
+                        <i class="fas fa-users me-2"></i>Responsáveis
+                    </h1>
+                    <button class="btn btn-primary" onclick="app.openResponsavelModal()">
+                        <i class="fas fa-plus"></i> Novo Responsável
+                    </button>
+                </div>
+
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span>Lista de Responsáveis</span>
+                        <span class="badge bg-primary">${responsaveis.length} responsáveis</span>
+                    </div>
+                    <div class="card-body">
+                        ${responsaveis.length === 0 ? 
+                            '<div class="text-center py-5"><i class="fas fa-users fa-3x text-muted mb-3"></i><p class="text-muted">Nenhum responsável cadastrado</p></div>' : 
+                            this.renderResponsaveisTable(responsaveis)
+                        }
+                    </div>
+                </div>
+            `;
+        } catch (error) {
+            return `
+                <div class="alert alert-danger">
+                    <h4>Erro ao carregar responsáveis</h4>
+                    <p>${error.message}</p>
+                    <button class="btn btn-primary" onclick="app.loadPage('responsaveis')">
+                        Tentar Novamente
+                    </button>
+                </div>
+            `;
+        }
+    }
+
+    renderResponsaveisTable(responsaveis) {
+        return `
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Nome</th>
+                            <th>E-mail</th>
+                            <th>Telefone</th>
+                            <th>Função</th>
+                            <th>Empresa</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${responsaveis.map(resp => `
+                            <tr>
+                                <td>${resp.nome}</td>
+                                <td>${resp.email}</td>
+                                <td>${resp.telefone}</td>
+                                <td><span class="badge bg-secondary">${resp.funcao}</span></td>
+                                <td>${resp.empresa_nome || 'N/A'}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    }
+
+    openResponsavelModal() {
+        this.showModal('Novo Responsável', `
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i> Funcionalidade em desenvolvimento
+            </div>
+        `, () => {});
+    }
+
+    // ✅ MÉTODOS AUXILIARES
     getDocumentStatus(documento) {
         const vencimento = new Date(documento.data_vencimento);
         const hoje = new Date();
@@ -1364,16 +1518,128 @@ renderResultadosComFiltros(documentos) {
         }
     }
 
-    // ========== MÉTODOS GERAIS ==========
-
-    openResponsavelModal() {
-        this.showModal('Novo Responsável', `
-            <div class="alert alert-info">
-                <i class="fas fa-info-circle"></i> Funcionalidade em desenvolvimento
-            </div>
-        `, () => {});
+    calculateDiasRestantes(dataVencimento) {
+        const vencimento = new Date(dataVencimento);
+        const hoje = new Date();
+        const diffTime = vencimento - hoje;
+        return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     }
 
+    formatDate(dateString) {
+        if (!dateString) return 'N/A';
+        try {
+            return new Date(dateString).toLocaleDateString('pt-BR');
+        } catch (error) {
+            return 'Data inválida';
+        }
+    }
+
+    formatCNPJ(cnpj) {
+        if (!cnpj) return 'N/A';
+        return cnpj.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
+    }
+
+    // ✅ MÉTODOS PARA CONSULTA CNPJ
+    async consultarCNPJ() {
+        const cnpjInput = document.getElementById('cnpjConsulta');
+        const cnpj = cnpjInput.value.replace(/\D/g, '');
+        const statusDiv = document.getElementById('cnpjConsultaStatus');
+        const btnConsultar = document.getElementById('btnConsultarCNPJ');
+        
+        // Validação básica do CNPJ
+        if (cnpj.length !== 14) {
+            statusDiv.innerHTML = `
+                <div class="alert alert-warning alert-sm">
+                    <i class="fas fa-exclamation-triangle"></i> CNPJ deve ter 14 dígitos
+                </div>
+            `;
+            return;
+        }
+        
+        try {
+            // Mostrar loading
+            btnConsultar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Consultando...';
+            btnConsultar.disabled = true;
+            statusDiv.innerHTML = `
+                <div class="alert alert-info alert-sm">
+                    <i class="fas fa-sync fa-spin"></i> Consultando CNPJ na Receita Federal...
+                </div>
+            `;
+            
+            console.log(`Consultando CNPJ: ${cnpj}`);
+            
+            const response = await fetch(`/api/consulta-cnpj/${cnpj}`);
+            const data = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(data.error || 'Erro na consulta');
+            }
+            
+            // Preencher os campos com os dados da consulta
+            this.preencherDadosEmpresa(data);
+            
+            statusDiv.innerHTML = `
+                <div class="alert alert-success alert-sm">
+                    <i class="fas fa-check-circle"></i> Dados da empresa carregados com sucesso!
+                </div>
+            `;
+            
+            // Focar no próximo campo
+            document.getElementById('telefone').focus();
+            
+        } catch (error) {
+            console.error('Erro na consulta de CNPJ:', error);
+            statusDiv.innerHTML = `
+                <div class="alert alert-danger alert-sm">
+                    <i class="fas fa-times-circle"></i> ${error.message}
+                </div>
+            `;
+        } finally {
+            // Restaurar botão
+            btnConsultar.innerHTML = '<i class="fas fa-search me-1"></i> Consultar';
+            btnConsultar.disabled = false;
+        }
+    }
+
+    preencherDadosEmpresa(data) {
+        // Limitar o telefone para 50 caracteres
+        const telefoneLimitado = data.telefone ? data.telefone.substring(0, 50) : '';
+        
+        document.getElementById('cnpj').value = data.cnpj || '';
+        document.getElementById('razaoSocial').value = data.razao_social || '';
+        document.getElementById('nomeFantasia').value = data.nome_fantasia || '';
+        document.getElementById('telefone').value = telefoneLimitado;
+        document.getElementById('email').value = data.email || '';
+        document.getElementById('endereco').value = data.endereco || '';
+    }
+
+    formatarCNPJ(input) {
+        let value = input.value.replace(/\D/g, '');
+        
+        if (value.length <= 14) {
+            value = value.replace(/(\d{2})(\d)/, '$1.$2');
+            value = value.replace(/(\d{3})(\d)/, '$1.$2');
+            value = value.replace(/(\d{3})(\d)/, '$1/$2');
+            value = value.replace(/(\d{4})(\d{1,2})$/, '$1-$2');
+        }
+        
+        input.value = value;
+    }
+
+    formatarCNPJConsulta(input) {
+        let value = input.value.replace(/\D/g, '');
+        
+        if (value.length <= 14) {
+            value = value.replace(/(\d{2})(\d)/, '$1.$2');
+            value = value.replace(/(\d{3})(\d)/, '$1.$2');
+            value = value.replace(/(\d{3})(\d)/, '$1/$2');
+            value = value.replace(/(\d{4})(\d{1,2})$/, '$1-$2');
+        }
+        
+        input.value = value;
+    }
+
+    // ✅ MÉTODOS GERAIS
     showModal(title, content, onSave) {
         const modalHtml = `
             <div class="modal fade" id="dynamicModal" tabindex="-1">
@@ -1388,7 +1654,7 @@ renderResultadosComFiltros(documentos) {
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                            <button type="button" class="btn btn-primary" id="modalSave">Salvar</button>
+                            ${onSave ? `<button type="button" class="btn btn-primary" id="modalSave">Salvar</button>` : ''}
                         </div>
                     </div>
                 </div>
@@ -1400,7 +1666,9 @@ renderResultadosComFiltros(documentos) {
         const modal = new bootstrap.Modal(document.getElementById('dynamicModal'));
         modal.show();
 
-        document.getElementById('modalSave').onclick = onSave;
+        if (onSave) {
+            document.getElementById('modalSave').onclick = onSave;
+        }
 
         document.getElementById('dynamicModal').addEventListener('hidden.bs.modal', () => {
             document.getElementById('modals-container').innerHTML = '';
@@ -1433,22 +1701,6 @@ renderResultadosComFiltros(documentos) {
         return await response.json();
     }
 
-    formatDate(dateString) {
-        if (!dateString) return 'N/A';
-        try {
-            return new Date(dateString).toLocaleDateString('pt-BR');
-        } catch (error) {
-            return 'Data inválida';
-        }
-    }
-
-    calculateDiasRestantes(dataVencimento) {
-        const vencimento = new Date(dataVencimento);
-        const hoje = new Date();
-        const diffTime = vencimento - hoje;
-        return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    }
-
     showAlert(message, type = 'info') {
         const alert = document.createElement('div');
         alert.className = `alert alert-${type} alert-dismissible fade show`;
@@ -1468,77 +1720,6 @@ renderResultadosComFiltros(documentos) {
 
     initializePageEvents(page) {
         console.log(`Eventos inicializados para: ${page}`);
-        
-        if (page === 'dashboard') {
-            // Inicializar tooltips se necessário
-            if (typeof bootstrap !== 'undefined') {
-                const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-                tooltipTriggerList.map(function (tooltipTriggerEl) {
-                    return new bootstrap.Tooltip(tooltipTriggerEl);
-                });
-            }
-        }
-    }
-
-    async saveEmpresa() {
-        const formData = {
-            razao_social: document.getElementById('razaoSocial').value,
-            nome_fantasia: document.getElementById('nomeFantasia').value,
-            cnpj: document.getElementById('cnpj').value.replace(/\D/g, ''),
-            telefone: document.getElementById('telefone').value.substring(0, 50), // Limitar telefone
-            email: document.getElementById('email').value,
-            endereco: document.getElementById('endereco').value
-        };
-
-        // Validação adicional
-        if (formData.telefone.length > 50) {
-            this.showAlert('Telefone muito longo. Máximo 50 caracteres.', 'danger');
-            return;
-        }
-
-        const id = document.getElementById('empresaId').value;
-        
-        try {
-            if (id) {
-                await this.apiRequest(`/empresas/${id}`, {
-                    method: 'PUT',
-                    body: formData
-                });
-                this.showAlert('Empresa atualizada com sucesso!', 'success');
-            } else {
-                await this.apiRequest('/empresas', {
-                    method: 'POST',
-                    body: formData
-                });
-                this.showAlert('Empresa criada com sucesso!', 'success');
-            }
-
-            bootstrap.Modal.getInstance(document.getElementById('dynamicModal')).hide();
-            this.loadPage('empresas');
-        } catch (error) {
-            this.showAlert(`Erro ao salvar empresa: ${error.message}`, 'danger');
-        }
-    }
-
-    async editEmpresa(id) {
-        try {
-            const empresa = await this.apiRequest(`/empresas/${id}`);
-            this.openEmpresaModal(empresa);
-        } catch (error) {
-            this.showAlert(`Erro ao carregar empresa: ${error.message}`, 'danger');
-        }
-    }
-
-    async deleteEmpresa(id) {
-        if (confirm('Tem certeza que deseja excluir esta empresa?')) {
-            try {
-                await this.apiRequest(`/empresas/${id}`, { method: 'DELETE' });
-                this.showAlert('Empresa excluída com sucesso!', 'success');
-                this.loadPage('empresas');
-            } catch (error) {
-                this.showAlert(`Erro ao excluir empresa: ${error.message}`, 'danger');
-            }
-        }
     }
 }
 
