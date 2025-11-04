@@ -1,3 +1,4 @@
+// frontend/app.js
 const API_BASE = '/api';
 
 class App {
@@ -112,76 +113,440 @@ class App {
     }
 
     async renderDashboard() {
-        const data = await this.apiRequest('/dashboard');
-        
-        return `
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h1 class="page-title">Dashboard</h1>
-                <button class="btn btn-outline-primary" onclick="app.loadPage('dashboard')">
-                    <i class="fas fa-sync-alt"></i> Atualizar
-                </button>
-            </div>
+        try {
+            const data = await this.apiRequest('/dashboard/estatisticas');
+            const empresas = await this.apiRequest('/empresas');
+            
+            return `
+                <div class="dashboard-container">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h1 class="page-title">
+                            <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                        </h1>
+                        <button class="btn btn-outline-primary" onclick="app.loadPage('dashboard')">
+                            <i class="fas fa-sync-alt"></i> Atualizar
+                        </button>
+                    </div>
 
-            <div class="row">
-                <div class="col-xl-3 col-md-6 mb-4">
-                    <div class="card card-empresas h-100">
-                        <div class="card-body dashboard-card">
-                            <div class="text-primary">
-                                <i class="fas fa-building fa-2x"></i>
+                    <!-- Cards de Estatísticas -->
+                    <div class="row">
+                        <div class="col-xl-2 col-md-4 col-6 mb-4">
+                            <div class="card card-empresas h-100">
+                                <div class="card-body dashboard-card">
+                                    <div class="text-primary">
+                                        <i class="fas fa-building fa-2x"></i>
+                                    </div>
+                                    <div class="number text-dark">${data.estatisticas.empresas || 0}</div>
+                                    <div class="title">Empresas</div>
+                                </div>
                             </div>
-                            <div class="number text-dark">${data.empresas || 0}</div>
-                            <div class="title">Empresas Cadastradas</div>
+                        </div>
+                        <div class="col-xl-2 col-md-4 col-6 mb-4">
+                            <div class="card card-documentos h-100">
+                                <div class="card-body dashboard-card">
+                                    <div class="text-success">
+                                        <i class="fas fa-file-alt fa-2x"></i>
+                                    </div>
+                                    <div class="number text-dark">${data.estatisticas.documentos || 0}</div>
+                                    <div class="title">Total Docs</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-xl-2 col-md-4 col-6 mb-4">
+                            <div class="card card-vencidos h-100">
+                                <div class="card-body dashboard-card">
+                                    <div class="text-danger">
+                                        <i class="fas fa-exclamation-triangle fa-2x"></i>
+                                    </div>
+                                    <div class="number text-dark">${data.estatisticas.vencidos || 0}</div>
+                                    <div class="title">Vencidos</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-xl-2 col-md-4 col-6 mb-4">
+                            <div class="card card-proximos h-100">
+                                <div class="card-body dashboard-card">
+                                    <div class="text-warning">
+                                        <i class="fas fa-clock fa-2x"></i>
+                                    </div>
+                                    <div class="number text-dark">${data.estatisticas.proximos || 0}</div>
+                                    <div class="title">Próximos</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-xl-2 col-md-4 col-6 mb-4">
+                            <div class="card card-validos h-100">
+                                <div class="card-body dashboard-card">
+                                    <div class="text-success">
+                                        <i class="fas fa-check-circle fa-2x"></i>
+                                    </div>
+                                    <div class="number text-dark">${data.estatisticas.validos || 0}</div>
+                                    <div class="title">Válidos</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-xl-2 col-md-4 col-6 mb-4">
+                            <div class="card card-alerta h-100">
+                                <div class="card-body dashboard-card">
+                                    <div class="text-info">
+                                        <i class="fas fa-bell fa-2x"></i>
+                                    </div>
+                                    <div class="number text-dark">${(data.estatisticas.vencidos || 0) + (data.estatisticas.proximos || 0)}</div>
+                                    <div class="title">Alertas</div>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                </div>
-                <div class="col-xl-3 col-md-6 mb-4">
-                    <div class="card card-documentos h-100">
-                        <div class="card-body dashboard-card">
-                            <div class="text-success">
-                                <i class="fas fa-file-alt fa-2x"></i>
-                            </div>
-                            <div class="number text-dark">${data.documentos || 0}</div>
-                            <div class="title">Documentos no Sistema</div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-xl-3 col-md-6 mb-4">
-                    <div class="card card-vencidos h-100">
-                        <div class="card-body dashboard-card">
-                            <div class="text-danger">
-                                <i class="fas fa-exclamation-triangle fa-2x"></i>
-                            </div>
-                            <div class="number text-dark">${data.vencidos || 0}</div>
-                            <div class="title">Documentos Vencidos</div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-xl-3 col-md-6 mb-4">
-                    <div class="card card-proximos h-100">
-                        <div class="card-body dashboard-card">
-                            <div class="text-warning">
-                                <i class="fas fa-clock fa-2x"></i>
-                            </div>
-                            <div class="number text-dark">${data.proximos || 0}</div>
-                            <div class="title">Próximos do Vencimento</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
 
-            <div class="row mt-4">
-                <div class="col-12">
-                    <div class="card">
+                    <!-- Filtros e Pesquisa -->
+                    <div class="card mb-4">
                         <div class="card-header">
-                            <i class="fas fa-clock me-2"></i>Documentos Próximos do Vencimento
+                            <i class="fas fa-filter me-2"></i>Filtros e Pesquisa
                         </div>
                         <div class="card-body">
-                            ${this.renderDocumentosProximosTable(data.proximosVencimentos || [])}
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label class="form-label">Status do Documento</label>
+                                    <select class="form-select" id="filtroStatus" onchange="app.aplicarFiltrosDashboard()">
+                                        <option value="">Todos os documentos</option>
+                                        <option value="vencidos">Documentos Vencidos</option>
+                                        <option value="proximos">Próximos do Vencimento</option>
+                                        <option value="validos">Documentos Válidos</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Filtrar por Empresa</label>
+                                    <select class="form-select" id="filtroEmpresa" onchange="app.aplicarFiltrosDashboard()">
+                                        <option value="">Todas as empresas</option>
+                                        ${empresas.map(empresa => `
+                                            <option value="${empresa.id}">${empresa.razao_social}</option>
+                                        `).join('')}
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Pesquisar</label>
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" id="pesquisaDashboard" 
+                                               placeholder="Nome, tipo ou empresa..." 
+                                               onkeyup="app.aplicarFiltrosDashboard()">
+                                        <button class="btn btn-outline-secondary" type="button" onclick="app.limparFiltrosDashboard()">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
+
+                    <!-- Resultados dos Filtros -->
+                    <div id="resultadosDashboard">
+                        ${this.renderResultadosDashboard(data)}
+                    </div>
+
+                    <!-- Documentos Próximos do Vencimento -->
+                    <div class="row mt-4">
+                        <div class="col-lg-6">
+                            <div class="card">
+                                <div class="card-header bg-warning text-white">
+                                    <i class="fas fa-clock me-2"></i>Documentos Próximos do Vencimento
+                                    <span class="badge bg-light text-dark ms-2">${data.documentosProximos.length}</span>
+                                </div>
+                                <div class="card-body">
+                                    ${this.renderDocumentosProximosTable(data.documentosProximos)}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-6">
+                            <div class="card">
+                                <div class="card-header bg-danger text-white">
+                                    <i class="fas fa-exclamation-triangle me-2"></i>Documentos Vencidos
+                                    <span class="badge bg-light text-dark ms-2">${data.documentosVencidos.length}</span>
+                                </div>
+                                <div class="card-body">
+                                    ${this.renderDocumentosVencidosTable(data.documentosVencidos)}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        } catch (error) {
+            console.error('Erro ao carregar dashboard:', error);
+            return `
+                <div class="alert alert-danger">
+                    <h4>Erro ao carregar dashboard</h4>
+                    <p>${error.message}</p>
+                    <button class="btn btn-primary" onclick="app.loadPage('dashboard')">
+                        Tentar Novamente
+                    </button>
+                </div>
+            `;
+        }
+    }
+
+ renderResultadosDashboard(data) {
+    const totalDocumentos = data.estatisticas.documentos || 0;
+    
+    if (totalDocumentos === 0) {
+        return `
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-file-alt fa-3x text-muted mb-3"></i>
+                    <h4 class="text-muted">Nenhum documento cadastrado</h4>
+                    <p class="text-muted">Comece cadastrando seu primeiro documento</p>
+                    <button class="btn btn-primary" onclick="app.loadPage('documentos')">
+                        <i class="fas fa-plus"></i> Ir para Documentos
+                    </button>
                 </div>
             </div>
         `;
+    }
+
+    return `
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-list me-2"></i>Documentos
+                    <span class="badge bg-primary ms-2" id="totalDocumentosFiltrados">${totalDocumentos}</span>
+                </h5>
+                <div class="btn-group">
+                    <button class="btn btn-outline-primary btn-sm" onclick="app.exportarDocumentos()">
+                        <i class="fas fa-download"></i> Exportar
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div id="tabelaDocumentosDashboard">
+                    ${this.renderTabelaDocumentosDashboard(data.proximosVencimentos || [])}
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+   renderTabelaDocumentosDashboard(documentos) {
+    if (!documentos || documentos.length === 0) {
+        return `
+            <div class="text-center py-4">
+                <i class="fas fa-search fa-2x text-muted mb-2"></i>
+                <p class="text-muted">Nenhum documento encontrado com os filtros aplicados</p>
+                <button class="btn btn-outline-primary btn-sm" onclick="app.limparFiltrosDashboard()">
+                    <i class="fas fa-times"></i> Limpar Filtros
+                </button>
+            </div>
+        `;
+    }
+
+    return `
+        <div class="table-responsive">
+            <table class="table table-hover table-sm">
+                <thead>
+                    <tr>
+                        <th>Documento</th>
+                        <th>Empresa</th>
+                        <th>Tipo</th>
+                        <th>Emissão</th>
+                        <th>Vencimento</th>
+                        <th>Status</th>
+                        <th>Dias</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${documentos.map(doc => {
+                        const status = this.getDocumentStatus(doc);
+                        const statusClass = this.getDocumentStatusClass(status);
+                        const statusText = this.getDocumentStatusText(status);
+                        const dias = this.calculateDiasRestantes(doc.data_vencimento);
+                        
+                        return `
+                            <tr class="${status === 'expired' ? 'table-danger' : status === 'expiring' ? 'table-warning' : ''}">
+                                <td>
+                                    <strong>${doc.nome}</strong>
+                                    ${doc.observacoes ? `<br><small class="text-muted">${doc.observacoes.substring(0, 30)}${doc.observacoes.length > 30 ? '...' : ''}</small>` : ''}
+                                </td>
+                                <td>${doc.empresa_nome || doc.razao_social || 'N/A'}</td>
+                                <td><span class="badge bg-secondary">${doc.tipo}</span></td>
+                                <td>${this.formatDate(doc.data_emissao)}</td>
+                                <td>${this.formatDate(doc.data_vencimento)}</td>
+                                <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+                                <td>
+                                    <span class="badge ${dias < 0 ? 'bg-danger' : dias <= 30 ? 'bg-warning' : 'bg-success'}">
+                                        ${dias < 0 ? 'Vencido' : `${dias}d`}
+                                    </span>
+                                </td>
+                            </tr>
+                        `;
+                    }).join('')}
+                </tbody>
+            </table>
+        </div>
+    `;
+}
+    renderDocumentosProximosTable(documentos) {
+        if (!documentos || documentos.length === 0) {
+            return '<div class="text-center py-4"><i class="fas fa-check-circle fa-2x text-muted mb-2"></i><p class="text-muted">Nenhum documento próximo do vencimento</p></div>';
+        }
+
+        return `
+            <table class="table table-hover table-sm">
+                <thead>
+                    <tr>
+                        <th>Documento</th>
+                        <th>Empresa</th>
+                        <th>Vencimento</th>
+                        <th>Dias Restantes</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${documentos.map(doc => {
+                        const dias = this.calculateDiasRestantes(doc.data_vencimento);
+                        const statusClass = this.getDocumentStatusClass('expiring');
+                        return `
+                            <tr>
+                                <td>
+                                    <strong>${doc.nome}</strong>
+                                    <br><small class="text-muted">${doc.tipo}</small>
+                                </td>
+                                <td>${doc.empresa_nome || 'N/A'}</td>
+                                <td>${this.formatDate(doc.data_vencimento)}</td>
+                                <td><strong>${dias}</strong> dias</td>
+                                <td><span class="status-badge ${statusClass}">Vencendo</span></td>
+                            </tr>
+                        `;
+                    }).join('')}
+                </tbody>
+            </table>
+        `;
+    }
+
+    renderDocumentosVencidosTable(documentos) {
+        if (!documentos || documentos.length === 0) {
+            return '<div class="text-center py-4"><i class="fas fa-check-circle fa-2x text-muted mb-2"></i><p class="text-muted">Nenhum documento vencido</p></div>';
+        }
+
+        return `
+            <div class="table-responsive">
+                <table class="table table-hover table-sm">
+                    <thead>
+                        <tr>
+                            <th>Documento</th>
+                            <th>Empresa</th>
+                            <th>Vencimento</th>
+                            <th>Dias</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${documentos.map(doc => {
+                            const dias = this.calculateDiasRestantes(doc.data_vencimento);
+                            return `
+                                <tr class="table-danger">
+                                    <td>
+                                        <strong>${doc.nome}</strong>
+                                        <br><small class="text-muted">${doc.tipo}</small>
+                                    </td>
+                                    <td>${doc.empresa_nome || 'N/A'}</td>
+                                    <td>${this.formatDate(doc.data_vencimento)}</td>
+                                    <td><strong class="text-danger">${Math.abs(dias)} dias atrás</strong></td>
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    }
+
+    // ✅ MÉTODOS PARA FILTROS DO DASHBOARD
+  async aplicarFiltrosDashboard() {
+    const status = document.getElementById('filtroStatus').value;
+    const empresaId = document.getElementById('filtroEmpresa').value;
+    const search = document.getElementById('pesquisaDashboard').value;
+
+    try {
+        // ✅ VERIFICAÇÃO: Garantir que o elemento resultadosDashboard existe
+        const resultadosDiv = document.getElementById('resultadosDashboard');
+        if (!resultadosDiv) {
+            console.error('Elemento resultadosDashboard não encontrado');
+            return;
+        }
+
+        // Mostrar loading
+        resultadosDiv.innerHTML = `
+            <div class="card">
+                <div class="card-body text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Carregando...</span>
+                    </div>
+                    <p class="mt-2">Aplicando filtros...</p>
+                </div>
+            </div>
+        `;
+
+        const params = new URLSearchParams();
+        if (status) params.append('status', status);
+        if (empresaId) params.append('empresa_id', empresaId);
+        if (search) params.append('search', search);
+
+        const documentos = await this.apiRequest(`/documentos/filtros?${params}`);
+        
+        // ✅ CORREÇÃO SEGURA: Atualizar apenas se os elementos existirem
+        const totalElement = document.getElementById('totalDocumentosFiltrados');
+        const tabelaElement = document.getElementById('tabelaDocumentosDashboard');
+        
+        if (totalElement) {
+            totalElement.textContent = documentos.length;
+        }
+        
+        if (tabelaElement) {
+            tabelaElement.innerHTML = this.renderTabelaDocumentosDashboard(documentos);
+        } else {
+            // Se a tabela não existe, recriar todo o conteúdo
+            resultadosDiv.innerHTML = this.renderResultadosComFiltros(documentos);
+        }
+
+    } catch (error) {
+        console.error('Erro ao aplicar filtros:', error);
+        this.showAlert('Erro ao aplicar filtros: ' + error.message, 'danger');
+    }
+}
+
+// ✅ NOVO MÉTODO: Renderizar resultados quando os filtros são aplicados
+renderResultadosComFiltros(documentos) {
+    return `
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-list me-2"></i>Documentos Filtrados
+                    <span class="badge bg-primary ms-2">${documentos.length}</span>
+                </h5>
+                <div class="btn-group">
+                    <button class="btn btn-outline-primary btn-sm" onclick="app.exportarDocumentos()">
+                        <i class="fas fa-download"></i> Exportar
+                    </button>
+                    <button class="btn btn-outline-secondary btn-sm" onclick="app.limparFiltrosDashboard()">
+                        <i class="fas fa-times"></i> Limpar
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                ${this.renderTabelaDocumentosDashboard(documentos)}
+            </div>
+        </div>
+    `;
+}
+   limparFiltrosDashboard() {
+    // Limpar campos de filtro
+    document.getElementById('filtroStatus').value = '';
+    document.getElementById('filtroEmpresa').value = '';
+    document.getElementById('pesquisaDashboard').value = '';
+    
+    // Recarregar o dashboard completo
+    this.loadPage('dashboard');
+}
+
+    exportarDocumentos() {
+        this.showAlert('Funcionalidade de exportação em desenvolvimento', 'info');
     }
 
     async renderEmpresas() {
@@ -228,7 +593,7 @@ class App {
                         ${empresas.map(empresa => `
                             <tr>
                                 <td>${empresa.razao_social}</td>
-                                <td>${empresa.cnpj}</td>
+                                <td>${this.formatCNPJ(empresa.cnpj)}</td>
                                 <td>${empresa.telefone}</td>
                                 <td>${empresa.email}</td>
                                 <td>${this.formatDate(empresa.created_at)}</td>
@@ -542,44 +907,229 @@ class App {
         `;
     }
 
-    renderDocumentosProximosTable(documentos) {
-        if (!documentos || documentos.length === 0) {
-            return '<div class="text-center py-5"><i class="fas fa-check-circle fa-3x text-muted mb-3"></i><p class="text-muted">Nenhum documento próximo do vencimento</p></div>';
-        }
+    // ========== MÉTODOS PARA CONSULTA CNPJ ==========
 
-        return `
-            <table class="table table-hover">
-                <thead>
-                    <tr>
-                        <th>Documento</th>
-                        <th>Empresa</th>
-                        <th>Data Vencimento</th>
-                        <th>Dias Restantes</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${documentos.map(doc => {
-                        const dias = this.calculateDiasRestantes(doc.data_vencimento);
-                        const statusClass = this.getDocumentStatusClass('expiring');
-                        return `
-                            <tr>
-                                <td>${doc.nome}</td>
-                                <td>${doc.empresa_nome || 'N/A'}</td>
-                                <td>${this.formatDate(doc.data_vencimento)}</td>
-                                <td><strong>${dias}</strong> dias</td>
-                                <td><span class="status-badge ${statusClass}">Vencendo</span></td>
-                            </tr>
-                        `;
-                    }).join('')}
-                </tbody>
-            </table>
+    openEmpresaModal(empresa = null) {
+        const title = empresa ? 'Editar Empresa' : 'Nova Empresa';
+        const content = `
+            <form id="empresaForm">
+                <input type="hidden" id="empresaId" value="${empresa?.id || ''}">
+                
+                <!-- Seção de Consulta CNPJ (apenas para novo cadastro) -->
+                ${!empresa ? `
+                <div class="mb-4 p-3 bg-light rounded">
+                    <h6><i class="fas fa-search me-2"></i>Consulta por CNPJ</h6>
+                    <div class="row g-2">
+                        <div class="col-md-8">
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="cnpjConsulta" 
+                                   placeholder="Digite o CNPJ (apenas números)"
+                                   maxlength="18">
+                        </div>
+                        <div class="col-md-4">
+                            <button type="button" 
+                                    class="btn btn-outline-primary w-100" 
+                                    onclick="app.consultarCNPJ()"
+                                    id="btnConsultarCNPJ">
+                                <i class="fas fa-search me-1"></i> Consultar
+                            </button>
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <small class="text-muted">
+                            Digite o CNPJ e clique em consultar para preencher os dados automaticamente
+                        </small>
+                    </div>
+                    <div id="cnpjConsultaStatus" class="mt-2"></div>
+                </div>
+                ` : ''}
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label required-field">CNPJ *</label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="cnpj" 
+                                   value="${empresa?.cnpj || ''}" 
+                                   required
+                                   oninput="app.formatarCNPJ(this)">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label required-field">Razão Social *</label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="razaoSocial" 
+                                   value="${empresa?.razao_social || ''}" 
+                                   required>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Nome Fantasia</label>
+                    <input type="text" 
+                           class="form-control" 
+                           id="nomeFantasia" 
+                           value="${empresa?.nome_fantasia || ''}">
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label required-field">Telefone *</label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="telefone" 
+                                   value="${empresa?.telefone || ''}" 
+                                   required>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label required-field">E-mail *</label>
+                            <input type="email" 
+                                   class="form-control" 
+                                   id="email" 
+                                   value="${empresa?.email || ''}" 
+                                   required>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Endereço</label>
+                    <textarea class="form-control" 
+                              id="endereco" 
+                              rows="2">${empresa?.endereco || ''}</textarea>
+                </div>
+            </form>
         `;
+
+        this.showModal(title, content, () => this.saveEmpresa());
+        
+        // Adicionar máscara ao CNPJ de consulta se for um novo cadastro
+        if (!empresa) {
+            setTimeout(() => {
+                const cnpjConsulta = document.getElementById('cnpjConsulta');
+                if (cnpjConsulta) {
+                    cnpjConsulta.addEventListener('input', function(e) {
+                        app.formatarCNPJConsulta(e.target);
+                    });
+                }
+            }, 100);
+        }
+    }
+
+    async consultarCNPJ() {
+        const cnpjInput = document.getElementById('cnpjConsulta');
+        const cnpj = cnpjInput.value.replace(/\D/g, '');
+        const statusDiv = document.getElementById('cnpjConsultaStatus');
+        const btnConsultar = document.getElementById('btnConsultarCNPJ');
+        
+        // Validação básica do CNPJ
+        if (cnpj.length !== 14) {
+            statusDiv.innerHTML = `
+                <div class="alert alert-warning alert-sm">
+                    <i class="fas fa-exclamation-triangle"></i> CNPJ deve ter 14 dígitos
+                </div>
+            `;
+            return;
+        }
+        
+        try {
+            // Mostrar loading
+            btnConsultar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Consultando...';
+            btnConsultar.disabled = true;
+            statusDiv.innerHTML = `
+                <div class="alert alert-info alert-sm">
+                    <i class="fas fa-sync fa-spin"></i> Consultando CNPJ na Receita Federal...
+                </div>
+            `;
+            
+            console.log(`Consultando CNPJ: ${cnpj}`);
+            
+            const response = await fetch(`/api/consulta-cnpj/${cnpj}`);
+            const data = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(data.error || 'Erro na consulta');
+            }
+            
+            // Preencher os campos com os dados da consulta
+            this.preencherDadosEmpresa(data);
+            
+            statusDiv.innerHTML = `
+                <div class="alert alert-success alert-sm">
+                    <i class="fas fa-check-circle"></i> Dados da empresa carregados com sucesso!
+                </div>
+            `;
+            
+            // Focar no próximo campo
+            document.getElementById('telefone').focus();
+            
+        } catch (error) {
+            console.error('Erro na consulta de CNPJ:', error);
+            statusDiv.innerHTML = `
+                <div class="alert alert-danger alert-sm">
+                    <i class="fas fa-times-circle"></i> ${error.message}
+                </div>
+            `;
+        } finally {
+            // Restaurar botão
+            btnConsultar.innerHTML = '<i class="fas fa-search me-1"></i> Consultar';
+            btnConsultar.disabled = false;
+        }
+    }
+
+    preencherDadosEmpresa(data) {
+        // Limitar o telefone para 50 caracteres
+        const telefoneLimitado = data.telefone ? data.telefone.substring(0, 50) : '';
+        
+        document.getElementById('cnpj').value = data.cnpj || '';
+        document.getElementById('razaoSocial').value = data.razao_social || '';
+        document.getElementById('nomeFantasia').value = data.nome_fantasia || '';
+        document.getElementById('telefone').value = telefoneLimitado;
+        document.getElementById('email').value = data.email || '';
+        document.getElementById('endereco').value = data.endereco || '';
+    }
+
+    formatarCNPJ(input) {
+        let value = input.value.replace(/\D/g, '');
+        
+        if (value.length <= 14) {
+            value = value.replace(/(\d{2})(\d)/, '$1.$2');
+            value = value.replace(/(\d{3})(\d)/, '$1.$2');
+            value = value.replace(/(\d{3})(\d)/, '$1/$2');
+            value = value.replace(/(\d{4})(\d{1,2})$/, '$1-$2');
+        }
+        
+        input.value = value;
+    }
+
+    formatarCNPJConsulta(input) {
+        let value = input.value.replace(/\D/g, '');
+        
+        if (value.length <= 14) {
+            value = value.replace(/(\d{2})(\d)/, '$1.$2');
+            value = value.replace(/(\d{3})(\d)/, '$1.$2');
+            value = value.replace(/(\d{3})(\d)/, '$1/$2');
+            value = value.replace(/(\d{4})(\d{1,2})$/, '$1-$2');
+        }
+        
+        input.value = value;
+    }
+
+    formatCNPJ(cnpj) {
+        if (!cnpj) return 'N/A';
+        return cnpj.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
     }
 
     // ========== MÉTODOS PARA DOCUMENTOS ==========
 
-    // Navegação
     abrirFormularioNovoDocumento() {
         document.getElementById('lista-documentos').style.display = 'none';
         document.getElementById('formulario-documento').style.display = 'block';
@@ -592,7 +1142,6 @@ class App {
         this.limparFormularioDocumento();
     }
 
-    // Manipulação de arquivos
     handleFileSelect(files) {
         const file = files[0];
         if (!file) return;
@@ -621,7 +1170,6 @@ class App {
         infoArquivo.className = 'file-info show';
     }
 
-    // Formulário
     limparFormularioDocumento() {
         document.getElementById('formDocumento').reset();
         document.getElementById('documentoId').value = '';
@@ -633,7 +1181,6 @@ class App {
         this.limparMensagemDocumento();
     }
 
-    // Salvar documento (MÉTODO PRINCIPAL)
     async salvarDocumento(event) {
         event.preventDefault();
         console.log('=== INICIANDO SALVAMENTO DE DOCUMENTO ===');
@@ -715,7 +1262,6 @@ class App {
         }
     }
 
-    // Editar documento
     async editarDocumento(id) {
         try {
             const documento = await this.apiRequest(`/documentos/${id}`);
@@ -752,7 +1298,6 @@ class App {
         }
     }
 
-    // Excluir documento
     async excluirDocumento(id) {
         if (!confirm('Tem certeza que deseja excluir este documento?')) {
             return;
@@ -767,7 +1312,6 @@ class App {
         }
     }
 
-    // Download de documento
     async downloadDocumento(id) {
         try {
             window.open(`/api/documentos/${id}/download`, '_blank');
@@ -776,7 +1320,6 @@ class App {
         }
     }
 
-    // Utilitários para documentos
     mostrarMensagemDocumento(mensagem, tipo) {
         const div = document.getElementById('mensagemStatus');
         div.className = `alert alert-${tipo === 'success' ? 'success' : 'danger'} alert-dismissible fade show`;
@@ -821,41 +1364,7 @@ class App {
         }
     }
 
-    // Modal Methods
-    openEmpresaModal(empresa = null) {
-        const title = empresa ? 'Editar Empresa' : 'Nova Empresa';
-        const content = `
-            <form id="empresaForm">
-                <input type="hidden" id="empresaId" value="${empresa?.id || ''}">
-                <div class="mb-3">
-                    <label class="form-label">Razão Social *</label>
-                    <input type="text" class="form-control" id="razaoSocial" value="${empresa?.razao_social || ''}" required>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Nome Fantasia</label>
-                    <input type="text" class="form-control" id="nomeFantasia" value="${empresa?.nome_fantasia || ''}">
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">CNPJ *</label>
-                    <input type="text" class="form-control" id="cnpj" value="${empresa?.cnpj || ''}" required>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Telefone *</label>
-                    <input type="text" class="form-control" id="telefone" value="${empresa?.telefone || ''}" required>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">E-mail *</label>
-                    <input type="email" class="form-control" id="email" value="${empresa?.email || ''}" required>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Endereço</label>
-                    <textarea class="form-control" id="endereco" rows="2">${empresa?.endereco || ''}</textarea>
-                </div>
-            </form>
-        `;
-
-        this.showModal(title, content, () => this.saveEmpresa());
-    }
+    // ========== MÉTODOS GERAIS ==========
 
     openResponsavelModal() {
         this.showModal('Novo Responsável', `
@@ -898,7 +1407,6 @@ class App {
         });
     }
 
-    // API Methods
     async apiRequest(endpoint, options = {}) {
         const url = API_BASE + endpoint;
         console.log(`Fazendo requisição para: ${url}`);
@@ -925,7 +1433,6 @@ class App {
         return await response.json();
     }
 
-    // Utility Methods
     formatDate(dateString) {
         if (!dateString) return 'N/A';
         try {
@@ -961,18 +1468,33 @@ class App {
 
     initializePageEvents(page) {
         console.log(`Eventos inicializados para: ${page}`);
+        
+        if (page === 'dashboard') {
+            // Inicializar tooltips se necessário
+            if (typeof bootstrap !== 'undefined') {
+                const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+                tooltipTriggerList.map(function (tooltipTriggerEl) {
+                    return new bootstrap.Tooltip(tooltipTriggerEl);
+                });
+            }
+        }
     }
 
-    // CRUD Methods
     async saveEmpresa() {
         const formData = {
             razao_social: document.getElementById('razaoSocial').value,
             nome_fantasia: document.getElementById('nomeFantasia').value,
-            cnpj: document.getElementById('cnpj').value,
-            telefone: document.getElementById('telefone').value,
+            cnpj: document.getElementById('cnpj').value.replace(/\D/g, ''),
+            telefone: document.getElementById('telefone').value.substring(0, 50), // Limitar telefone
             email: document.getElementById('email').value,
             endereco: document.getElementById('endereco').value
         };
+
+        // Validação adicional
+        if (formData.telefone.length > 50) {
+            this.showAlert('Telefone muito longo. Máximo 50 caracteres.', 'danger');
+            return;
+        }
 
         const id = document.getElementById('empresaId').value;
         
