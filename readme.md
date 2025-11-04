@@ -1,167 +1,249 @@
-# gestao-documental
-📋 Sistema de Gestão Documental e Controle de Vencimentos
-Sistema web completo para gerenciamento de empresas, documentos e controle de vencimentos com alertas automáticos.
+📋 Sistema de Gestão Documental
+Sistema completo para gestão de documentos empresariais com controle de vencimentos, empresas e responsáveis.
 
 🚀 Funcionalidades
-🏢 Gestão de Empresas - Cadastro completo de empresas
+📊 Dashboard
+Visão geral do sistema com estatísticas
 
-📄 Controle de Documentos - Controle de prazos e vencimentos
+Filtros avançados por status, empresa e pesquisa
 
-👥 Responsáveis - Gestão de responsáveis por setor (Fiscal, Contábil, DP)
+Alertas de documentos próximos do vencimento
 
-📊 Dashboard - Visão geral com indicadores e alertas
+Cards informativos com métricas importantes
 
-⏰ Alertas Automáticos - Notificações para documentos próximos do vencimento
+🏢 Gestão de Empresas
+Cadastro completo com CNPJ, razão social, nome fantasia
 
-🔍 Busca e Filtros - Encontre rapidamente as informações
+Consulta automática de CNPJ via Receita WS
 
-🛠️ Tecnologias
-Frontend: HTML5, CSS3, JavaScript (ES6+), Bootstrap 5
+Campos de acesso municipal e estadual (login/senha)
 
-Backend: Node.js, Express.js
+Regime tributário (Simples Nacional vs Demais)
 
-Banco de Dados: MySQL
+Olhinho para senhas 👁️ com opção de mostrar/ocultar
 
-Outras: Chart.js, Font Awesome
+Detalhes completos com visualização segura de senhas
 
-📦 Instalação
-Pré-requisitos
-Node.js 14+
+📄 Gestão de Documentos
+Cadastro completo com tipo, datas de emissão/vencimento
 
-MySQL 5.7+
+Upload de arquivos (PDF, JPG, PNG) até 10MB
 
-NPM ou Yarn
+Controle de vencimentos com alertas automáticos
 
+Filtros por status (Vencidos, Próximos, Válidos)
+
+Download de arquivos
+
+Associação com empresas e responsáveis
+
+👥 Gestão de Responsáveis
+Cadastro de responsáveis por empresa
+
+Contato completo (nome, email, telefone, função)
+
+Associação com documentos
+
+🛠️ Tecnologias Utilizadas
+Backend
+Node.js com Express
+
+MySQL com mysql2/promise
+
+Multer para upload de arquivos
+
+CORS para comunicação frontend/backend
+
+Frontend
+HTML5 semântico
+
+CSS3 com variáveis e design responsivo
+
+JavaScript ES6+ com classes
+
+Bootstrap 5 para componentes UI
+
+Font Awesome para ícones
+
+📋 Pré-requisitos
+Node.js 16+
+
+MySQL 8.0+
+
+Navegador moderno
+
+🚀 Instalação e Configuração
 1. Clone o repositório
 bash
 git clone <url-do-repositorio>
-cd sistema-gestao
+cd gestao-documental
 2. Configuração do Banco de Dados
 bash
-# Conecte ao MySQL e execute:
+# Execute o script SQL no MySQL
 mysql -u root -p < database.sql
 3. Configuração do Backend
 bash
 cd backend
-
-# Instale as dependências
 npm install
 
-# Configure as variáveis de ambiente
-cp .env.example .env
-# Edite o .env com suas configurações do MySQL
-4. Arquivo .env
-env
-DB_HOST=localhost
-DB_USER=root
-DB_PASSWORD=
-DB_NAME=gestao_documental
-PORT=3000
-NODE_ENV=development
-5. Execute a aplicação
+# Configure as variáveis de ambiente no database.js
+# Edite: host, user, password conforme seu MySQL
+4. Execução do Sistema
 bash
-# Desenvolvimento (com auto-reload)
+# Desenvolvimento (backend)
 npm run dev
 
 # Produção
 npm start
-🌐 Acesso
-Acesse a aplicação em: http://localhost:3000
+O sistema estará disponível em: http://localhost:3000
+
+🗄️ Estrutura do Banco de Dados
+Tabelas Principais
+empresas - Dados das empresas com campos de acesso
+
+documentos - Documentos com controle de vencimento
+
+responsaveis - Responsáveis por empresa
+
+categorias_documentos - Categorias de documentos (opcional)
+
+alertas_vencimento - Sistema de alertas (opcional)
+
+Views Úteis
+vw_documentos_proximos_vencimento - Documentos próximos do vencimento
+
+vw_dashboard_estatisticas - Estatísticas para dashboard
+
+vw_empresas_completas - Empresas com contagem de documentos
 
 📁 Estrutura do Projeto
 text
-sistema-gestao/
+gestao-documental/
 ├── backend/
-│   ├── app.js          # Servidor principal
-│   ├── database.js     # Configuração do banco
-│   ├── package.json
-│   └── .env           # Variáveis de ambiente
+│   ├── server.js          # Servidor principal
+│   ├── database.js        # Configuração do banco
+│   └── package.json       # Dependências
 ├── frontend/
-│   ├── index.html      # Aplicação frontend
-│   ├── style.css       # Estilos principais
-│   └── app.js          # Lógica do frontend
-└── database.sql        # Estrutura do banco
-🗃️ Estrutura do Banco de Dados
-Tabelas Principais:
-empresas - Dados cadastrais das empresas
+│   ├── index.html         # Página principal
+│   ├── app.js             # Aplicação frontend
+│   ├── style.css          # Estilos
+│   └── uploads/           # Arquivos uploadados
+├── database.sql           # Script do banco
+└── README.md             # Este arquivo
+🔧 Configurações Importantes
+Variáveis de Ambiente (database.js)
+javascript
+const pool = mysql.createPool({
+    host: 'localhost',      // Servidor MySQL
+    user: 'root',           // Usuário MySQL
+    password: 'sua_senha',  // Senha MySQL
+    database: 'gestao_documental',
+    // ... outras configurações
+});
+Upload de Arquivos
+Formatos permitidos: PDF, JPG, JPEG, PNG
 
-documentos - Documentos com datas de vencimento
+Tamanho máximo: 10MB
 
-responsaveis - Responsáveis por setor
-
-Relacionamentos completos com integridade referencial
+Local de armazenamento: frontend/uploads/documentos/
 
 🎯 Como Usar
 1. Cadastro de Empresas
-Acesse a página "Empresas"
+Acesse "Empresas" no menu
 
 Clique em "Nova Empresa"
 
-Preencha os dados obrigatórios (Razão Social, CNPJ, Telefone, E-mail)
+Use a consulta de CNPJ para preenchimento automático
+
+Preencha os dados de acesso municipal/estadual
+
+Selecione o regime tributário
 
 2. Cadastro de Documentos
-Acesse a página "Documentos"
+Acesse "Documentos" no menu
 
 Clique em "Novo Documento"
 
-Selecione a empresa, tipo do documento e datas
+Selecione empresa e responsável
 
-O sistema calcula automaticamente o status
+Informe datas de emissão e vencimento
 
-3. Monitoramento
-Acesse o "Dashboard" para ver o panorama geral
+Faça upload do arquivo (opcional)
 
-Documentos são classificados automaticamente:
+3. Monitoramento no Dashboard
+Acesse o "Dashboard"
 
-🟢 Regular - Mais de 30 dias para vencer
+Use os filtros para encontrar documentos específicos
 
-🟡 Próximo - Vence em até 30 dias
+Veja alertas de vencimentos próximos
 
-🔴 Vencido - Data de vencimento passada
+Acompanhe as estatísticas do sistema
 
-🔧 Desenvolvimento
-Scripts Disponíveis
-bash
-npm start      # Inicia em produção
-npm run dev    # Inicia em desenvolvimento com auto-reload
-API Endpoints
-GET /api/health - Status da API
+🔒 Segurança
+Senhas ocultas por padrão nos formulários
 
-GET /api/dashboard - Dados do dashboard
+Visualização controlada de senhas com timeout automático
 
-GET /api/empresas - Listar empresas
+Upload seguro com validação de tipos e tamanhos
 
-POST /api/empresas - Criar empresa
+Consulta CNPJ com validação completa
 
-GET /api/documentos - Listar documentos
-
-POST /api/documentos - Criar documento
+CORS configurado para comunicação segura
 
 🐛 Solução de Problemas
-Erro de Conexão com o Banco
-Verifique se o MySQL está rodando
+Problemas Comuns
+Conexão com banco falha
 
-Confirme as credenciais no arquivo .env
+Verifique credenciais no database.js
 
-Execute o script database.sql
+Confirme se o MySQL está rodando
 
-Erro 404 nas APIs
-Certifique-se de que o backend está rodando na porta 3000
+Upload de arquivos não funciona
 
-Acesse sempre por http://localhost:3000
+Verifique permissões da pasta uploads/
 
-Páginas Não Carregam
-Verifique o console do navegador (F12)
+Confirme tamanho e tipo do arquivo
 
-Confirme se todas as rotas API estão respondendo
+Consulta CNPJ não retorna dados
 
-📈 Próximas Funcionalidades
-Upload de arquivos (documentos digitalizados)
+Verifique conexão com internet
 
-Sistema de notificações por e-mail
+Confirme se o CNPJ é válido
 
+Filtros do dashboard não funcionam
+
+Verifique console do navegador para erros
+
+Confirme se há documentos cadastrados
+
+Logs e Debug
+Backend: Logs no terminal onde o servidor está rodando
+
+Frontend: Console do navegador (F12)
+
+📞 Suporte
+Em caso de problemas:
+
+Verifique os logs do sistema
+
+Confirme os pré-requisitos
+
+Consulte esta documentação
+
+Entre em contato com o administrador
+
+🔄 Próximas Atualizações
 Relatórios em PDF
 
-Múltiplos usuários com perfis
+Notificações por email
 
-Integração com APIs governamentais
+Backup automático
+
+API REST completa
+
+Múltiplos usuários
+
+Dashboard com gráficos
+
+📄 Licença
+Este projeto é para uso interno. Desenvolvido para gestão documental empresarial.
