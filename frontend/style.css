@@ -329,3 +329,81 @@ body {
 ::-webkit-scrollbar-thumb:hover {
     background: #a8a8a8;
 }
+
+/* frontend/style.css */
+/* ... (código existente) ... */
+
+/* 👁️ ESTILOS PARA CAMPOS DE SENHA COM OLHINHO */
+.password-field {
+    position: relative;
+}
+
+.password-toggle {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: #6c757d;
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+}
+
+.password-toggle:hover {
+    background-color: #f8f9fa;
+    color: #495057;
+}
+
+.password-toggle:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+/* Ajuste para inputs com olhinho */
+.form-control[type="password"],
+.form-control[type="text"] {
+    padding-right: 45px;
+}
+
+/* Estilo para o container do campo de senha */
+.password-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+/* Ícones do Font Awesome para os olhos */
+.fa-eye,
+.fa-eye-slash {
+    font-size: 14px;
+}
+
+/* Estados do campo de senha */
+.password-visible {
+    color: #007bff;
+}
+
+/* Animações suaves */
+.password-toggle {
+    transition: all 0.2s ease-in-out;
+}
+
+.password-toggle:active {
+    transform: translateY(-50%) scale(0.95);
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+    .password-toggle {
+        right: 8px;
+        padding: 4px;
+    }
+    
+    .form-control[type="password"],
+    .form-control[type="text"] {
+        padding-right: 40px;
+    }
+}

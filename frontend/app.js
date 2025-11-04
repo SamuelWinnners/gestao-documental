@@ -645,196 +645,228 @@ renderResultadosComFiltros(documentos) {
     }
 
     // ✅ MÉTODO openEmpresaModal ATUALIZADO
-    openEmpresaModal(empresa = null) {
-        const title = empresa ? 'Editar Empresa' : 'Nova Empresa';
-        const isSimplesNacional = empresa ? (empresa.simples_nacional ? 'checked' : '') : 'checked';
-        
-        const content = `
-            <form id="empresaForm">
-                <input type="hidden" id="empresaId" value="${empresa?.id || ''}">
-                
-                <!-- Seção de Consulta CNPJ (apenas para novo cadastro) -->
-                ${!empresa ? `
-                <div class="mb-4 p-3 bg-light rounded">
-                    <h6><i class="fas fa-search me-2"></i>Consulta por CNPJ</h6>
-                    <div class="row g-2">
-                        <div class="col-md-8">
-                            <input type="text" 
-                                   class="form-control" 
-                                   id="cnpjConsulta" 
-                                   placeholder="Digite o CNPJ (apenas números)"
-                                   maxlength="18">
-                        </div>
-                        <div class="col-md-4">
-                            <button type="button" 
-                                    class="btn btn-outline-primary w-100" 
-                                    onclick="app.consultarCNPJ()"
-                                    id="btnConsultarCNPJ">
-                                <i class="fas fa-search me-1"></i> Consultar
-                            </button>
-                        </div>
+  // ✅ MÉTODO openEmpresaModal ATUALIZADO COM OLHINHO
+openEmpresaModal(empresa = null) {
+    const title = empresa ? 'Editar Empresa' : 'Nova Empresa';
+    const isSimplesNacional = empresa ? (empresa.simples_nacional ? 'checked' : '') : 'checked';
+    
+    const content = `
+        <form id="empresaForm">
+            <input type="hidden" id="empresaId" value="${empresa?.id || ''}">
+            
+            <!-- Seção de Consulta CNPJ (apenas para novo cadastro) -->
+            ${!empresa ? `
+            <div class="mb-4 p-3 bg-light rounded">
+                <h6><i class="fas fa-search me-2"></i>Consulta por CNPJ</h6>
+                <div class="row g-2">
+                    <div class="col-md-8">
+                        <input type="text" 
+                               class="form-control" 
+                               id="cnpjConsulta" 
+                               placeholder="Digite o CNPJ (apenas números)"
+                               maxlength="18">
                     </div>
-                    <div class="mt-2">
-                        <small class="text-muted">
-                            Digite o CNPJ e clique em consultar para preencher os dados automaticamente
-                        </small>
-                    </div>
-                    <div id="cnpjConsultaStatus" class="mt-2"></div>
-                </div>
-                ` : ''}
-                
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label class="form-label required-field">CNPJ *</label>
-                            <input type="text" 
-                                   class="form-control" 
-                                   id="cnpj" 
-                                   value="${empresa?.cnpj || ''}" 
-                                   required
-                                   oninput="app.formatarCNPJ(this)">
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label class="form-label required-field">Razão Social *</label>
-                            <input type="text" 
-                                   class="form-control" 
-                                   id="razaoSocial" 
-                                   value="${empresa?.razao_social || ''}" 
-                                   required>
-                        </div>
+                    <div class="col-md-4">
+                        <button type="button" 
+                                class="btn btn-outline-primary w-100" 
+                                onclick="app.consultarCNPJ()"
+                                id="btnConsultarCNPJ">
+                            <i class="fas fa-search me-1"></i> Consultar
+                        </button>
                     </div>
                 </div>
+                <div class="mt-2">
+                    <small class="text-muted">
+                        Digite o CNPJ e clique em consultar para preencher os dados automaticamente
+                    </small>
+                </div>
+                <div id="cnpjConsultaStatus" class="mt-2"></div>
+            </div>
+            ` : ''}
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label class="form-label required-field">CNPJ *</label>
+                        <input type="text" 
+                               class="form-control" 
+                               id="cnpj" 
+                               value="${empresa?.cnpj || ''}" 
+                               required
+                               oninput="app.formatarCNPJ(this)">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label class="form-label required-field">Razão Social *</label>
+                        <input type="text" 
+                               class="form-control" 
+                               id="razaoSocial" 
+                               value="${empresa?.razao_social || ''}" 
+                               required>
+                    </div>
+                </div>
+            </div>
 
-                <div class="mb-3">
-                    <label class="form-label">Nome Fantasia</label>
-                    <input type="text" 
-                           class="form-control" 
-                           id="nomeFantasia" 
-                           value="${empresa?.nome_fantasia || ''}">
-                </div>
+            <div class="mb-3">
+                <label class="form-label">Nome Fantasia</label>
+                <input type="text" 
+                       class="form-control" 
+                       id="nomeFantasia" 
+                       value="${empresa?.nome_fantasia || ''}">
+            </div>
 
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label class="form-label required-field">Telefone *</label>
-                            <input type="text" 
-                                   class="form-control" 
-                                   id="telefone" 
-                                   value="${empresa?.telefone || ''}" 
-                                   required>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label class="form-label required-field">E-mail *</label>
-                            <input type="email" 
-                                   class="form-control" 
-                                   id="email" 
-                                   value="${empresa?.email || ''}" 
-                                   required>
-                        </div>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label class="form-label required-field">Telefone *</label>
+                        <input type="text" 
+                               class="form-control" 
+                               id="telefone" 
+                               value="${empresa?.telefone || ''}" 
+                               required>
                     </div>
                 </div>
-
-                <!-- NOVOS CAMPOS ADICIONADOS -->
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label class="form-label">Login Municipal</label>
-                            <input type="text" 
-                                   class="form-control" 
-                                   id="loginMunicipal" 
-                                   value="${empresa?.login_municipal || ''}"
-                                   placeholder="Login para acesso ao sistema municipal">
-                        </div>
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label class="form-label required-field">E-mail *</label>
+                        <input type="email" 
+                               class="form-control" 
+                               id="email" 
+                               value="${empresa?.email || ''}" 
+                               required>
                     </div>
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label class="form-label">Senha Municipal</label>
+                </div>
+            </div>
+
+            <!-- NOVOS CAMPOS ADICIONADOS COM OLHINHO -->
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label class="form-label">Login Municipal</label>
+                        <input type="text" 
+                               class="form-control" 
+                               id="loginMunicipal" 
+                               value="${empresa?.login_municipal || ''}"
+                               placeholder="Login para acesso ao sistema municipal">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label class="form-label">Senha Municipal</label>
+                        <div class="password-container">
                             <input type="password" 
                                    class="form-control" 
                                    id="senhaMunicipal" 
                                    value="${empresa?.senha_municipal || ''}"
                                    placeholder="Senha para acesso ao sistema municipal">
+                            <button type="button" class="password-toggle" onclick="app.togglePassword('senhaMunicipal')">
+                                <i class="fas fa-eye"></i>
+                            </button>
                         </div>
                     </div>
                 </div>
+            </div>
 
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label class="form-label">Login Estadual</label>
-                            <input type="text" 
-                                   class="form-control" 
-                                   id="loginEstadual" 
-                                   value="${empresa?.login_estadual || ''}"
-                                   placeholder="Login para acesso ao sistema estadual">
-                        </div>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label class="form-label">Login Estadual</label>
+                        <input type="text" 
+                               class="form-control" 
+                               id="loginEstadual" 
+                               value="${empresa?.login_estadual || ''}"
+                               placeholder="Login para acesso ao sistema estadual">
                     </div>
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label class="form-label">Senha Estadual</label>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label class="form-label">Senha Estadual</label>
+                        <div class="password-container">
                             <input type="password" 
                                    class="form-control" 
                                    id="senhaEstadual" 
                                    value="${empresa?.senha_estadual || ''}"
                                    placeholder="Senha para acesso ao sistema estadual">
+                            <button type="button" class="password-toggle" onclick="app.togglePassword('senhaEstadual')">
+                                <i class="fas fa-eye"></i>
+                            </button>
                         </div>
                     </div>
                 </div>
+            </div>
 
-                <!-- REGIME TRIBUTÁRIO -->
-                <div class="mb-3">
-                    <label class="form-label">Regime Tributário</label>
-                    <div class="form-check">
-                        <input class="form-check-input" type="radio" name="simplesNacional" 
-                               id="simplesNacionalSim" value="true" ${isSimplesNacional}>
-                        <label class="form-check-label" for="simplesNacionalSim">
-                            Simples Nacional
-                        </label>
-                    </div>
-                    <div class="form-check">
-                        <input class="form-check-input" type="radio" name="simplesNacional" 
-                               id="simplesNacionalNao" value="false" ${empresa && !empresa.simples_nacional ? 'checked' : ''}>
-                        <label class="form-check-label" for="simplesNacionalNao">
-                            Demais Regimes (Lucro Presumido/Real)
-                        </label>
-                    </div>
+            <!-- REGIME TRIBUTÁRIO -->
+            <div class="mb-3">
+                <label class="form-label">Regime Tributário</label>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="simplesNacional" 
+                           id="simplesNacionalSim" value="true" ${isSimplesNacional}>
+                    <label class="form-check-label" for="simplesNacionalSim">
+                        Simples Nacional
+                    </label>
                 </div>
-
-                <div class="mb-3">
-                    <label class="form-label">Observações</label>
-                    <textarea class="form-control" 
-                              id="observacoes" 
-                              rows="3"
-                              placeholder="Observações adicionais sobre a empresa">${empresa?.observacoes || ''}</textarea>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="simplesNacional" 
+                           id="simplesNacionalNao" value="false" ${empresa && !empresa.simples_nacional ? 'checked' : ''}>
+                    <label class="form-check-label" for="simplesNacionalNao">
+                        Demais Regimes (Lucro Presumido/Real)
+                    </label>
                 </div>
+            </div>
 
-                <div class="mb-3">
-                    <label class="form-label">Endereço</label>
-                    <textarea class="form-control" 
-                              id="endereco" 
-                              rows="2">${empresa?.endereco || ''}</textarea>
-                </div>
-            </form>
-        `;
+            <div class="mb-3">
+                <label class="form-label">Observações</label>
+                <textarea class="form-control" 
+                          id="observacoes" 
+                          rows="3"
+                          placeholder="Observações adicionais sobre a empresa">${empresa?.observacoes || ''}</textarea>
+            </div>
 
-        this.showModal(title, content, () => this.saveEmpresa());
-        
-        // Adicionar máscara ao CNPJ de consulta se for um novo cadastro
-        if (!empresa) {
-            setTimeout(() => {
-                const cnpjConsulta = document.getElementById('cnpjConsulta');
-                if (cnpjConsulta) {
-                    cnpjConsulta.addEventListener('input', function(e) {
-                        app.formatarCNPJConsulta(e.target);
-                    });
-                }
-            }, 100);
-        }
+            <div class="mb-3">
+                <label class="form-label">Endereço</label>
+                <textarea class="form-control" 
+                          id="endereco" 
+                          rows="2">${empresa?.endereco || ''}</textarea>
+            </div>
+        </form>
+    `;
+
+    this.showModal(title, content, () => this.saveEmpresa());
+    
+    // Adicionar máscara ao CNPJ de consulta se for um novo cadastro
+    if (!empresa) {
+        setTimeout(() => {
+            const cnpjConsulta = document.getElementById('cnpjConsulta');
+            if (cnpjConsulta) {
+                cnpjConsulta.addEventListener('input', function(e) {
+                    app.formatarCNPJConsulta(e.target);
+                });
+            }
+        }, 100);
     }
+}
+
+// ✅ MÉTODO PARA MOSTRAR/OCULTAR SENHA
+togglePassword(fieldId) {
+    const passwordField = document.getElementById(fieldId);
+    const toggleButton = passwordField.nextElementSibling;
+    const icon = toggleButton.querySelector('i');
+    
+    if (passwordField.type === 'password') {
+        // Mostrar senha
+        passwordField.type = 'text';
+        icon.classList.remove('fa-eye');
+        icon.classList.add('fa-eye-slash', 'password-visible');
+        toggleButton.setAttribute('title', 'Ocultar senha');
+    } else {
+        // Ocultar senha
+        passwordField.type = 'password';
+        icon.classList.remove('fa-eye-slash', 'password-visible');
+        icon.classList.add('fa-eye');
+        toggleButton.setAttribute('title', 'Mostrar senha');
+    }
+}
 
     // ✅ MÉTODO saveEmpresa ATUALIZADO
     async saveEmpresa() {
@@ -888,62 +920,138 @@ renderResultadosComFiltros(documentos) {
         }
     }
 
-    async viewEmpresa(id) {
-        try {
-            const empresa = await this.apiRequest(`/empresas/${id}`);
-            
-            const content = `
-                <div class="empresa-details">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <h6>Informações Básicas</h6>
-                            <p><strong>Razão Social:</strong> ${empresa.razao_social}</p>
-                            <p><strong>Nome Fantasia:</strong> ${empresa.nome_fantasia || 'Não informado'}</p>
-                            <p><strong>CNPJ:</strong> ${this.formatCNPJ(empresa.cnpj)}</p>
-                            <p><strong>Regime Tributário:</strong> 
-                                <span class="badge ${empresa.simples_nacional ? 'bg-success' : 'bg-info'}">
-                                    ${empresa.simples_nacional ? 'Simples Nacional' : 'Demais Regimes'}
-                                </span>
-                            </p>
-                        </div>
-                        <div class="col-md-6">
-                            <h6>Contato</h6>
-                            <p><strong>Telefone:</strong> ${empresa.telefone}</p>
-                            <p><strong>E-mail:</strong> ${empresa.email}</p>
-                            <p><strong>Endereço:</strong> ${empresa.endereco || 'Não informado'}</p>
-                        </div>
+  // ✅ MÉTODO viewEmpresa ATUALIZADO
+async viewEmpresa(id) {
+    try {
+        const empresa = await this.apiRequest(`/empresas/${id}`);
+        
+        const content = `
+            <div class="empresa-details">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Informações Básicas</h6>
+                        <p><strong>Razão Social:</strong> ${empresa.razao_social}</p>
+                        <p><strong>Nome Fantasia:</strong> ${empresa.nome_fantasia || 'Não informado'}</p>
+                        <p><strong>CNPJ:</strong> ${this.formatCNPJ(empresa.cnpj)}</p>
+                        <p><strong>Regime Tributário:</strong> 
+                            <span class="badge ${empresa.simples_nacional ? 'bg-success' : 'bg-info'}">
+                                ${empresa.simples_nacional ? 'Simples Nacional' : 'Demais Regimes'}
+                            </span>
+                        </p>
                     </div>
-                    
-                    <div class="row mt-3">
-                        <div class="col-md-6">
-                            <h6>Acessos Municipais</h6>
-                            <p><strong>Login:</strong> ${empresa.login_municipal || 'Não informado'}</p>
-                            <p><strong>Senha:</strong> ${empresa.senha_municipal ? '••••••••' : 'Não informada'}</p>
-                        </div>
-                        <div class="col-md-6">
-                            <h6>Acessos Estaduais</h6>
-                            <p><strong>Login:</strong> ${empresa.login_estadual || 'Não informado'}</p>
-                            <p><strong>Senha:</strong> ${empresa.senha_estadual ? '••••••••' : 'Não informada'}</p>
-                        </div>
+                    <div class="col-md-6">
+                        <h6>Contato</h6>
+                        <p><strong>Telefone:</strong> ${empresa.telefone}</p>
+                        <p><strong>E-mail:</strong> ${empresa.email}</p>
+                        <p><strong>Endereço:</strong> ${empresa.endereco || 'Não informado'}</p>
                     </div>
-                    
-                    ${empresa.observacoes ? `
-                    <div class="row mt-3">
-                        <div class="col-12">
-                            <h6>Observações</h6>
-                            <p>${empresa.observacoes}</p>
-                        </div>
-                    </div>
-                    ` : ''}
                 </div>
-            `;
-            
-            this.showModal('Detalhes da Empresa', content, null);
-            
-        } catch (error) {
-            this.showAlert(`Erro ao carregar detalhes: ${error.message}`, 'danger');
-        }
+                
+                <div class="row mt-3">
+                    <div class="col-md-6">
+                        <h6>Acessos Municipais</h6>
+                        <p><strong>Login:</strong> ${empresa.login_municipal || 'Não informado'}</p>
+                        <p>
+                            <strong>Senha:</strong> 
+                            <span id="senhaMunicipalView">${empresa.senha_municipal ? '••••••••' : 'Não informada'}</span>
+                            ${empresa.senha_municipal ? `
+                                <button type="button" class="btn btn-sm btn-outline-secondary ms-2" onclick="app.toggleViewPassword('senhaMunicipalView', '${this.escapeHtml(empresa.senha_municipal)}')">
+                                    <i class="fas fa-eye"></i> Mostrar
+                                </button>
+                            ` : ''}
+                        </p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Acessos Estaduais</h6>
+                        <p><strong>Login:</strong> ${empresa.login_estadual || 'Não informado'}</p>
+                        <p>
+                            <strong>Senha:</strong> 
+                            <span id="senhaEstadualView">${empresa.senha_estadual ? '••••••••' : 'Não informada'}</span>
+                            ${empresa.senha_estadual ? `
+                                <button type="button" class="btn btn-sm btn-outline-secondary ms-2" onclick="app.toggleViewPassword('senhaEstadualView', '${this.escapeHtml(empresa.senha_estadual)}')">
+                                    <i class="fas fa-eye"></i> Mostrar
+                                </button>
+                            ` : ''}
+                        </p>
+                    </div>
+                </div>
+                
+                ${empresa.observacoes ? `
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <h6>Observações</h6>
+                        <p>${empresa.observacoes}</p>
+                    </div>
+                </div>
+                ` : ''}
+            </div>
+        `;
+        
+        this.showModal('Detalhes da Empresa', content, null);
+        
+    } catch (error) {
+        this.showAlert(`Erro ao carregar detalhes: ${error.message}`, 'danger');
     }
+}
+
+// ✅ MÉTODO PARA MOSTRAR/OCULTAR SENHA NA VISUALIZAÇÃO
+toggleViewPassword(elementId, realPassword) {
+    const element = document.getElementById(elementId);
+    const button = element.nextElementSibling;
+    const icon = button.querySelector('i');
+    
+    if (element.textContent === '••••••••') {
+        // Mostrar senha real
+        element.textContent = realPassword;
+        icon.classList.remove('fa-eye');
+        icon.classList.add('fa-eye-slash');
+        button.innerHTML = '<i class="fas fa-eye-slash"></i> Ocultar';
+        button.classList.add('btn-warning');
+        button.classList.remove('btn-outline-secondary');
+        
+        // Ocultar automaticamente após 10 segundos por segurança
+        setTimeout(() => {
+            if (element.textContent === realPassword) {
+                element.textContent = '••••••••';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+                button.innerHTML = '<i class="fas fa-eye"></i> Mostrar';
+                button.classList.remove('btn-warning');
+                button.classList.add('btn-outline-secondary');
+            }
+        }, 10000);
+    } else {
+        // Ocultar senha
+        element.textContent = '••••••••';
+        icon.classList.remove('fa-eye-slash');
+        icon.classList.add('fa-eye');
+        button.innerHTML = '<i class="fas fa-eye"></i> Mostrar';
+        button.classList.remove('btn-warning');
+        button.classList.add('btn-outline-secondary');
+    }
+}
+
+// ✅ MÉTODO PARA ESCAPAR HTML (segurança)
+escapeHtml(unsafe) {
+    if (!unsafe) return '';
+    return unsafe
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+// ✅ MÉTODO PARA COPIAR SENHA PARA ÁREA DE TRANSFERÊNCIA
+async copyToClipboard(text) {
+    try {
+        await navigator.clipboard.writeText(text);
+        this.showAlert('Senha copiada para a área de transferência!', 'success');
+    } catch (error) {
+        console.error('Erro ao copiar senha:', error);
+        this.showAlert('Erro ao copiar senha', 'danger');
+    }
+}
 
     async deleteEmpresa(id) {
         if (confirm('Tem certeza que deseja excluir esta empresa?')) {
