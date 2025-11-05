@@ -38,7 +38,7 @@ class App {
                 e.preventDefault();
                 const link = e.target.closest('.nav-link');
                 this.setActiveLink(link);
-                
+
                 const page = link.getAttribute('data-page');
                 this.loadPage(page);
             }
@@ -55,7 +55,7 @@ class App {
     async loadPage(page) {
         this.currentPage = page;
         console.log(`Carregando página: ${page}`);
-        
+
         // Mostrar loading
         document.getElementById('page-content').innerHTML = `
             <div class="text-center py-5">
@@ -65,10 +65,10 @@ class App {
                 <p class="mt-2">Carregando ${page}...</p>
             </div>
         `;
-        
+
         try {
             let content = '';
-            
+
             switch (page) {
                 case 'dashboard':
                     content = await this.renderDashboard();
@@ -85,10 +85,10 @@ class App {
                 default:
                     content = '<div class="alert alert-warning">Página não encontrada</div>';
             }
-            
+
             document.getElementById('page-content').innerHTML = content;
             this.initializePageEvents(page);
-            
+
         } catch (error) {
             console.error('Erro ao carregar página:', error);
             document.getElementById('page-content').innerHTML = `
@@ -116,7 +116,7 @@ class App {
         try {
             const data = await this.apiRequest('/dashboard/estatisticas');
             const empresas = await this.apiRequest('/empresas');
-            
+
             return `
                 <div class="dashboard-container">
                     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -284,11 +284,11 @@ class App {
         }
     }
 
-   renderResultadosDashboard(data) {
-    const totalDocumentos = data.estatisticas.documentos || 0;
-    
-    if (totalDocumentos === 0) {
-        return `
+    renderResultadosDashboard(data) {
+        const totalDocumentos = data.estatisticas.documentos || 0;
+
+        if (totalDocumentos === 0) {
+            return `
             <div class="card">
                 <div class="card-body text-center py-5">
                     <i class="fas fa-file-alt fa-3x text-muted mb-3"></i>
@@ -300,9 +300,9 @@ class App {
                 </div>
             </div>
         `;
-    }
+        }
 
-    return `
+        return `
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">
@@ -322,64 +322,67 @@ class App {
             </div>
         </div>
     `;
-}
+    }
+    // No método renderTabelaDocumentosDashboard:
     renderTabelaDocumentosDashboard(documentos) {
         if (!documentos || documentos.length === 0) {
             return `
-                <div class="text-center py-4">
-                    <i class="fas fa-search fa-2x text-muted mb-2"></i>
-                    <p class="text-muted">Nenhum documento encontrado com os filtros aplicados</p>
-                    <button class="btn btn-outline-primary btn-sm" onclick="app.limparFiltrosDashboard()">
-                        <i class="fas fa-times"></i> Limpar Filtros
-                    </button>
-                </div>
-            `;
+            <div class="text-center py-4">
+                <i class="fas fa-search fa-2x text-muted mb-2"></i>
+                <p class="text-muted">Nenhum documento encontrado com os filtros aplicados</p>
+                <button class="btn btn-outline-primary btn-sm" onclick="app.limparFiltrosDashboard()">
+                    <i class="fas fa-times"></i> Limpar Filtros
+                </button>
+            </div>
+        `;
         }
 
         return `
-            <div class="table-responsive">
-                <table class="table table-hover table-sm">
-                    <thead>
-                        <tr>
-                            <th>Documento</th>
-                            <th>Empresa</th>
-                            <th>Tipo</th>
-                            <th>Emissão</th>
-                            <th>Vencimento</th>
-                            <th>Status</th>
-                            <th>Dias</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${documentos.map(doc => {
-                            const status = this.getDocumentStatus(doc);
-                            const statusClass = this.getDocumentStatusClass(status);
-                            const statusText = this.getDocumentStatusText(status);
-                            const dias = this.calculateDiasRestantes(doc.data_vencimento);
-                            
-                            return `
-                                <tr class="${status === 'expired' ? 'table-danger' : status === 'expiring' ? 'table-warning' : ''}">
-                                    <td>
-                                        <strong>${doc.nome}</strong>
-                                        ${doc.observacoes ? `<br><small class="text-muted">${doc.observacoes.substring(0, 30)}${doc.observacoes.length > 30 ? '...' : ''}</small>` : ''}
-                                    </td>
-                                    <td>${doc.empresa_nome || doc.razao_social || 'N/A'}</td>
-                                    <td><span class="badge bg-secondary">${doc.tipo}</span></td>
-                                    <td>${this.formatDate(doc.data_emissao)}</td>
-                                    <td>${this.formatDate(doc.data_vencimento)}</td>
-                                    <td><span class="status-badge ${statusClass}">${statusText}</span></td>
-                                    <td>
-                                        <span class="badge ${dias < 0 ? 'bg-danger' : dias <= 30 ? 'bg-warning' : 'bg-success'}">
-                                            ${dias < 0 ? 'Vencido' : `${dias}d`}
-                                        </span>
-                                    </td>
-                                </tr>
-                            `;
-                        }).join('')}
-                    </tbody>
-                </table>
-            </div>
-        `;
+        <div class="table-responsive">
+            <table class="table table-hover table-sm">
+                <thead>
+                    <tr>
+                        <th>Tipo</th>
+                        <th>Descrição</th>
+                        <th>Empresa</th>
+                        <th>Emissão</th>
+                        <th>Vencimento</th>
+                        <th>Status</th>
+                        <th>Dias</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${documentos.map(doc => {
+            const status = this.getDocumentStatus(doc);
+            const statusClass = this.getDocumentStatusClass(status);
+            const statusText = this.getDocumentStatusText(status);
+            const dias = this.calculateDiasRestantes(doc.data_vencimento);
+
+            return `
+                            <tr class="${status === 'expired' ? 'table-danger' : status === 'expiring' ? 'table-warning' : ''}">
+                                <td>
+                                    <span class="badge bg-secondary">${doc.tipo}</span>
+                                </td>
+                                <td>
+                                    <strong>${doc.nome}</strong>
+                                    ${doc.observacoes ? `<br><small class="text-muted">${doc.observacoes.substring(0, 30)}${doc.observacoes.length > 30 ? '...' : ''}</small>` : ''}
+                                </td>
+                                <td>${doc.empresa_nome || doc.razao_social || 'N/A'}</td>
+                                <td>${this.formatDate(doc.data_emissao)}</td>
+                                <td>${this.formatDate(doc.data_vencimento)}</td>
+                                <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+                                <td>
+                                    <span class="badge ${dias < 0 ? 'bg-danger' : dias <= 30 ? 'bg-warning' : 'bg-success'}">
+                                        ${dias < 0 ? 'Vencido' : `${dias}d`}
+                                    </span>
+                                </td>
+                            </tr>
+                        `;
+        }).join('')}
+                </tbody>
+            </table>
+        </div>
+    `;
     }
 
     renderDocumentosProximosTable(documentos) {
@@ -401,9 +404,9 @@ class App {
                     </thead>
                     <tbody>
                         ${documentos.map(doc => {
-                            const dias = this.calculateDiasRestantes(doc.data_vencimento);
-                            const statusClass = this.getDocumentStatusClass('expiring');
-                            return `
+            const dias = this.calculateDiasRestantes(doc.data_vencimento);
+            const statusClass = this.getDocumentStatusClass('expiring');
+            return `
                                 <tr>
                                     <td>
                                         <strong>${doc.nome}</strong>
@@ -415,7 +418,7 @@ class App {
                                     <td><span class="status-badge ${statusClass}">Vencendo</span></td>
                                 </tr>
                             `;
-                        }).join('')}
+        }).join('')}
                     </tbody>
                 </table>
             </div>
@@ -440,8 +443,8 @@ class App {
                     </thead>
                     <tbody>
                         ${documentos.map(doc => {
-                            const dias = this.calculateDiasRestantes(doc.data_vencimento);
-                            return `
+            const dias = this.calculateDiasRestantes(doc.data_vencimento);
+            return `
                                 <tr class="table-danger">
                                     <td>
                                         <strong>${doc.nome}</strong>
@@ -452,7 +455,7 @@ class App {
                                     <td><strong class="text-danger">${Math.abs(dias)} dias atrás</strong></td>
                                 </tr>
                             `;
-                        }).join('')}
+        }).join('')}
                     </tbody>
                 </table>
             </div>
@@ -461,102 +464,452 @@ class App {
 
     // ✅ MÉTODOS PARA FILTROS DO DASHBOARD
     async aplicarFiltrosDashboard() {
-    const status = document.getElementById('filtroStatus').value;
-    const empresaId = document.getElementById('filtroEmpresa').value;
-    const search = document.getElementById('pesquisaDashboard').value;
+        try {
+            const status = document.getElementById('filtroStatus')?.value || '';
+            const empresaId = document.getElementById('filtroEmpresa')?.value || '';
+            const search = document.getElementById('pesquisaDashboard')?.value || '';
 
-    try {
-        // ✅ VERIFICAÇÃO: Garantir que o elemento resultadosDashboard existe
-        const resultadosDiv = document.getElementById('resultadosDashboard');
-        if (!resultadosDiv) {
-            console.error('Elemento resultadosDashboard não encontrado');
-            return;
+            const params = new URLSearchParams();
+            if (status) params.append('status', status);
+            if (empresaId) params.append('empresa_id', empresaId);
+            if (search) params.append('search', search);
+
+            const documentos = await this.apiRequest(`/documentos/filtros?${params}`);
+
+            // ✅ ATUALIZAÇÃO SEGURA - Verificar se elementos existem
+            const resultadosDiv = document.getElementById('resultadosDashboard');
+            if (resultadosDiv) {
+                resultadosDiv.innerHTML = this.renderResultadosComFiltros(documentos);
+            }
+
+        } catch (error) {
+            console.error('Erro ao aplicar filtros:', error);
+            this.showAlert('Erro ao aplicar filtros: ' + error.message, 'danger');
         }
-
-        // Mostrar loading
-        resultadosDiv.innerHTML = `
-            <div class="card">
-                <div class="card-body text-center py-4">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Carregando...</span>
-                    </div>
-                    <p class="mt-2">Aplicando filtros...</p>
-                </div>
-            </div>
-        `;
-
-        const params = new URLSearchParams();
-        if (status) params.append('status', status);
-        if (empresaId) params.append('empresa_id', empresaId);
-        if (search) params.append('search', search);
-
-        const documentos = await this.apiRequest(`/documentos/filtros?${params}`);
-        
-        // ✅ CORREÇÃO SEGURA: Atualizar apenas se os elementos existirem
-        const totalElement = document.getElementById('totalDocumentosFiltrados');
-        const tabelaElement = document.getElementById('tabelaDocumentosDashboard');
-        
-        if (totalElement) {
-            totalElement.textContent = documentos.length;
-        }
-        
-        if (tabelaElement) {
-            tabelaElement.innerHTML = this.renderTabelaDocumentosDashboard(documentos);
-        } else {
-            // Se a tabela não existe, recriar todo o conteúdo
-            resultadosDiv.innerHTML = this.renderResultadosComFiltros(documentos);
-        }
-
-    } catch (error) {
-        console.error('Erro ao aplicar filtros:', error);
-        this.showAlert('Erro ao aplicar filtros: ' + error.message, 'danger');
     }
-}
 
-// ✅ NOVO MÉTODO: Renderizar resultados quando os filtros são aplicados
-renderResultadosComFiltros(documentos) {
-    return `
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">
-                    <i class="fas fa-list me-2"></i>Documentos Filtrados
-                    <span class="badge bg-primary ms-2">${documentos.length}</span>
-                </h5>
-                <div class="btn-group">
-                    <button class="btn btn-outline-primary btn-sm" onclick="app.exportarDocumentos()">
-                        <i class="fas fa-download"></i> Exportar
-                    </button>
-                    <button class="btn btn-outline-secondary btn-sm" onclick="app.limparFiltrosDashboard()">
-                        <i class="fas fa-times"></i> Limpar
-                    </button>
-                </div>
-            </div>
-            <div class="card-body">
-                ${this.renderTabelaDocumentosDashboard(documentos)}
+    // ✅ NOVO MÉTODO AUXILIAR
+    renderResultadosComFiltros(documentos) {
+        return `
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+                <i class="fas fa-filter me-2"></i>Documentos Filtrados
+                <span class="badge bg-primary ms-2">${documentos.length}</span>
+            </h5>
+            <div class="btn-group">
+                <button class="btn btn-outline-primary btn-sm" onclick="app.limparFiltrosDashboard()">
+                    <i class="fas fa-times"></i> Limpar Filtros
+                </button>
             </div>
         </div>
+        <div class="card-body">
+            ${this.renderTabelaDocumentosDashboard(documentos)}
+        </div>
+    </div>
     `;
-}
+    }
+    limparFiltrosDashboard() {
+        // Limpar campos de filtro
+        document.getElementById('filtroStatus').value = '';
+        document.getElementById('filtroEmpresa').value = '';
+        document.getElementById('pesquisaDashboard').value = '';
 
- limparFiltrosDashboard() {
-    // Limpar campos de filtro
-    document.getElementById('filtroStatus').value = '';
-    document.getElementById('filtroEmpresa').value = '';
-    document.getElementById('pesquisaDashboard').value = '';
-    
-    // Recarregar o dashboard completo
-    this.loadPage('dashboard');
-}
+        // Recarregar o dashboard completo
+        this.loadPage('dashboard');
+    }
 
     exportarDocumentos() {
         this.showAlert('Funcionalidade de exportação em desenvolvimento', 'info');
     }
 
+    // ✅ MÉTODO PARA VISUALIZAR DETALHES DO DOCUMENTO COM ANDAMENTOS
+    // ✅ MÉTODO CORRIGIDO PARA VISUALIZAR DETALHES DO DOCUMENTO
+    async visualizarDocumento(id) {
+        try {
+            console.log(`Carregando detalhes do documento ID: ${id}`);
+
+            // Fazer as requisições em paralelo para melhor performance
+            const [documento, responsaveis] = await Promise.all([
+                this.apiRequest(`/documentos/${id}`).catch(error => {
+                    console.error('Erro ao carregar documento:', error);
+                    throw new Error('Não foi possível carregar os dados do documento');
+                }),
+                this.apiRequest('/responsaveis').catch(error => {
+                    console.error('Erro ao carregar responsáveis:', error);
+                    return [];
+                })
+            ]);
+
+            // Tentar carregar andamentos, mas não falhar se der erro
+            let andamentos = [];
+            try {
+                andamentos = await this.apiRequest(`/documentos/${id}/andamentos`);
+            } catch (error) {
+                console.warn('Não foi possível carregar os andamentos:', error);
+                // Continua mesmo sem andamentos
+            }
+
+            const content = `
+            <div class="documento-detalhes">
+                <!-- Cabeçalho do Documento -->
+                <div class="card mb-4">
+                    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-file-alt me-2"></i>${this.escapeHtml(documento.nome)}
+                        </h5>
+                        <span class="badge bg-light text-dark">${this.escapeHtml(documento.tipo)}</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p><strong>Empresa:</strong> ${this.escapeHtml(documento.razao_social)}</p>
+                                <p><strong>CNPJ:</strong> ${this.formatCNPJ(documento.empresa_cnpj)}</p>
+                                <p><strong>Data Emissão:</strong> ${this.formatDate(documento.data_emissao)}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>Vencimento:</strong> ${this.formatDate(documento.data_vencimento)}</p>
+                                <p><strong>Status Geral:</strong> 
+                                    <span class="badge ${this.getStatusBadgeClass(documento.status_geral || 'pendente')}">
+                                        ${this.getStatusText(documento.status_geral || 'pendente')}
+                                    </span>
+                                </p>
+                                ${documento.arquivo_path ? `
+                                    <button class="btn btn-success btn-sm" onclick="app.downloadDocumento(${documento.id})">
+                                        <i class="fas fa-download"></i> Baixar Arquivo
+                                    </button>
+                                ` : ''}
+                            </div>
+                        </div>
+                        ${documento.observacoes ? `
+                            <div class="mt-3">
+                                <strong>Observações:</strong>
+                                <p class="mb-0">${this.escapeHtml(documento.observacoes)}</p>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+
+                <!-- Seção de Andamentos -->
+                <div class="row">
+                    <div class="col-lg-8">
+                        <!-- Lista de Andamentos -->
+                        <div class="card">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0">
+                                    <i class="fas fa-history me-2"></i>Histórico de Andamentos
+                                </h6>
+                                <span class="badge bg-primary">${andamentos.length}</span>
+                            </div>
+                            <div class="card-body">
+                                ${andamentos.length === 0 ?
+                    '<div class="text-center py-4"><i class="fas fa-inbox fa-2x text-muted mb-2"></i><p class="text-muted">Nenhum andamento registrado</p></div>' :
+                    this.renderListaAndamentos(andamentos)
+                }
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-lg-4">
+                        <!-- Formulário para Novo Andamento -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="mb-0">
+                                    <i class="fas fa-plus-circle me-2"></i>Novo Andamento
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <form id="formAndamento" onsubmit="app.adicionarAndamento(event, ${documento.id})">
+                                    <div class="mb-3">
+                                        <label class="form-label">Responsável</label>
+                                        <select class="form-select" id="andamento_responsavel" required>
+                                            <option value="">Selecione o responsável...</option>
+                                            ${responsaveis.map(resp => `
+                                                <option value="${resp.id}">
+                                                    ${this.escapeHtml(resp.nome)} - ${this.escapeHtml(resp.funcao)}
+                                                </option>
+                                            `).join('')}
+                                        </select>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label class="form-label">Status</label>
+                                        <select class="form-select" id="andamento_status">
+                                            <option value="em_andamento">Em Andamento</option>
+                                            <option value="pendente">Pendente</option>
+                                            <option value="concluido">Concluído</option>
+                                            <option value="cancelado">Cancelado</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label class="form-label">Descrição do Andamento</label>
+                                        <textarea class="form-control" id="andamento_descricao" 
+                                                  rows="4" placeholder="Descreva o andamento desta demanda..." 
+                                                  required></textarea>
+                                    </div>
+                                    
+                                    <div class="d-grid gap-2">
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="fas fa-save"></i> Registrar Andamento
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+
+                        <!-- Ações Rápidas -->
+                        <div class="card mt-3">
+                            <div class="card-header">
+                                <h6 class="mb-0">
+                                    <i class="fas fa-bolt me-2"></i>Ações Rápidas
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="d-grid gap-2">
+                                    <button class="btn btn-outline-success btn-sm" onclick="app.atualizarStatusDocumento(${documento.id}, 'concluido')">
+                                        <i class="fas fa-check"></i> Marcar como Concluído
+                                    </button>
+                                    <button class="btn btn-outline-warning btn-sm" onclick="app.atualizarStatusDocumento(${documento.id}, 'em_andamento')">
+                                        <i class="fas fa-sync"></i> Em Andamento
+                                    </button>
+                                    <button class="btn btn-outline-danger btn-sm" onclick="app.atualizarStatusDocumento(${documento.id}, 'cancelado')">
+                                        <i class="fas fa-times"></i> Cancelar
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+            this.showModal(`Detalhes do Documento - ${this.escapeHtml(documento.nome)}`, content, null, 'modal-xl');
+
+        } catch (error) {
+            console.error('Erro ao carregar detalhes do documento:', error);
+            this.showAlert(`Erro ao carregar detalhes: ${error.message}`, 'danger');
+        }
+    }
+
+    // ✅ MÉTODO PARA ESCAPAR HTML (SEGURANÇA)
+    escapeHtml(unsafe) {
+        if (unsafe === null || unsafe === undefined) return '';
+        return unsafe
+            .toString()
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+    // ✅ RENDERIZAR LISTA DE ANDAMENTOS
+    renderListaAndamentos(andamentos) {
+        return `
+        <div class="timeline">
+            ${andamentos.map(andamento => `
+                <div class="timeline-item ${andamento.status}">
+                    <div class="timeline-marker ${this.getStatusBadgeClass(andamento.status)}"></div>
+                    <div class="timeline-content">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <strong>${andamento.responsavel_nome}</strong>
+                            <small class="text-muted">${andamento.data_formatada}</small>
+                        </div>
+                        <p class="mb-2">${andamento.descricao}</p>
+                        <span class="badge ${this.getStatusBadgeClass(andamento.status)}">
+                            ${this.getStatusText(andamento.status)}
+                        </span>
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+    `;
+    }
+
+
+   // ✅ MÉTODO ADICIONAR ANDAMENTO COM DEBUG COMPLETO
+async adicionarAndamento(event, documentoId) {
+    event.preventDefault();
+    
+    console.log('🟡 ========== INICIANDO ADIÇÃO DE ANDAMENTO ==========');
+    console.log('Documento ID:', documentoId);
+
+    try {
+        // Capturar dados do formulário
+        const responsavelSelect = document.getElementById('andamento_responsavel');
+        const descricaoTextarea = document.getElementById('andamento_descricao');
+        const statusSelect = document.getElementById('andamento_status');
+        
+        const responsavel_id = responsavelSelect ? responsavelSelect.value : null;
+        const descricao = descricaoTextarea ? descricaoTextarea.value : '';
+        const status = statusSelect ? statusSelect.value : 'em_andamento';
+
+        console.log('📝 DADOS CAPTURADOS DO FORMULÁRIO:');
+        console.log('Responsável ID:', responsavel_id);
+        console.log('Descrição:', descricao);
+        console.log('Status:', status);
+        console.log('Elementos encontrados:', {
+            responsavel: !!responsavelSelect,
+            descricao: !!descricaoTextarea,
+            status: !!statusSelect
+        });
+
+        // Validação
+        if (!responsavel_id) {
+            console.log('❌ VALIDAÇÃO FALHOU: Responsável não selecionado');
+            this.showAlert('Selecione um responsável', 'warning');
+            return;
+        }
+
+        if (!descricao.trim()) {
+            console.log('❌ VALIDAÇÃO FALHOU: Descrição vazia');
+            this.showAlert('Digite uma descrição', 'warning');
+            return;
+        }
+
+        const formData = {
+            responsavel_id: parseInt(responsavel_id),
+            descricao: descricao.trim(),
+            status: status
+        };
+
+        console.log('📦 DADOS ENVIADOS:', formData);
+
+        // Mostrar loading
+        const btnSalvar = document.querySelector('#formAndamento button[type="submit"]');
+        if (btnSalvar) {
+            const originalText = btnSalvar.innerHTML;
+            btnSalvar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
+            btnSalvar.disabled = true;
+        }
+
+        console.log('🔄 ENVIANDO REQUISIÇÃO PARA API...');
+        console.log('URL:', `/api/documentos/${documentoId}/andamentos`);
+        
+        const response = await fetch(`/api/documentos/${documentoId}/andamentos`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(formData)
+        });
+
+        console.log('📨 RESPOSTA DA API RECEBIDA:');
+        console.log('Status:', response.status);
+        console.log('OK:', response.ok);
+        console.log('Headers:', Object.fromEntries(response.headers.entries()));
+
+        const responseText = await response.text();
+        console.log('Response Text:', responseText);
+
+        let data;
+        try {
+            data = JSON.parse(responseText);
+            console.log('📊 DADOS DA RESPOSTA (JSON):', data);
+        } catch (e) {
+            console.error('❌ ERRO AO CONVERTER RESPOSTA PARA JSON:', e);
+            console.log('Resposta original:', responseText);
+            throw new Error('Resposta inválida do servidor');
+        }
+
+        if (!response.ok) {
+            console.log('❌ ERRO NA RESPOSTA DA API:', data);
+            throw new Error(data.error || `Erro ${response.status}: ${data.message || 'Erro desconhecido'}`);
+        }
+
+        console.log('✅ ANDAMENTO SALVO COM SUCESSO!', data);
+        this.showAlert('Andamento registrado com sucesso!', 'success');
+        
+        // Fechar modal
+        console.log('🔒 FECHANDO MODAL...');
+        const modalElement = document.getElementById('dynamicModal');
+        if (modalElement) {
+            const modal = bootstrap.Modal.getInstance(modalElement);
+            if (modal) {
+                modal.hide();
+                console.log('✅ MODAL FECHADO');
+            } else {
+                console.log('⚠️  Instância do modal não encontrada');
+            }
+        } else {
+            console.log('⚠️  Elemento do modal não encontrado');
+        }
+        
+        // Recarregar a página de documentos
+        console.log('🔄 RECARREGANDO PÁGINA DE DOCUMENTOS...');
+        setTimeout(() => {
+            this.loadPage('documentos');
+        }, 1500);
+
+    } catch (error) {
+        console.error('❌ ERRO CRÍTICO AO REGISTRAR ANDAMENTO:', error);
+        console.error('Stack trace:', error.stack);
+        this.showAlert(`Erro ao registrar andamento: ${error.message}`, 'danger');
+        
+        // Restaurar botão em caso de erro
+        const btnSalvar = document.querySelector('#formAndamento button[type="submit"]');
+        if (btnSalvar) {
+            btnSalvar.innerHTML = '<i class="fas fa-save"></i> Registrar Andamento';
+            btnSalvar.disabled = false;
+        }
+    }
+    
+    console.log('🟡 ========== FIM DO PROCESSO ==========');
+}
+
+
+    
+    // ✅ MÉTODO ATUALIZAR STATUS CORRIGIDO
+    async atualizarStatusDocumento(documentoId, status) {
+        try {
+            await this.apiRequest(`/documentos/${documentoId}/status`, {
+                method: 'PUT',
+                body: { status_geral: status }
+            });
+
+            this.showAlert(`Status atualizado para: ${this.getStatusText(status)}`, 'success');
+
+            // Fechar modal e recarregar a lista de documentos
+            bootstrap.Modal.getInstance(document.getElementById('dynamicModal')).hide();
+
+            setTimeout(() => {
+                this.loadPage('documentos');
+            }, 500);
+
+        } catch (error) {
+            console.error('Erro ao atualizar status:', error);
+            this.showAlert(`Erro ao atualizar status: ${error.message}`, 'danger');
+        }
+    }
+
+    // ✅ MÉTODOS AUXILIARES PARA STATUS
+    getStatusBadgeClass(status) {
+        const classes = {
+            'pendente': 'bg-warning',
+            'em_andamento': 'bg-info',
+            'concluido': 'bg-success',
+            'cancelado': 'bg-danger'
+        };
+        return classes[status] || 'bg-secondary';
+    }
+
+    getStatusText(status) {
+        const texts = {
+            'pendente': 'Pendente',
+            'em_andamento': 'Em Andamento',
+            'concluido': 'Concluído',
+            'cancelado': 'Cancelado'
+        };
+        return texts[status] || status;
+    }
+
+
     // ✅ MÉTODOS PARA EMPRESAS
     async renderEmpresas() {
         try {
             const empresas = await this.apiRequest('/empresas');
-            
+
             return `
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <h1 class="page-title">
@@ -573,10 +926,10 @@ renderResultadosComFiltros(documentos) {
                         <span class="badge bg-primary">${empresas.length} empresas</span>
                     </div>
                     <div class="card-body">
-                        ${empresas.length === 0 ? 
-                            '<div class="text-center py-5"><i class="fas fa-building fa-3x text-muted mb-3"></i><p class="text-muted">Nenhuma empresa cadastrada</p><button class="btn btn-primary mt-2" onclick="app.openEmpresaModal()">Cadastrar Primeira Empresa</button></div>' : 
-                            this.renderEmpresasTable(empresas)
-                        }
+                        ${empresas.length === 0 ?
+                    '<div class="text-center py-5"><i class="fas fa-building fa-3x text-muted mb-3"></i><p class="text-muted">Nenhuma empresa cadastrada</p><button class="btn btn-primary mt-2" onclick="app.openEmpresaModal()">Cadastrar Primeira Empresa</button></div>' :
+                    this.renderEmpresasTable(empresas)
+                }
                     </div>
                 </div>
             `;
@@ -645,12 +998,12 @@ renderResultadosComFiltros(documentos) {
     }
 
     // ✅ MÉTODO openEmpresaModal ATUALIZADO
-  // ✅ MÉTODO openEmpresaModal ATUALIZADO COM OLHINHO
-openEmpresaModal(empresa = null) {
-    const title = empresa ? 'Editar Empresa' : 'Nova Empresa';
-    const isSimplesNacional = empresa ? (empresa.simples_nacional ? 'checked' : '') : 'checked';
-    
-    const content = `
+    // ✅ MÉTODO openEmpresaModal ATUALIZADO COM OLHINHO
+    openEmpresaModal(empresa = null) {
+        const title = empresa ? 'Editar Empresa' : 'Nova Empresa';
+        const isSimplesNacional = empresa ? (empresa.simples_nacional ? 'checked' : '') : 'checked';
+
+        const content = `
         <form id="empresaForm">
             <input type="hidden" id="empresaId" value="${empresa?.id || ''}">
             
@@ -832,46 +1185,46 @@ openEmpresaModal(empresa = null) {
         </form>
     `;
 
-    this.showModal(title, content, () => this.saveEmpresa());
-    
-    // Adicionar máscara ao CNPJ de consulta se for um novo cadastro
-    if (!empresa) {
-        setTimeout(() => {
-            const cnpjConsulta = document.getElementById('cnpjConsulta');
-            if (cnpjConsulta) {
-                cnpjConsulta.addEventListener('input', function(e) {
-                    app.formatarCNPJConsulta(e.target);
-                });
-            }
-        }, 100);
-    }
-}
+        this.showModal(title, content, () => this.saveEmpresa());
 
-// ✅ MÉTODO PARA MOSTRAR/OCULTAR SENHA
-togglePassword(fieldId) {
-    const passwordField = document.getElementById(fieldId);
-    const toggleButton = passwordField.nextElementSibling;
-    const icon = toggleButton.querySelector('i');
-    
-    if (passwordField.type === 'password') {
-        // Mostrar senha
-        passwordField.type = 'text';
-        icon.classList.remove('fa-eye');
-        icon.classList.add('fa-eye-slash', 'password-visible');
-        toggleButton.setAttribute('title', 'Ocultar senha');
-    } else {
-        // Ocultar senha
-        passwordField.type = 'password';
-        icon.classList.remove('fa-eye-slash', 'password-visible');
-        icon.classList.add('fa-eye');
-        toggleButton.setAttribute('title', 'Mostrar senha');
+        // Adicionar máscara ao CNPJ de consulta se for um novo cadastro
+        if (!empresa) {
+            setTimeout(() => {
+                const cnpjConsulta = document.getElementById('cnpjConsulta');
+                if (cnpjConsulta) {
+                    cnpjConsulta.addEventListener('input', function (e) {
+                        app.formatarCNPJConsulta(e.target);
+                    });
+                }
+            }, 100);
+        }
     }
-}
+
+    // ✅ MÉTODO PARA MOSTRAR/OCULTAR SENHA
+    togglePassword(fieldId) {
+        const passwordField = document.getElementById(fieldId);
+        const toggleButton = passwordField.nextElementSibling;
+        const icon = toggleButton.querySelector('i');
+
+        if (passwordField.type === 'password') {
+            // Mostrar senha
+            passwordField.type = 'text';
+            icon.classList.remove('fa-eye');
+            icon.classList.add('fa-eye-slash', 'password-visible');
+            toggleButton.setAttribute('title', 'Ocultar senha');
+        } else {
+            // Ocultar senha
+            passwordField.type = 'password';
+            icon.classList.remove('fa-eye-slash', 'password-visible');
+            icon.classList.add('fa-eye');
+            toggleButton.setAttribute('title', 'Mostrar senha');
+        }
+    }
 
     // ✅ MÉTODO saveEmpresa ATUALIZADO
     async saveEmpresa() {
         const simplesNacional = document.querySelector('input[name="simplesNacional"]:checked')?.value === 'true';
-        
+
         const formData = {
             razao_social: document.getElementById('razaoSocial').value,
             nome_fantasia: document.getElementById('nomeFantasia').value,
@@ -888,7 +1241,7 @@ togglePassword(fieldId) {
         };
 
         const id = document.getElementById('empresaId').value;
-        
+
         try {
             if (id) {
                 await this.apiRequest(`/empresas/${id}`, {
@@ -920,12 +1273,12 @@ togglePassword(fieldId) {
         }
     }
 
-  // ✅ MÉTODO viewEmpresa ATUALIZADO
-async viewEmpresa(id) {
-    try {
-        const empresa = await this.apiRequest(`/empresas/${id}`);
-        
-        const content = `
+    // ✅ MÉTODO viewEmpresa ATUALIZADO
+    async viewEmpresa(id) {
+        try {
+            const empresa = await this.apiRequest(`/empresas/${id}`);
+
+            const content = `
             <div class="empresa-details">
                 <div class="row">
                     <div class="col-md-6">
@@ -986,72 +1339,72 @@ async viewEmpresa(id) {
                 ` : ''}
             </div>
         `;
-        
-        this.showModal('Detalhes da Empresa', content, null);
-        
-    } catch (error) {
-        this.showAlert(`Erro ao carregar detalhes: ${error.message}`, 'danger');
-    }
-}
 
-// ✅ MÉTODO PARA MOSTRAR/OCULTAR SENHA NA VISUALIZAÇÃO
-toggleViewPassword(elementId, realPassword) {
-    const element = document.getElementById(elementId);
-    const button = element.nextElementSibling;
-    const icon = button.querySelector('i');
-    
-    if (element.textContent === '••••••••') {
-        // Mostrar senha real
-        element.textContent = realPassword;
-        icon.classList.remove('fa-eye');
-        icon.classList.add('fa-eye-slash');
-        button.innerHTML = '<i class="fas fa-eye-slash"></i> Ocultar';
-        button.classList.add('btn-warning');
-        button.classList.remove('btn-outline-secondary');
-        
-        // Ocultar automaticamente após 10 segundos por segurança
-        setTimeout(() => {
-            if (element.textContent === realPassword) {
-                element.textContent = '••••••••';
-                icon.classList.remove('fa-eye-slash');
-                icon.classList.add('fa-eye');
-                button.innerHTML = '<i class="fas fa-eye"></i> Mostrar';
-                button.classList.remove('btn-warning');
-                button.classList.add('btn-outline-secondary');
-            }
-        }, 10000);
-    } else {
-        // Ocultar senha
-        element.textContent = '••••••••';
-        icon.classList.remove('fa-eye-slash');
-        icon.classList.add('fa-eye');
-        button.innerHTML = '<i class="fas fa-eye"></i> Mostrar';
-        button.classList.remove('btn-warning');
-        button.classList.add('btn-outline-secondary');
-    }
-}
+            this.showModal('Detalhes da Empresa', content, null);
 
-// ✅ MÉTODO PARA ESCAPAR HTML (segurança)
-escapeHtml(unsafe) {
-    if (!unsafe) return '';
-    return unsafe
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
-}
-
-// ✅ MÉTODO PARA COPIAR SENHA PARA ÁREA DE TRANSFERÊNCIA
-async copyToClipboard(text) {
-    try {
-        await navigator.clipboard.writeText(text);
-        this.showAlert('Senha copiada para a área de transferência!', 'success');
-    } catch (error) {
-        console.error('Erro ao copiar senha:', error);
-        this.showAlert('Erro ao copiar senha', 'danger');
+        } catch (error) {
+            this.showAlert(`Erro ao carregar detalhes: ${error.message}`, 'danger');
+        }
     }
-}
+
+    // ✅ MÉTODO PARA MOSTRAR/OCULTAR SENHA NA VISUALIZAÇÃO
+    toggleViewPassword(elementId, realPassword) {
+        const element = document.getElementById(elementId);
+        const button = element.nextElementSibling;
+        const icon = button.querySelector('i');
+
+        if (element.textContent === '••••••••') {
+            // Mostrar senha real
+            element.textContent = realPassword;
+            icon.classList.remove('fa-eye');
+            icon.classList.add('fa-eye-slash');
+            button.innerHTML = '<i class="fas fa-eye-slash"></i> Ocultar';
+            button.classList.add('btn-warning');
+            button.classList.remove('btn-outline-secondary');
+
+            // Ocultar automaticamente após 10 segundos por segurança
+            setTimeout(() => {
+                if (element.textContent === realPassword) {
+                    element.textContent = '••••••••';
+                    icon.classList.remove('fa-eye-slash');
+                    icon.classList.add('fa-eye');
+                    button.innerHTML = '<i class="fas fa-eye"></i> Mostrar';
+                    button.classList.remove('btn-warning');
+                    button.classList.add('btn-outline-secondary');
+                }
+            }, 10000);
+        } else {
+            // Ocultar senha
+            element.textContent = '••••••••';
+            icon.classList.remove('fa-eye-slash');
+            icon.classList.add('fa-eye');
+            button.innerHTML = '<i class="fas fa-eye"></i> Mostrar';
+            button.classList.remove('btn-warning');
+            button.classList.add('btn-outline-secondary');
+        }
+    }
+
+    // ✅ MÉTODO PARA ESCAPAR HTML (segurança)
+    escapeHtml(unsafe) {
+        if (!unsafe) return '';
+        return unsafe
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+    // ✅ MÉTODO PARA COPIAR SENHA PARA ÁREA DE TRANSFERÊNCIA
+    async copyToClipboard(text) {
+        try {
+            await navigator.clipboard.writeText(text);
+            this.showAlert('Senha copiada para a área de transferência!', 'success');
+        } catch (error) {
+            console.error('Erro ao copiar senha:', error);
+            this.showAlert('Erro ao copiar senha', 'danger');
+        }
+    }
 
     async deleteEmpresa(id) {
         if (confirm('Tem certeza que deseja excluir esta empresa?')) {
@@ -1069,7 +1422,7 @@ async copyToClipboard(text) {
     async renderDocumentos() {
         try {
             const documentos = await this.apiRequest('/documentos');
-            
+
             return `
                 <div class="documentos-module">
                     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -1104,212 +1457,363 @@ async copyToClipboard(text) {
             `;
         }
     }
-
+    // ✅ MÉTODO PARA LIMPAR FORMULÁRIO DE ANDAMENTO
+    limparFormularioAndamento() {
+        const form = document.getElementById('formAndamento');
+        if (form) {
+            form.reset();
+        }
+    }
+    // ✅ MÉTODO COMPLETO PARA RENDERIZAR LISTA DE DOCUMENTOS
+    // ✅ MÉTODO RENDERLISTADOCUMENTOS ATUALIZADO
     renderListaDocumentos(documentos) {
         if (documentos.length === 0) {
             return `
-                <div class="card">
-                    <div class="card-body text-center py-5">
-                        <i class="fas fa-file-alt fa-3x text-muted mb-3"></i>
-                        <h4 class="text-muted">Nenhum documento cadastrado</h4>
-                        <p class="text-muted">Comece cadastrando seu primeiro documento</p>
-                        <button class="btn btn-primary" onclick="app.abrirFormularioNovoDocumento()">
-                            <i class="fas fa-plus"></i> Cadastrar Primeiro Documento
-                        </button>
-                    </div>
-                </div>
-            `;
-        }
-
-        return `
             <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">Documentos Cadastrados</h5>
-                    <span class="badge bg-primary">${documentos.length} documentos</span>
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th>Documento</th>
-                                    <th>Empresa</th>
-                                    <th>Tipo</th>
-                                    <th>Emissão</th>
-                                    <th>Vencimento</th>
-                                    <th>Status</th>
-                                    <th>Ações</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${documentos.map(doc => {
-                                    const status = this.getDocumentStatus(doc);
-                                    const statusClass = this.getDocumentStatusClass(status);
-                                    const statusText = this.getDocumentStatusText(status);
-                                    
-                                    return `
-                                        <tr>
-                                            <td>
-                                                <strong>${doc.nome}</strong>
-                                                ${doc.observacoes ? `<br><small class="text-muted">${doc.observacoes.substring(0, 50)}${doc.observacoes.length > 50 ? '...' : ''}</small>` : ''}
-                                            </td>
-                                            <td>${doc.razao_social || 'N/A'}</td>
-                                            <td><span class="badge bg-secondary">${doc.tipo}</span></td>
-                                            <td>${this.formatDate(doc.data_emissao)}</td>
-                                            <td>${this.formatDate(doc.data_vencimento)}</td>
-                                            <td><span class="status-badge ${statusClass}">${statusText}</span></td>
-                                            <td>
-                                                <div class="btn-group btn-group-sm">
-                                                    ${doc.arquivo_path ? `
-                                                        <button class="btn btn-outline-success" onclick="app.downloadDocumento(${doc.id})" title="Download">
-                                                            <i class="fas fa-download"></i>
-                                                        </button>
-                                                    ` : ''}
-                                                    <button class="btn btn-outline-primary" onclick="app.editarDocumento(${doc.id})" title="Editar">
-                                                        <i class="fas fa-edit"></i>
-                                                    </button>
-                                                    <button class="btn btn-outline-danger" onclick="app.excluirDocumento(${doc.id})" title="Excluir">
-                                                        <i class="fas fa-trash"></i>
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    `;
-                                }).join('')}
-                            </tbody>
-                        </table>
-                    </div>
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-file-alt fa-3x text-muted mb-3"></i>
+                    <h4 class="text-muted">Nenhum documento cadastrado</h4>
+                    <p class="text-muted">Comece cadastrando seu primeiro documento</p>
+                    <button class="btn btn-primary" onclick="app.abrirFormularioNovoDocumento()">
+                        <i class="fas fa-plus"></i> Cadastrar Primeiro Documento
+                    </button>
                 </div>
             </div>
         `;
+        }
+
+        return `
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Documentos Cadastrados</h5>
+                <span class="badge bg-primary">${documentos.length} documentos</span>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Tipo</th>
+                                <th>Descrição/Número</th>
+                                <th>Empresa</th>
+                                <th>Emissão</th>
+                                <th>Vencimento</th>
+                                <th>Status</th>
+                                <th>Dias</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${documentos.map(doc => {
+            const statusVencimento = this.getDocumentStatus(doc);
+            const statusGeral = doc.status_geral || 'pendente';
+            const diasRestantes = this.calculateDiasRestantes(doc.data_vencimento);
+
+            return `
+                                    <tr class="${statusVencimento === 'expired' ? 'table-danger' : statusVencimento === 'expiring' ? 'table-warning' : ''}">
+                                        <td>
+                                            <span class="badge bg-primary">${doc.tipo}</span>
+                                        </td>
+                                        <td>
+                                            <strong>${doc.nome}</strong>
+                                            ${doc.observacoes ? `<br><small class="text-muted">${doc.observacoes.substring(0, 50)}${doc.observacoes.length > 50 ? '...' : ''}</small>` : ''}
+                                        </td>
+                                        <td>${doc.razao_social || 'N/A'}</td>
+                                        <td>${this.formatDate(doc.data_emissao)}</td>
+                                        <td>${this.formatDate(doc.data_vencimento)}</td>
+                                        <td>
+                                            <span class="badge ${this.getStatusBadgeClass(statusGeral)}">
+                                                ${this.getStatusText(statusGeral)}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="badge ${diasRestantes < 0 ? 'bg-danger' : diasRestantes <= 30 ? 'bg-warning' : 'bg-success'}">
+                                                ${diasRestantes < 0 ? 'Vencido' : `${diasRestantes}d`}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                <button class="btn btn-outline-info" onclick="app.visualizarDocumento(${doc.id})" title="Ver Andamentos">
+                                                    <i class="fas fa-history"></i>
+                                                </button>
+                                                ${doc.arquivo_path ? `
+                                                    <button class="btn btn-outline-success" onclick="app.downloadDocumento(${doc.id})" title="Download">
+                                                        <i class="fas fa-download"></i>
+                                                    </button>
+                                                ` : ''}
+                                                <button class="btn btn-outline-primary" onclick="app.editarDocumento(${doc.id})" title="Editar">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <button class="btn btn-outline-danger" onclick="app.excluirDocumento(${doc.id})" title="Excluir">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                `;
+        }).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    `;
     }
 
+    // ✅ MÉTODOS AUXILIARES PARA O RENDERLISTADOCUMENTOS
+
+    getDocumentStatus(documento) {
+        const vencimento = new Date(documento.data_vencimento);
+        const hoje = new Date();
+        const diffTime = vencimento - hoje;
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        if (diffDays < 0) return 'expired';
+        if (diffDays <= 30) return 'expiring';
+        return 'valid';
+    }
+
+    getDocumentStatusClass(status) {
+        switch (status) {
+            case 'valid': return 'status-valid';
+            case 'expiring': return 'status-expiring';
+            case 'expired': return 'status-expired';
+            default: return 'status-valid';
+        }
+    }
+
+    getDocumentStatusText(status) {
+        switch (status) {
+            case 'valid': return 'Válido';
+            case 'expiring': return 'Vencendo';
+            case 'expired': return 'Vencido';
+            default: return 'Válido';
+        }
+    }
+
+    calculateDiasRestantes(dataVencimento) {
+        if (!dataVencimento) return 0;
+        const vencimento = new Date(dataVencimento);
+        const hoje = new Date();
+        // Resetar horas para comparar apenas datas
+        hoje.setHours(0, 0, 0, 0);
+        vencimento.setHours(0, 0, 0, 0);
+
+        const diffTime = vencimento - hoje;
+        return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    }
+
+    getStatusBadgeClass(status) {
+        const classes = {
+            'pendente': 'bg-warning',
+            'em_andamento': 'bg-info',
+            'concluido': 'bg-success',
+            'cancelado': 'bg-danger',
+            'valid': 'bg-success',
+            'expiring': 'bg-warning',
+            'expired': 'bg-danger'
+        };
+        return classes[status] || 'bg-secondary';
+    }
+
+    getStatusText(status) {
+        const texts = {
+            'pendente': 'Pendente',
+            'em_andamento': 'Em Andamento',
+            'concluido': 'Concluído',
+            'cancelado': 'Cancelado',
+            'valid': 'Válido',
+            'expiring': 'Vencendo',
+            'expired': 'Vencido'
+        };
+        return texts[status] || status;
+    }
+
+    formatDate(dateString) {
+        if (!dateString) return 'N/A';
+        try {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('pt-BR');
+        } catch (error) {
+            return 'Data inválida';
+        }
+    }
+
+    formatCNPJ(cnpj) {
+        if (!cnpj) return 'N/A';
+        return cnpj.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
+    }
+
+    // No método renderFormularioDocumento, substitua a parte do tipo:
     async renderFormularioDocumento() {
         try {
             const empresas = await this.apiRequest('/empresas');
             const responsaveis = await this.apiRequest('/responsaveis');
-            
+
             return `
-                <div class="card">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0" id="titulo-formulario">Cadastrar Novo Documento</h5>
-                        <button class="btn btn-outline-secondary btn-sm" onclick="app.voltarParaLista()">
-                            <i class="fas fa-arrow-left"></i> Voltar para Lista
-                        </button>
-                    </div>
-                    <div class="card-body">
-                        <form id="formDocumento" onsubmit="app.salvarDocumento(event)">
-                            <input type="hidden" id="documentoId">
-                            
-                            <!-- Mensagens de status -->
-                            <div id="mensagemStatus"></div>
-
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label class="form-label required-field">Tipo de Documento</label>
-                                        <select class="form-select" id="tipo" required>
-                                            <option value="">Selecione o tipo...</option>
-                                            <option value="Alvará">Alvará</option>
-                                            <option value="Licença">Licença</option>
-                                            <option value="Certidão">Certidão</option>
-                                            <option value="Contrato">Contrato</option>
-                                            <option value="Declaração">Declaração</option>
-                                            <option value="Outros">Outros</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label class="form-label required-field">Nome do Documento</label>
-                                        <input type="text" class="form-control" id="nome" 
-                                               placeholder="Ex: Alvará de Funcionamento" required>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label class="form-label required-field">Empresa</label>
-                                        <select class="form-select" id="empresa_id" required>
-                                            <option value="">Selecione a empresa...</option>
-                                            ${empresas.map(empresa => `
-                                                <option value="${empresa.id}">
-                                                    ${empresa.razao_social} 
-                                                    ${empresa.nome_fantasia ? `- ${empresa.nome_fantasia}` : ''}
-                                                </option>
-                                            `).join('')}
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label class="form-label required-field">Responsável</label>
-                                        <select class="form-select" id="responsavel_id" required>
-                                            <option value="">Selecione o responsável...</option>
-                                            ${responsaveis.map(resp => `
-                                                <option value="${resp.id}">
-                                                    ${resp.nome} - ${resp.funcao}
-                                                </option>
-                                            `).join('')}
-                                        </select>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label class="form-label required-field">Data de Emissão</label>
-                                        <input type="date" class="form-control" id="data_emissao" required>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label class="form-label required-field">Data de Vencimento</label>
-                                        <input type="date" class="form-control" id="data_vencimento" required>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label">Observações</label>
-                                <textarea class="form-control" id="observacoes" rows="3" 
-                                          placeholder="Adicione observações sobre este documento..."></textarea>
-                            </div>
-
-                            <div class="mb-4">
-                                <label class="form-label">Anexar Arquivo</label>
-                                <div class="file-upload" onclick="document.getElementById('arquivo').click()">
-                                    <i class="fas fa-cloud-upload-alt"></i>
-                                    <p>Clique para selecionar o arquivo</p>
-                                    <p class="small text-muted">Formatos: PDF, JPG, PNG (Máx. 10MB)</p>
-                                    <input type="file" id="arquivo" style="display: none;" 
-                                           accept=".pdf,.jpg,.jpeg,.png" onchange="app.handleFileSelect(this.files)">
-                                </div>
-                                <div id="infoArquivo" class="file-info"></div>
-                            </div>
-
-                            <div class="d-flex gap-2">
-                                <button type="submit" class="btn btn-primary" id="btnSalvar">
-                                    <i class="fas fa-save"></i> Salvar Documento
-                                </button>
-                                <button type="button" class="btn btn-outline-secondary" onclick="app.voltarParaLista()">
-                                    <i class="fas fa-times"></i> Cancelar
-                                </button>
-                            </div>
-                        </form>
-                    </div>
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0" id="titulo-formulario">Cadastrar Novo Documento</h5>
+                    <button class="btn btn-outline-secondary btn-sm" onclick="app.voltarParaLista()">
+                        <i class="fas fa-arrow-left"></i> Voltar para Lista
+                    </button>
                 </div>
-            `;
+                <div class="card-body">
+                    <form id="formDocumento" onsubmit="app.salvarDocumento(event)">
+                        <input type="hidden" id="documentoId">
+                        
+                        <!-- Mensagens de status -->
+                        <div id="mensagemStatus"></div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label required-field">Tipo de Documento</label>
+                                    <select class="form-select" id="tipo" required>
+                                        <option value="">Selecione o tipo de documento...</option>
+                                        <optgroup label="ALVARÁ">
+                                            <option value="ALVARÁ DE FUNCIONAMENTO">ALVARÁ DE FUNCIONAMENTO</option>
+                                            <option value="ALVARÁ SANITÁRIO">ALVARÁ SANITÁRIO</option>
+                                            <option value="ALVARÁ DE PUBLICIDADE">ALVARÁ DE PUBLICIDADE</option>
+                                            <option value="ALVARÁ AMBIENTAL">ALVARÁ AMBIENTAL</option>
+                                            <option value="AVCB">AVCB</option>
+                                        </optgroup>
+                                        <optgroup label="TVL">
+                                        <option value="TVL">TVL SALVADOR</option>
+                                        </optgroup>
+                                        <optgroup label="PROCURAÇÕES ELETRÔNICAS">
+                                        <option value="PROCURAÇÃO ELETRÔNICA FEDERAL">PROCURAÇÃO ELETRÔNICA FEDERAL</option>
+                                        <option value="PROCURAÇÃO ELETRÔNICA ESTADUAL">PROCURAÇÃO ELETRÔNICA ESTADUAL</option>
+                                        </optgroup>
+                                        <optgroup label="CERTIDÕES NEGATIVAS DE DÉBITOS">
+                                            <option value="CERTIDÃO FEDERAL">CERTIDÃO FEDERAL</option>
+                                            <option value="CERTIDÃO ESTADUAL">CERTIDÃO ESTADUAL</option>
+                                            <option value="CERTIDÃO MUNICIPAL">CERTIDÃO MUNICIPAL</option>
+                                            <option value="CERTIDÃO TRABALHISTA">CERTIDÃO TRABALHISTA</option>
+                                            <option value="CERTIDÃO FGTS">CERTIDÃO FGTS</option>
+                                            <option value="CERTIDÃO CONCORDATA E FALÊNCIA">CERTIDÃO CONCORDATA E FALÊNCIA</option>
+                                        </optgroup>
+                                        <optgroup label="TFF">
+                                            <option value="TFF - LAURO DE FREITAS">TFF - LAURO DE FREITAS</option>
+                                            <option value="TFF - SALVADOR">TFF - SALVADOR</option>
+                                            <option value="TFF - CAMAÇARI">TFF - CAMAÇARI</option>
+                                            <option value="TFF - DIAS D'AVILA">TFF - DIAS D'AVILA</option>
+                                            <option value="TFF - FEIRA DA MATA">TFF - FEIRA DA MATA</option>
+                                            <option value="TFF - FORTALEZA">TFF - FORTALEZA</option>
+                                            <option value="TFF - ILHÉUS">TFF - ILHÉUS</option>
+                                            <option value="TFF - ITINGA DO MARANHÃO">TFF - ITINGA DO MARANHÃO</option>
+                                            <option value="TFF - MARAU">TFF - MARAU</option>
+                                            <option value="TFF - VÁRZEA GRANDE">TFF - VÁRZEA GRANDE</option>
+                                            <option value="TFF - CONCEIÇÃO DO JACUÍPE">TFF - CONCEIÇÃO DO JACUÍPE</option>
+                                            <option value="TFF - CUIABÁ">TFF - CUIABÁ</option>
+                                            <option value="TFF - MUCUGÊ">TFF - MUCUGÊ</option>
+                                            <option value="TFF - RECIFE">TFF - RECIFE</option>
+                                            <option value="TFF - NATAL">TFF - NATAL</option>
+                                            <option value="TFF - PIRITIBA">TFF - PIRITIBA</option>
+                                            <option value="TFF - SIMÕES FILHO">TFF - SIMÕES FILHO</option>
+                                            <option value="TFF - CANDEIAS">TFF - CANDEIAS</option>
+                                            <option value="TFF - ITABUNA">TFF - ITABUNA</option>
+                                        </optgroup>
+                                        <optgroup label="DECLARAÇÕES">
+                                        <option value="DECLARAÇÃO SIMEI (MEI)">DECLARAÇÃO SIMEI (MEI)</option>
+                                        <option value="DECLARAÇÃO DE FATURAMENTO CAMAÇARI">DECLARAÇÃO DE FATURAMENTO CAMAÇARI</option>
+                                        <option value="DECLARAÇÃO DE FATURAMENTO DIAS D'AVILA">DECLARAÇÃO DE FATURAMENTO DIAS D'AVILA</option>
+                                        </optgroup>
+                                        <option value="OUTROS">OUTROS</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label required-field">Descrição/Número</label>
+                                    <input type="text" class="form-control" id="nome" 
+                                           placeholder="Ex: Número do documento, descrição específica..." required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label required-field">Empresa</label>
+                                    <select class="form-select" id="empresa_id" required>
+                                        <option value="">Selecione a empresa...</option>
+                                        ${empresas.map(empresa => `
+                                            <option value="${empresa.id}">
+                                                ${empresa.razao_social} 
+                                                ${empresa.nome_fantasia ? `- ${empresa.nome_fantasia}` : ''}
+                                            </option>
+                                        `).join('')}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label required-field">Responsável</label>
+                                    <select class="form-select" id="responsavel_id" required>
+                                        <option value="">Selecione o responsável...</option>
+                                        ${responsaveis.map(resp => `
+                                            <option value="${resp.id}">
+                                                ${resp.nome} - ${resp.funcao}
+                                            </option>
+                                        `).join('')}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label required-field">Data de Emissão</label>
+                                    <input type="date" class="form-control" id="data_emissao" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label required-field">Data de Vencimento</label>
+                                    <input type="date" class="form-control" id="data_vencimento" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Observações</label>
+                            <textarea class="form-control" id="observacoes" rows="3" 
+                                      placeholder="Adicione observações sobre este documento..."></textarea>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label">Anexar Arquivo</label>
+                            <div class="file-upload" onclick="document.getElementById('arquivo').click()">
+                                <i class="fas fa-cloud-upload-alt"></i>
+                                <p>Clique para selecionar o arquivo</p>
+                                <p class="small text-muted">Formatos: PDF, JPG, PNG (Máx. 10MB)</p>
+                                <input type="file" id="arquivo" style="display: none;" 
+                                       accept=".pdf,.jpg,.jpeg,.png" onchange="app.handleFileSelect(this.files)">
+                            </div>
+                            <div id="infoArquivo" class="file-info"></div>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary" id="btnSalvar">
+                                <i class="fas fa-save"></i> Salvar Documento
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary" onclick="app.voltarParaLista()">
+                                <i class="fas fa-times"></i> Cancelar
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        `;
         } catch (error) {
             return `
-                <div class="alert alert-danger">
-                    <h4>Erro ao carregar formulário</h4>
-                    <p>${error.message}</p>
-                </div>
-            `;
+            <div class="alert alert-danger">
+                <h4>Erro ao carregar formulário</h4>
+                <p>${error.message}</p>
+            </div>
+        `;
         }
     }
 
@@ -1354,7 +1858,7 @@ async copyToClipboard(text) {
         }
 
         this.arquivoSelecionado = file;
-        
+
         // Mostrar info do arquivo
         const infoArquivo = document.getElementById('infoArquivo');
         infoArquivo.innerHTML = `
@@ -1368,8 +1872,8 @@ async copyToClipboard(text) {
         event.preventDefault();
         console.log('=== INICIANDO SALVAMENTO DE DOCUMENTO ===');
 
-        // Validar campos obrigatórios
-        const camposObrigatorios = ['nome', 'tipo', 'empresa_id', 'responsavel_id', 'data_emissao', 'data_vencimento'];
+        // Validar campos obrigatórios - AGORA SÓ TIPO E DESCRIÇÃO
+        const camposObrigatorios = ['tipo', 'nome', 'empresa_id', 'responsavel_id', 'data_emissao', 'data_vencimento'];
         for (const campo of camposObrigatorios) {
             const elemento = document.getElementById(campo);
             if (!elemento.value.trim()) {
@@ -1379,10 +1883,10 @@ async copyToClipboard(text) {
             }
         }
 
-        // Preparar dados
+        // Preparar dados - AGORA SÓ TEMOS 'tipo' E 'nome' (descrição)
         const formData = new FormData();
-        formData.append('nome', document.getElementById('nome').value);
-        formData.append('tipo', document.getElementById('tipo').value);
+        formData.append('nome', document.getElementById('nome').value); // Agora é a descrição/número
+        formData.append('tipo', document.getElementById('tipo').value); // Tipo selecionado
         formData.append('empresa_id', document.getElementById('empresa_id').value);
         formData.append('responsavel_id', document.getElementById('responsavel_id').value);
         formData.append('data_emissao', document.getElementById('data_emissao').value);
@@ -1425,7 +1929,7 @@ async copyToClipboard(text) {
 
             // Sucesso
             this.mostrarMensagemDocumento(
-                `Documento ${isEdicao ? 'atualizado' : 'criado'} com sucesso!`, 
+                `Documento ${isEdicao ? 'atualizado' : 'criado'} com sucesso!`,
                 'success'
             );
 
@@ -1449,7 +1953,7 @@ async copyToClipboard(text) {
         try {
             const documento = await this.apiRequest(`/documentos/${id}`);
             this.documentoAtual = documento;
-            
+
             // Preencher formulário
             document.getElementById('documentoId').value = documento.id;
             document.getElementById('nome').value = documento.nome;
@@ -1459,9 +1963,9 @@ async copyToClipboard(text) {
             document.getElementById('data_emissao').value = documento.data_emissao;
             document.getElementById('data_vencimento').value = documento.data_vencimento;
             document.getElementById('observacoes').value = documento.observacoes || '';
-            
+
             document.getElementById('titulo-formulario').textContent = 'Editar Documento';
-            
+
             // Mostrar info do arquivo atual se existir
             if (documento.arquivo_path) {
                 const infoArquivo = document.getElementById('infoArquivo');
@@ -1472,10 +1976,10 @@ async copyToClipboard(text) {
                 `;
                 infoArquivo.className = 'file-info show';
             }
-            
+
             // Mostrar formulário
             this.abrirFormularioNovoDocumento();
-            
+
         } catch (error) {
             this.mostrarMensagemDocumento(`Erro ao carregar documento: ${error.message}`, 'error');
         }
@@ -1522,7 +2026,7 @@ async copyToClipboard(text) {
     async renderResponsaveis() {
         try {
             const responsaveis = await this.apiRequest('/responsaveis');
-            
+
             return `
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <h1 class="page-title">
@@ -1539,10 +2043,10 @@ async copyToClipboard(text) {
                         <span class="badge bg-primary">${responsaveis.length} responsáveis</span>
                     </div>
                     <div class="card-body">
-                        ${responsaveis.length === 0 ? 
-                            '<div class="text-center py-5"><i class="fas fa-users fa-3x text-muted mb-3"></i><p class="text-muted">Nenhum responsável cadastrado</p></div>' : 
-                            this.renderResponsaveisTable(responsaveis)
-                        }
+                        ${responsaveis.length === 0 ?
+                    '<div class="text-center py-5"><i class="fas fa-users fa-3x text-muted mb-3"></i><p class="text-muted">Nenhum responsável cadastrado</p></div>' :
+                    this.renderResponsaveisTable(responsaveis)
+                }
                     </div>
                 </div>
             `;
@@ -1593,7 +2097,7 @@ async copyToClipboard(text) {
             <div class="alert alert-info">
                 <i class="fas fa-info-circle"></i> Funcionalidade em desenvolvimento
             </div>
-        `, () => {});
+        `, () => { });
     }
 
     // ✅ MÉTODOS AUXILIARES
@@ -1602,14 +2106,14 @@ async copyToClipboard(text) {
         const hoje = new Date();
         const diffTime = vencimento - hoje;
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        
+
         if (diffDays < 0) return 'expired';
         if (diffDays <= 30) return 'expiring';
         return 'valid';
     }
 
     getDocumentStatusClass(status) {
-        switch(status) {
+        switch (status) {
             case 'valid': return 'status-valid';
             case 'expiring': return 'status-expiring';
             case 'expired': return 'status-expired';
@@ -1618,7 +2122,7 @@ async copyToClipboard(text) {
     }
 
     getDocumentStatusText(status) {
-        switch(status) {
+        switch (status) {
             case 'valid': return 'Válido';
             case 'expiring': return 'Vencendo';
             case 'expired': return 'Vencido';
@@ -1653,7 +2157,7 @@ async copyToClipboard(text) {
         const cnpj = cnpjInput.value.replace(/\D/g, '');
         const statusDiv = document.getElementById('cnpjConsultaStatus');
         const btnConsultar = document.getElementById('btnConsultarCNPJ');
-        
+
         // Validação básica do CNPJ
         if (cnpj.length !== 14) {
             statusDiv.innerHTML = `
@@ -1663,7 +2167,7 @@ async copyToClipboard(text) {
             `;
             return;
         }
-        
+
         try {
             // Mostrar loading
             btnConsultar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Consultando...';
@@ -1673,28 +2177,28 @@ async copyToClipboard(text) {
                     <i class="fas fa-sync fa-spin"></i> Consultando CNPJ na Receita Federal...
                 </div>
             `;
-            
+
             console.log(`Consultando CNPJ: ${cnpj}`);
-            
+
             const response = await fetch(`/api/consulta-cnpj/${cnpj}`);
             const data = await response.json();
-            
+
             if (!response.ok) {
                 throw new Error(data.error || 'Erro na consulta');
             }
-            
+
             // Preencher os campos com os dados da consulta
             this.preencherDadosEmpresa(data);
-            
+
             statusDiv.innerHTML = `
                 <div class="alert alert-success alert-sm">
                     <i class="fas fa-check-circle"></i> Dados da empresa carregados com sucesso!
                 </div>
             `;
-            
+
             // Focar no próximo campo
             document.getElementById('telefone').focus();
-            
+
         } catch (error) {
             console.error('Erro na consulta de CNPJ:', error);
             statusDiv.innerHTML = `
@@ -1712,7 +2216,7 @@ async copyToClipboard(text) {
     preencherDadosEmpresa(data) {
         // Limitar o telefone para 50 caracteres
         const telefoneLimitado = data.telefone ? data.telefone.substring(0, 50) : '';
-        
+
         document.getElementById('cnpj').value = data.cnpj || '';
         document.getElementById('razaoSocial').value = data.razao_social || '';
         document.getElementById('nomeFantasia').value = data.nome_fantasia || '';
@@ -1723,54 +2227,55 @@ async copyToClipboard(text) {
 
     formatarCNPJ(input) {
         let value = input.value.replace(/\D/g, '');
-        
+
         if (value.length <= 14) {
             value = value.replace(/(\d{2})(\d)/, '$1.$2');
             value = value.replace(/(\d{3})(\d)/, '$1.$2');
             value = value.replace(/(\d{3})(\d)/, '$1/$2');
             value = value.replace(/(\d{4})(\d{1,2})$/, '$1-$2');
         }
-        
+
         input.value = value;
     }
 
     formatarCNPJConsulta(input) {
         let value = input.value.replace(/\D/g, '');
-        
+
         if (value.length <= 14) {
             value = value.replace(/(\d{2})(\d)/, '$1.$2');
             value = value.replace(/(\d{3})(\d)/, '$1.$2');
             value = value.replace(/(\d{3})(\d)/, '$1/$2');
             value = value.replace(/(\d{4})(\d{1,2})$/, '$1-$2');
         }
-        
+
         input.value = value;
     }
 
     // ✅ MÉTODOS GERAIS
-    showModal(title, content, onSave) {
+    // ✅ MÉTODO SHOWMODAL ATUALIZADO
+    showModal(title, content, onSave, size = 'modal-lg') {
         const modalHtml = `
-            <div class="modal fade" id="dynamicModal" tabindex="-1">
-                <div class="modal-dialog modal-lg">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title">${title}</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                        </div>
-                        <div class="modal-body">
-                            ${content}
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                            ${onSave ? `<button type="button" class="btn btn-primary" id="modalSave">Salvar</button>` : ''}
-                        </div>
+        <div class="modal fade" id="dynamicModal" tabindex="-1">
+            <div class="modal-dialog ${size}">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">${title}</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        ${content}
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        ${onSave ? `<button type="button" class="btn btn-primary" id="modalSave">Salvar</button>` : ''}
                     </div>
                 </div>
             </div>
-        `;
+        </div>
+    `;
 
         document.getElementById('modals-container').innerHTML = modalHtml;
-        
+
         const modal = new bootstrap.Modal(document.getElementById('dynamicModal'));
         modal.show();
 
@@ -1783,32 +2288,61 @@ async copyToClipboard(text) {
         });
     }
 
+    // ✅ MÉTODO APIREQUEST MELHORADO
     async apiRequest(endpoint, options = {}) {
         const url = API_BASE + endpoint;
         console.log(`Fazendo requisição para: ${url}`);
-        
-        const config = {
-            headers: {
-                'Content-Type': 'application/json',
-                ...options.headers
-            },
-            ...options
-        };
 
-        if (config.body && typeof config.body === 'object' && !(config.body instanceof FormData)) {
-            config.body = JSON.stringify(config.body);
+        try {
+            const config = {
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...options.headers
+                },
+                ...options
+            };
+
+            if (config.body && typeof config.body === 'object' && !(config.body instanceof FormData)) {
+                config.body = JSON.stringify(config.body);
+            }
+
+            const response = await fetch(url, config);
+
+            // Verificar se a resposta é JSON
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                const text = await response.text();
+                console.error('Resposta não é JSON:', text.substring(0, 200));
+
+                // Se for erro 404, pode ser que a rota não exista
+                if (response.status === 404) {
+                    throw new Error(`Rota não encontrada: ${url}`);
+                }
+
+                throw new Error(`Resposta inválida do servidor: ${response.status}`);
+            }
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || `Erro ${response.status}: ${data.message || 'Erro desconhecido'}`);
+            }
+
+            return data;
+
+        } catch (error) {
+            console.error(`Erro na requisição para ${url}:`, error);
+
+            // Melhorar mensagem de erro para o usuário
+            if (error.message.includes('Rota não encontrada')) {
+                throw new Error('Funcionalidade não disponível no servidor. Verifique se o backend está atualizado.');
+            } else if (error.message.includes('Failed to fetch')) {
+                throw new Error('Não foi possível conectar com o servidor. Verifique se o backend está rodando.');
+            }
+
+            throw error;
         }
-
-        const response = await fetch(url, config);
-        
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`Erro ${response.status}: ${errorText}`);
-        }
-
-        return await response.json();
     }
-
     showAlert(message, type = 'info') {
         const alert = document.createElement('div');
         alert.className = `alert alert-${type} alert-dismissible fade show`;
@@ -1816,9 +2350,9 @@ async copyToClipboard(text) {
             ${message}
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         `;
-        
+
         document.querySelector('.content-area').prepend(alert);
-        
+
         setTimeout(() => {
             if (alert.parentNode) {
                 alert.remove();

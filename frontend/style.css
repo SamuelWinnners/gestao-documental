@@ -38,7 +38,7 @@ body {
 
 .sidebar-header {
     padding: 20px;
-    border-bottom: 1px solid rgba(255,255,255,0.1);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     text-align: center;
 }
 
@@ -52,18 +52,18 @@ body {
 }
 
 .sidebar-nav .nav-link {
-    color: rgba(255,255,255,0.8);
+    color: rgba(255, 255, 255, 0.8);
     padding: 12px 20px;
     text-decoration: none;
     display: block;
-    border-bottom: 1px solid rgba(255,255,255,0.05);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
     transition: all 0.3s;
 }
 
 .sidebar-nav .nav-link:hover,
 .sidebar-nav .nav-link.active {
     color: white;
-    background-color: rgba(255,255,255,0.1);
+    background-color: rgba(255, 255, 255, 0.1);
     border-left: 4px solid var(--secondary-color);
 }
 
@@ -80,7 +80,7 @@ body {
 
 .navbar {
     background-color: white;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
     height: var(--navbar-height);
     position: fixed;
     top: 0;
@@ -98,7 +98,7 @@ body {
 .card {
     border: none;
     border-radius: 10px;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     margin-bottom: 20px;
 }
 
@@ -126,11 +126,6 @@ body {
     text-transform: uppercase;
 }
 
-.card-empresas { border-left: 4px solid var(--secondary-color); }
-.card-documentos { border-left: 4px solid var(--success-color); }
-.card-vencidos { border-left: 4px solid var(--danger-color); }
-.card-proximos { border-left: 4px solid var(--warning-color); }
-
 /* Status Badges */
 .status-badge {
     padding: 5px 10px;
@@ -139,10 +134,6 @@ body {
     font-weight: 600;
 }
 
-.status-vencido { background-color: rgba(231, 76, 60, 0.1); color: var(--danger-color); }
-.status-proximo { background-color: rgba(243, 156, 18, 0.1); color: var(--warning-color); }
-.status-regular { background-color: rgba(39, 174, 96, 0.1); color: var(--success-color); }
-
 /* Tables */
 .table th {
     border-top: none;
@@ -150,7 +141,17 @@ body {
     background-color: #f8f9fa;
 }
 
+.table-hover tbody tr:hover {
+    background-color: rgba(52, 152, 219, 0.05);
+}
+
 /* Buttons */
+.btn {
+    border-radius: 6px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
 .btn-primary {
     background-color: var(--secondary-color);
     border-color: var(--secondary-color);
@@ -161,20 +162,14 @@ body {
     border-color: #2980b9;
 }
 
-/* NOVOS ESTILOS PARA OS CAMPOS ADICIONAIS */
+.btn-group-sm > .btn {
+    border-radius: 4px;
+}
+
+/* Formulários */
 .required-field::after {
     content: " *";
     color: var(--danger-color);
-}
-
-.alert-sm {
-    padding: 0.5rem 1rem;
-    font-size: 0.875rem;
-    margin-bottom: 0;
-}
-
-.bg-light {
-    background-color: #f8f9fa !important;
 }
 
 .form-label {
@@ -182,75 +177,153 @@ body {
     margin-bottom: 0.5rem;
 }
 
-.form-control, .form-select {
+.form-control,
+.form-select {
     border-radius: 6px;
     border: 1px solid #dee2e6;
     padding: 0.5rem 0.75rem;
 }
 
-.form-control:focus, .form-select:focus {
+.form-control:focus,
+.form-select:focus {
     border-color: #3498db;
     box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
 }
 
-/* Estilos para os novos campos */
-.form-check {
-    margin-bottom: 0.5rem;
+/* Campos de senha */
+.password-container {
+    position: relative;
+    display: flex;
+    align-items: center;
 }
 
-.form-check-input:checked {
-    background-color: var(--secondary-color);
-    border-color: var(--secondary-color);
+.password-container input {
+    padding-right: 45px !important;
 }
 
-.form-check-label {
-    font-weight: 500;
+.password-toggle {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: #6c757d;
+    cursor: pointer;
+    padding: 5px 8px;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+    z-index: 10;
 }
 
-/* Badges para regime tributário */
-.badge.bg-success {
-    background-color: var(--success-color) !important;
+.password-toggle:hover {
+    background-color: #f8f9fa;
+    color: #495057;
 }
 
-.badge.bg-info {
-    background-color: var(--secondary-color) !important;
-}
-
-/* Loading states */
-.btn:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-}
-
-/* Badge styles */
+/* Badges */
 .badge {
     font-weight: 500;
     padding: 0.35em 0.65em;
 }
 
-/* Table improvements */
-.table-hover tbody tr:hover {
-    background-color: rgba(52, 152, 219, 0.05);
+/* Timeline de Andamentos */
+.timeline {
+    position: relative;
+    padding-left: 30px;
 }
 
-/* Card improvements */
-.card {
-    transition: transform 0.2s ease-in-out;
+.timeline::before {
+    content: '';
+    position: absolute;
+    left: 15px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background-color: #e9ecef;
 }
 
-.card:hover {
-    transform: translateY(-2px);
+.timeline-item {
+    position: relative;
+    margin-bottom: 25px;
 }
 
-/* Button improvements */
-.btn {
-    border-radius: 6px;
-    font-weight: 500;
-    transition: all 0.3s ease;
+.timeline-marker {
+    position: absolute;
+    left: -30px;
+    top: 8px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 3px;
+    z-index: 2;
 }
 
-.btn-group-sm > .btn {
-    border-radius: 4px;
+.timeline-content {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    border-left: 4px solid;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.timeline-item.pendente .timeline-content { 
+    border-left-color: #ffc107; 
+}
+
+.timeline-item.em_andamento .timeline-content { 
+    border-left-color: #0dcaf0; 
+}
+
+.timeline-item.concluido .timeline-content { 
+    border-left-color: #198754; 
+}
+
+.timeline-item.cancelado .timeline-content { 
+    border-left-color: #dc3545; 
+}
+
+.timeline-marker.bg-warning { 
+    background-color: #ffc107 !important;
+    box-shadow: 0 0 0 3px #ffc107; 
+}
+
+.timeline-marker.bg-info { 
+    background-color: #0dcaf0 !important;
+    box-shadow: 0 0 0 3px #0dcaf0; 
+}
+
+.timeline-marker.bg-success { 
+    background-color: #198754 !important;
+    box-shadow: 0 0 0 3px #198754; 
+}
+
+.timeline-marker.bg-danger { 
+    background-color: #dc3545 !important;
+    box-shadow: 0 0 0 3px #dc3545; 
+}
+
+/* Status colors */
+.badge.bg-warning {
+    background-color: #ffc107 !important;
+    color: #000 !important;
+}
+
+.badge.bg-info {
+    background-color: #0dcaf0 !important;
+}
+
+.badge.bg-success {
+    background-color: #198754 !important;
+}
+
+.badge.bg-danger {
+    background-color: #dc3545 !important;
+}
+
+.badge.bg-primary {
+    background-color: #0d6efd !important;
 }
 
 /* Responsive */
@@ -258,57 +331,30 @@ body {
     .sidebar {
         transform: translateX(-100%);
     }
-    
+
     .main-content {
         margin-left: 0;
     }
-    
+
     .navbar {
         left: 0;
     }
-    
+
     .content-area {
         padding: 15px;
     }
-    
+
     .dashboard-card .number {
         font-size: 1.8rem;
     }
-    
-    .dashboard-card .title {
-        font-size: 0.8rem;
-    }
-    
+
     .table-responsive {
         font-size: 0.8rem;
     }
-}
 
-/* Detalhes da empresa */
-.empresa-details h6 {
-    color: var(--primary-color);
-    border-bottom: 2px solid var(--secondary-color);
-    padding-bottom: 0.5rem;
-    margin-bottom: 1rem;
-}
-
-.empresa-details p {
-    margin-bottom: 0.5rem;
-}
-
-/* Print styles */
-@media print {
-    .sidebar, .navbar, .btn {
-        display: none !important;
-    }
-    
-    .main-content {
-        margin-left: 0 !important;
-    }
-    
-    .content-area {
-        margin-top: 0 !important;
-        padding: 0 !important;
+    .btn-group-sm .btn {
+        padding: 0.2rem 0.4rem;
+        font-size: 0.7rem;
     }
 }
 
@@ -328,82 +374,4 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
     background: #a8a8a8;
-}
-
-/* frontend/style.css */
-/* ... (código existente) ... */
-
-/* 👁️ ESTILOS PARA CAMPOS DE SENHA COM OLHINHO */
-.password-field {
-    position: relative;
-}
-
-.password-toggle {
-    position: absolute;
-    right: 12px;
-    top: 50%;
-    transform: translateY(-50%);
-    background: none;
-    border: none;
-    color: #6c757d;
-    cursor: pointer;
-    padding: 5px;
-    border-radius: 4px;
-    transition: all 0.3s ease;
-}
-
-.password-toggle:hover {
-    background-color: #f8f9fa;
-    color: #495057;
-}
-
-.password-toggle:focus {
-    outline: none;
-    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
-}
-
-/* Ajuste para inputs com olhinho */
-.form-control[type="password"],
-.form-control[type="text"] {
-    padding-right: 45px;
-}
-
-/* Estilo para o container do campo de senha */
-.password-container {
-    position: relative;
-    display: flex;
-    align-items: center;
-}
-
-/* Ícones do Font Awesome para os olhos */
-.fa-eye,
-.fa-eye-slash {
-    font-size: 14px;
-}
-
-/* Estados do campo de senha */
-.password-visible {
-    color: #007bff;
-}
-
-/* Animações suaves */
-.password-toggle {
-    transition: all 0.2s ease-in-out;
-}
-
-.password-toggle:active {
-    transform: translateY(-50%) scale(0.95);
-}
-
-/* Responsividade */
-@media (max-width: 768px) {
-    .password-toggle {
-        right: 8px;
-        padding: 4px;
-    }
-    
-    .form-control[type="password"],
-    .form-control[type="text"] {
-        padding-right: 40px;
-    }
 }
