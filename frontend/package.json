@@ -1,0 +1,21 @@
+{
+  "name": "sistema-gestao",
+  "version": "1.0.0",
+  "description": "📋 Sistema de Gestão Documental e Controle de Vencimentos\r Sistema web completo para gerenciamento de empresas, documentos e controle de vencimentos com alertas automáticos.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SamuelWinnners/gestao-documental.git"
+  },
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/SamuelWinnners/gestao-documental/issues"
+  },
+  "homepage": "https://github.com/SamuelWinnners/gestao-documental#readme"
+}
