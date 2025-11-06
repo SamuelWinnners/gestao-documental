@@ -1,18 +1,15 @@
 // backend/database.js
 import mysql from 'mysql2/promise';
 
-// Configuração do banco de dados usando variáveis de ambiente
 const pool = mysql.createPool({
-    host: process.env.DB_HOST || 'localhost',
-    user: process.env.DB_USER || 'root',
-    password: process.env.DB_PASSWORD || '40028922',
-    database: process.env.DB_NAME || 'gestao_documental',
-    port: process.env.DB_PORT || 3306, // porta padrão do MySQL local
-    waitForConnections: true,
-    connectionLimit: 10,
-    queueLimit: 0
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0
 });
-
 
 // Testar conexão
 async function testConnection() {
