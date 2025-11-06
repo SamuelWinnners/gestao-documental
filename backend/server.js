@@ -1,4 +1,5 @@
 // backend/server.js
+
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
@@ -117,7 +118,9 @@ function formatarEndereco(data) {
     return parts.join(', ');
 }
 
-// ✅ ROTAS DA API
+// =============================================
+// ✅ ROTAS DA API - TODAS PRIMEIRO
+// =============================================
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -186,7 +189,7 @@ app.get('/api/consulta-cnpj/:cnpj', async (req, res) => {
     }
 });
 
-// ✅ ROTAS DE EMPRESAS (ATUALIZADAS)
+// ✅ ROTAS DE EMPRESAS
 app.get('/api/empresas', async (req, res) => {
     try {
         console.log('Buscando empresas...');
@@ -859,34 +862,11 @@ app.get('/api/dashboard/estatisticas', async (req, res) => {
     }
 });
 
-// ✅ SERVIR FRONTEND
-app.get('/', (req, res) => {
-    console.log('Servindo frontend...');
-    res.sendFile(path.join(__dirname, '../frontend/index.html'));
-});
-
-// Rota catch-all para SPA
-app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../frontend/index.html'));
-});
-
-// ✅ MIDDLEWARE DE ERRO
-app.use((error, req, res, next) => {
-    if (error instanceof multer.MulterError) {
-        if (error.code === 'LIMIT_FILE_SIZE') {
-            return res.status(400).json({ error: 'Arquivo muito grande. Tamanho máximo: 10MB' });
-        }
-    }
-    res.status(500).json({ error: error.message });
-});
-
-// ✅ ROTAS PARA ACOMPANHAMENTO DE ANDAMENTO (CORRIGIDAS)
-
-// Listar andamentos de um documento
+// ✅ ROTAS PARA ACOMPANHAMENTO DE ANDAMENTO
 app.get('/api/documentos/:id/andamentos', async (req, res) => {
     try {
         const documentoId = req.params.id;
-        console.log(`Buscando andamentos do documento ID: ${documentoId}`);
+        console.log(`🎯 ROTA API: Buscando andamentos do documento ID: ${documentoId}`);
 
         // Verificar se o documento existe
         const [documentos] = await pool.execute(
@@ -910,11 +890,11 @@ app.get('/api/documentos/:id/andamentos', async (req, res) => {
             ORDER BY da.data_criacao DESC
         `, [documentoId]);
 
-        console.log(`Encontrados ${andamentos.length} andamentos`);
+        console.log(`✅ Encontrados ${andamentos.length} andamentos para documento ${documentoId}`);
         res.json(andamentos);
 
     } catch (error) {
-        console.error('Erro ao buscar andamentos:', error);
+        console.error('❌ Erro ao buscar andamentos:', error);
         res.status(500).json({
             error: 'Erro ao buscar andamentos',
             details: error.message
@@ -922,13 +902,13 @@ app.get('/api/documentos/:id/andamentos', async (req, res) => {
     }
 });
 
-// Adicionar novo andamento
+// ✅ ROTA ADICIONAR ANDAMENTO
 app.post('/api/documentos/:id/andamentos', async (req, res) => {
     try {
         const documentoId = req.params.id;
         const { responsavel_id, descricao, status } = req.body;
 
-        console.log(`Adicionando andamento ao documento ID: ${documentoId}`, req.body);
+        console.log(`🎯 ROTA API: Adicionando andamento - Documento: ${documentoId}`, req.body);
 
         // Validações
         if (!responsavel_id || !descricao) {
@@ -961,7 +941,18 @@ app.post('/api/documentos/:id/andamentos', async (req, res) => {
             [documentoId, responsavel_id, descricao, status || 'em_andamento']
         );
 
-        // Buscar andamento criado com dados do responsável
+        console.log('✅ Andamento inserido com ID:', result.insertId);
+
+        // Atualizar status geral do documento
+        console.log(`🔄 Atualizando status geral do documento ${documentoId} para: ${status}`);
+        await pool.execute(
+            'UPDATE documentos SET status_geral = ? WHERE id = ?',
+            [status, documentoId]
+        );
+
+        console.log('✅ Status geral atualizado');
+
+        // Buscar andamento criado
         const [novoAndamento] = await pool.execute(`
             SELECT 
                 da.*,
@@ -1013,85 +1004,40 @@ app.put('/api/documentos/:id/status', async (req, res) => {
     }
 });
 
-// ✅ ROTA ATUALIZADA PARA DASHBOARD COM STATUS GERAL
-// ✅ ROTA ATUALIZADA PARA DASHBOARD COM STATUS GERAL
-app.get('/api/dashboard/estatisticas', async (req, res) => {
-    try {
-        console.log('Buscando estatísticas detalhadas...');
-
-        // Estatísticas básicas
-        const [[totalEmpresas]] = await pool.execute('SELECT COUNT(*) as total FROM empresas');
-        const [[totalDocumentos]] = await pool.execute('SELECT COUNT(*) as total FROM documentos');
-        const [[vencidosCount]] = await pool.execute('SELECT COUNT(*) as total FROM documentos WHERE data_vencimento < CURDATE()');
-        const [[proximosCount]] = await pool.execute('SELECT COUNT(*) as total FROM documentos WHERE data_vencimento BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY)');
-        const [[validosCount]] = await pool.execute('SELECT COUNT(*) as total FROM documentos WHERE data_vencimento > DATE_ADD(CURDATE(), INTERVAL 30 DAY)');
-
-        // Estatísticas de status geral
-        const [[pendentesCount]] = await pool.execute('SELECT COUNT(*) as total FROM documentos WHERE status_geral = "pendente" OR status_geral IS NULL');
-        const [[emAndamentoCount]] = await pool.execute('SELECT COUNT(*) as total FROM documentos WHERE status_geral = "em_andamento"');
-        const [[concluidosCount]] = await pool.execute('SELECT COUNT(*) as total FROM documentos WHERE status_geral = "concluido"');
-        const [[canceladosCount]] = await pool.execute('SELECT COUNT(*) as total FROM documentos WHERE status_geral = "cancelado"');
-
-        // Documentos vencidos
-        const [documentosVencidos] = await pool.execute(`
-            SELECT d.*, e.razao_social as empresa_nome 
-            FROM documentos d 
-            LEFT JOIN empresas e ON d.empresa_id = e.id 
-            WHERE d.data_vencimento < CURDATE()
-            ORDER BY d.data_vencimento ASC
-            LIMIT 20
-        `);
-
-        // Documentos próximos do vencimento
-        const [documentosProximos] = await pool.execute(`
-            SELECT d.*, e.razao_social as empresa_nome 
-            FROM documentos d 
-            LEFT JOIN empresas e ON d.empresa_id = e.id 
-            WHERE d.data_vencimento BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY)
-            ORDER BY d.data_vencimento ASC
-            LIMIT 20
-        `);
-
-        // Próximos vencimentos (todos para gráfico)
-        const [proximosVencimentos] = await pool.execute(`
-            SELECT d.*, e.razao_social as empresa_nome 
-            FROM documentos d 
-            LEFT JOIN empresas e ON d.empresa_id = e.id 
-            WHERE d.data_vencimento BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY)
-            ORDER BY d.data_vencimento ASC
-        `);
-
-        const data = {
-            estatisticas: {
-                empresas: totalEmpresas.total,
-                documentos: totalDocumentos.total,
-                vencidos: vencidosCount.total,
-                proximos: proximosCount.total,
-                validos: validosCount.total,
-                // Novas estatísticas de status geral
-                pendentes: pendentesCount.total,
-                em_andamento: emAndamentoCount.total,
-                concluidos: concluidosCount.total,
-                cancelados: canceladosCount.total
-            },
-            documentosVencidos,
-            documentosProximos,
-            proximosVencimentos
-        };
-
-        console.log('Estatísticas detalhadas:', data.estatisticas);
-        res.json(data);
-    } catch (error) {
-        console.error('Erro nas estatísticas:', error);
-        res.status(500).json({ error: 'Erro ao obter estatísticas' });
+// =============================================
+// ✅ MIDDLEWARE DE ERRO
+// =============================================
+app.use((error, req, res, next) => {
+    if (error instanceof multer.MulterError) {
+        if (error.code === 'LIMIT_FILE_SIZE') {
+            return res.status(400).json({ error: 'Arquivo muito grande. Tamanho máximo: 10MB' });
+        }
     }
+    res.status(500).json({ error: error.message });
 });
 
+// =============================================
+// ✅ ROTAS DO FRONTEND - ÚLTIMAS!
+// =============================================
+app.get('/', (req, res) => {
+    console.log('🏠 Servindo frontend para rota /');
+    res.sendFile(path.join(__dirname, '../frontend/index.html'));
+});
 
+// Rota catch-all para SPA - DEVE SER A ÚLTIMA!
+app.get('*', (req, res) => {
+    console.log('🏠 Rota catch-all servindo frontend para:', req.url);
+    res.sendFile(path.join(__dirname, '../frontend/index.html'));
+});
+
+// =============================================
+// ✅ INICIAR SERVIDOR
+// =============================================
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`🚀 Servidor rodando na porta ${PORT}`);
     console.log(`📊 Acesse: http://localhost:${PORT}`);
     console.log(`🔧 Health check: http://localhost:${PORT}/api/health`);
     console.log(`📁 Uploads: http://localhost:${PORT}/uploads/documentos/`);
+    console.log(`📋 API Andamentos: http://localhost:${PORT}/api/documentos/1/andamentos`);
 });

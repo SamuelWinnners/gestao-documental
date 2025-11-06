@@ -1,3 +1,6 @@
+drop database gestao_documental;
+
+create database gestao_documental;
 USE gestao_documental;
 
 -- Tabela de empresas
@@ -28,9 +31,8 @@ CREATE TABLE IF NOT EXISTS responsaveis (
     funcao VARCHAR(100) NOT NULL,
     empresa_id INT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (empresa_id) REFERENCES empresas(id) ON DELETE CASCADE
+    FOREIGN KEY (empresa_id) REFERENCES empresas(id) ON DELETE RESTRICT -- ✅ MUDADO: CASCADE → RESTRICT
 );
-
 
 -- Tabela de documentos
 CREATE TABLE IF NOT EXISTS documentos (
@@ -46,8 +48,8 @@ CREATE TABLE IF NOT EXISTS documentos (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     status_geral ENUM('pendente', 'em_andamento', 'concluido', 'cancelado') DEFAULT 'pendente',
-    FOREIGN KEY (empresa_id) REFERENCES empresas(id) ON DELETE CASCADE,
-    FOREIGN KEY (responsavel_id) REFERENCES responsaveis(id) ON DELETE CASCADE
+    FOREIGN KEY (empresa_id) REFERENCES empresas(id) ON DELETE RESTRICT, -- ✅ MUDADO: CASCADE → RESTRICT
+    FOREIGN KEY (responsavel_id) REFERENCES responsaveis(id) ON DELETE RESTRICT -- ✅ MUDADO: CASCADE → RESTRICT
 );
 
 -- Tabela para acompanhamento do andamento dos documentos
@@ -58,8 +60,8 @@ CREATE TABLE IF NOT EXISTS documento_andamentos (
     descricao TEXT NOT NULL,
     status ENUM('pendente', 'em_andamento', 'concluido', 'cancelado') DEFAULT 'em_andamento',
     data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (documento_id) REFERENCES documentos(id) ON DELETE CASCADE,
-    FOREIGN KEY (responsavel_id) REFERENCES responsaveis(id) ON DELETE CASCADE
+    FOREIGN KEY (documento_id) REFERENCES documentos(id) ON DELETE CASCADE, -- ✅ MANTIDO (seguro)
+    FOREIGN KEY (responsavel_id) REFERENCES responsaveis(id) ON DELETE RESTRICT -- ✅ MUDADO: CASCADE → RESTRICT
 );
 
 -- Adicionar índices para melhor performance

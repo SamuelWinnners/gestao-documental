@@ -1,4 +1,5 @@
 // backend/database.js
+
 import mysql from 'mysql2/promise';
 
 // Configuração do banco de dados

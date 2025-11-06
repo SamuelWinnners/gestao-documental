@@ -1,4 +1,5 @@
 // frontend/app.js
+
 const API_BASE = '/api';
 
 class App {
@@ -522,175 +523,250 @@ class App {
     exportarDocumentos() {
         this.showAlert('Funcionalidade de exportação em desenvolvimento', 'info');
     }
+// ✅ MÉTODO ADICIONAR ANDAMENTO CORRIGIDO
+async adicionarAndamento(event, documentoId) {
+    event.preventDefault();
 
-    // ✅ MÉTODO PARA VISUALIZAR DETALHES DO DOCUMENTO COM ANDAMENTOS
-    // ✅ MÉTODO CORRIGIDO PARA VISUALIZAR DETALHES DO DOCUMENTO
-    async visualizarDocumento(id) {
-        try {
-            console.log(`Carregando detalhes do documento ID: ${id}`);
+    console.log(`🟡 ADICIONANDO ANDAMENTO PARA DOCUMENTO ${documentoId}`);
 
-            // Fazer as requisições em paralelo para melhor performance
-            const [documento, responsaveis] = await Promise.all([
-                this.apiRequest(`/documentos/${id}`).catch(error => {
-                    console.error('Erro ao carregar documento:', error);
-                    throw new Error('Não foi possível carregar os dados do documento');
-                }),
-                this.apiRequest('/responsaveis').catch(error => {
-                    console.error('Erro ao carregar responsáveis:', error);
-                    return [];
-                })
-            ]);
+    // Capturar dados do formulário
+    const responsavel_id = document.getElementById('andamento_responsavel').value;
+    const descricao = document.getElementById('andamento_descricao').value;
+    const status = document.getElementById('andamento_status').value;
 
-            // Tentar carregar andamentos, mas não falhar se der erro
-            let andamentos = [];
-            try {
-                andamentos = await this.apiRequest(`/documentos/${id}/andamentos`);
-            } catch (error) {
-                console.warn('Não foi possível carregar os andamentos:', error);
-                // Continua mesmo sem andamentos
+    console.log('📝 DADOS DO FORMULÁRIO:', { responsavel_id, descricao, status });
+
+    // Validação
+    if (!responsavel_id || !descricao.trim()) {
+        this.showAlert('Preencha todos os campos obrigatórios', 'warning');
+        return;
+    }
+
+    try {
+        // Mostrar loading
+        const btnSalvar = document.querySelector('#formAndamento button[type="submit"]');
+        const originalText = btnSalvar.innerHTML;
+        btnSalvar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
+        btnSalvar.disabled = true;
+
+        console.log('🔄 ENVIANDO PARA API...');
+
+        // Fazer requisição para API
+        const response = await fetch(`/api/documentos/${documentoId}/andamentos`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                responsavel_id: parseInt(responsavel_id),
+                descricao: descricao.trim(),
+                status: status
+            })
+        });
+
+        console.log('📊 RESPOSTA DA API - Status:', response.status);
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || `Erro ${response.status}`);
+        }
+
+        const resultado = await response.json();
+        console.log('✅ ANDAMENTO CRIADO COM SUCESSO:', resultado);
+
+        this.showAlert('Andamento registrado com sucesso!', 'success');
+
+        // ✅ CORREÇÃO: Fechar modal ANTES de recarregar
+        const modalElement = document.getElementById('dynamicModal');
+        if (modalElement) {
+            const modal = bootstrap.Modal.getInstance(modalElement);
+            if (modal) {
+                modal.hide();
+                console.log('✅ Modal fechado');
+                
+                // ✅ AGUARDAR o modal fechar completamente antes de recarregar
+                modalElement.addEventListener('hidden.bs.modal', () => {
+                    console.log('🔄 Modal completamente fechado, recarregando página...');
+                    // Recarregar a página de documentos
+                    setTimeout(() => {
+                        this.loadPage('documentos');
+                    }, 300);
+                });
+            } else {
+                // Fallback se não conseguir pegar a instância do modal
+                console.log('⚠️ Não conseguiu pegar instância do modal, recarregando diretamente...');
+                setTimeout(() => {
+                    this.loadPage('documentos');
+                }, 500);
             }
+        } else {
+            // Fallback se o modal não existir
+            console.log('⚠️ Modal não encontrado, recarregando diretamente...');
+            setTimeout(() => {
+                this.loadPage('documentos');
+            }, 500);
+        }
 
-            const content = `
-            <div class="documento-detalhes">
-                <!-- Cabeçalho do Documento -->
-                <div class="card mb-4">
-                    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">
-                            <i class="fas fa-file-alt me-2"></i>${this.escapeHtml(documento.nome)}
-                        </h5>
-                        <span class="badge bg-light text-dark">${this.escapeHtml(documento.tipo)}</span>
-                    </div>
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <p><strong>Empresa:</strong> ${this.escapeHtml(documento.razao_social)}</p>
-                                <p><strong>CNPJ:</strong> ${this.formatCNPJ(documento.empresa_cnpj)}</p>
-                                <p><strong>Data Emissão:</strong> ${this.formatDate(documento.data_emissao)}</p>
-                            </div>
-                            <div class="col-md-6">
-                                <p><strong>Vencimento:</strong> ${this.formatDate(documento.data_vencimento)}</p>
-                                <p><strong>Status Geral:</strong> 
-                                    <span class="badge ${this.getStatusBadgeClass(documento.status_geral || 'pendente')}">
-                                        ${this.getStatusText(documento.status_geral || 'pendente')}
-                                    </span>
-                                </p>
-                                ${documento.arquivo_path ? `
-                                    <button class="btn btn-success btn-sm" onclick="app.downloadDocumento(${documento.id})">
-                                        <i class="fas fa-download"></i> Baixar Arquivo
-                                    </button>
-                                ` : ''}
-                            </div>
+    } catch (error) {
+        console.error('❌ ERRO AO ADICIONAR ANDAMENTO:', error);
+        this.showAlert(`Erro: ${error.message}`, 'danger');
+
+        // Restaurar botão
+        const btnSalvar = document.querySelector('#formAndamento button[type="submit"]');
+        if (btnSalvar) {
+            btnSalvar.innerHTML = '<i class="fas fa-save"></i> Registrar Andamento';
+            btnSalvar.disabled = false;
+        }
+    }
+}
+
+    // ✅ MÉTODO CORRIGIDO PARA VISUALIZAR DOCUMENTO
+async visualizarDocumento(id) {
+    try {
+        console.log(`🔍 Carregando detalhes do documento ID: ${id}`);
+
+        // Fazer todas as requisições em paralelo
+        const [documento, responsaveis, andamentos] = await Promise.all([
+            this.apiRequest(`/documentos/${id}`).catch(error => {
+                console.error('Erro ao carregar documento:', error);
+                throw new Error('Não foi possível carregar os dados do documento');
+            }),
+            this.apiRequest('/responsaveis').catch(error => {
+                console.error('Erro ao carregar responsáveis:', error);
+                return [];
+            }),
+            this.apiRequest(`/documentos/${id}/andamentos`).catch(error => {
+                console.error('Erro ao carregar andamentos:', error);
+                return []; // Retorna array vazio se der erro, não quebra a aplicação
+            })
+        ]);
+
+        console.log('✅ Dados carregados:', {
+            documento: documento.nome,
+            responsaveis: responsaveis.length,
+            andamentos: andamentos.length
+        });
+
+        const content = `
+        <div class="documento-detalhes">
+            <!-- Cabeçalho do Documento -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-file-alt me-2"></i>${this.escapeHtml(documento.nome)}
+                    </h5>
+                    <span class="badge bg-light text-dark">${this.escapeHtml(documento.tipo)}</span>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Empresa:</strong> ${this.escapeHtml(documento.razao_social)}</p>
+                            <p><strong>CNPJ:</strong> ${this.formatCNPJ(documento.empresa_cnpj)}</p>
+                            <p><strong>Data Emissão:</strong> ${this.formatDate(documento.data_emissao)}</p>
                         </div>
-                        ${documento.observacoes ? `
-                            <div class="mt-3">
-                                <strong>Observações:</strong>
-                                <p class="mb-0">${this.escapeHtml(documento.observacoes)}</p>
-                            </div>
-                        ` : ''}
+                        <div class="col-md-6">
+                            <p><strong>Vencimento:</strong> ${this.formatDate(documento.data_vencimento)}</p>
+                            <p><strong>Status Geral:</strong> 
+                                <span class="badge ${this.getStatusBadgeClass(documento.status_geral || 'pendente')}">
+                                    ${this.getStatusText(documento.status_geral || 'pendente')}
+                                </span>
+                            </p>
+                            ${documento.arquivo_path ? `
+                                <button class="btn btn-success btn-sm" onclick="app.downloadDocumento(${documento.id})">
+                                    <i class="fas fa-download"></i> Baixar Arquivo
+                                </button>
+                            ` : ''}
+                        </div>
+                    </div>
+                    ${documento.observacoes ? `
+                        <div class="mt-3">
+                            <strong>Observações:</strong>
+                            <p class="mb-0">${this.escapeHtml(documento.observacoes)}</p>
+                        </div>
+                    ` : ''}
+                </div>
+            </div>
+
+            <!-- Seção de Andamentos -->
+            <div class="row">
+                <div class="col-lg-8">
+                    <!-- Lista de Andamentos -->
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0">
+                                <i class="fas fa-history me-2"></i>Histórico de Andamentos
+                                <span class="badge bg-primary ms-2">${andamentos.length}</span>
+                            </h6>
+                            <small class="text-muted">Total: ${andamentos.length} registros</small>
+                        </div>
+                        <div class="card-body">
+                            ${andamentos.length === 0 ?
+                                '<div class="text-center py-4"><i class="fas fa-inbox fa-2x text-muted mb-2"></i><p class="text-muted">Nenhum andamento registrado</p></div>' :
+                                this.renderListaAndamentos(andamentos)
+                            }
+                        </div>
                     </div>
                 </div>
-
-                <!-- Seção de Andamentos -->
-                <div class="row">
-                    <div class="col-lg-8">
-                        <!-- Lista de Andamentos -->
-                        <div class="card">
-                            <div class="card-header d-flex justify-content-between align-items-center">
-                                <h6 class="mb-0">
-                                    <i class="fas fa-history me-2"></i>Histórico de Andamentos
-                                </h6>
-                                <span class="badge bg-primary">${andamentos.length}</span>
-                            </div>
-                            <div class="card-body">
-                                ${andamentos.length === 0 ?
-                    '<div class="text-center py-4"><i class="fas fa-inbox fa-2x text-muted mb-2"></i><p class="text-muted">Nenhum andamento registrado</p></div>' :
-                    this.renderListaAndamentos(andamentos)
-                }
-                            </div>
+                
+                <div class="col-lg-4">
+                    <!-- Formulário para Novo Andamento -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h6 class="mb-0">
+                                <i class="fas fa-plus-circle me-2"></i>Novo Andamento
+                            </h6>
                         </div>
-                    </div>
-                    
-                    <div class="col-lg-4">
-                        <!-- Formulário para Novo Andamento -->
-                        <div class="card">
-                            <div class="card-header">
-                                <h6 class="mb-0">
-                                    <i class="fas fa-plus-circle me-2"></i>Novo Andamento
-                                </h6>
-                            </div>
-                            <div class="card-body">
-                                <form id="formAndamento" onsubmit="app.adicionarAndamento(event, ${documento.id})">
-                                    <div class="mb-3">
-                                        <label class="form-label">Responsável</label>
-                                        <select class="form-select" id="andamento_responsavel" required>
-                                            <option value="">Selecione o responsável...</option>
-                                            ${responsaveis.map(resp => `
-                                                <option value="${resp.id}">
-                                                    ${this.escapeHtml(resp.nome)} - ${this.escapeHtml(resp.funcao)}
-                                                </option>
-                                            `).join('')}
-                                        </select>
-                                    </div>
-                                    
-                                    <div class="mb-3">
-                                        <label class="form-label">Status</label>
-                                        <select class="form-select" id="andamento_status">
-                                            <option value="em_andamento">Em Andamento</option>
-                                            <option value="pendente">Pendente</option>
-                                            <option value="concluido">Concluído</option>
-                                            <option value="cancelado">Cancelado</option>
-                                        </select>
-                                    </div>
-                                    
-                                    <div class="mb-3">
-                                        <label class="form-label">Descrição do Andamento</label>
-                                        <textarea class="form-control" id="andamento_descricao" 
-                                                  rows="4" placeholder="Descreva o andamento desta demanda..." 
-                                                  required></textarea>
-                                    </div>
-                                    
-                                    <div class="d-grid gap-2">
-                                        <button type="submit" class="btn btn-primary">
-                                            <i class="fas fa-save"></i> Registrar Andamento
-                                        </button>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-
-                        <!-- Ações Rápidas -->
-                        <div class="card mt-3">
-                            <div class="card-header">
-                                <h6 class="mb-0">
-                                    <i class="fas fa-bolt me-2"></i>Ações Rápidas
-                                </h6>
-                            </div>
-                            <div class="card-body">
+                        <div class="card-body">
+                            <form id="formAndamento" onsubmit="app.adicionarAndamento(event, ${documento.id})">
+                                <div class="mb-3">
+                                    <label class="form-label">Responsável *</label>
+                                    <select class="form-select" id="andamento_responsavel" required>
+                                        <option value="">Selecione o responsável...</option>
+                                        ${responsaveis.map(resp => `
+                                            <option value="${resp.id}">
+                                                ${this.escapeHtml(resp.nome)} - ${this.escapeHtml(resp.funcao)}
+                                            </option>
+                                        `).join('')}
+                                    </select>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Status</label>
+                                    <select class="form-select" id="andamento_status">
+                                        <option value="pendente">Pendente</option>
+                                        <option value="em_andamento" selected>Em Andamento</option>
+                                        <option value="concluido">Concluído</option>
+                                        <option value="cancelado">Cancelado</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Descrição do Andamento *</label>
+                                    <textarea class="form-control" id="andamento_descricao" 
+                                              rows="4" placeholder="Descreva o andamento desta demanda..." 
+                                              required></textarea>
+                                </div>
+                                
                                 <div class="d-grid gap-2">
-                                    <button class="btn btn-outline-success btn-sm" onclick="app.atualizarStatusDocumento(${documento.id}, 'concluido')">
-                                        <i class="fas fa-check"></i> Marcar como Concluído
-                                    </button>
-                                    <button class="btn btn-outline-warning btn-sm" onclick="app.atualizarStatusDocumento(${documento.id}, 'em_andamento')">
-                                        <i class="fas fa-sync"></i> Em Andamento
-                                    </button>
-                                    <button class="btn btn-outline-danger btn-sm" onclick="app.atualizarStatusDocumento(${documento.id}, 'cancelado')">
-                                        <i class="fas fa-times"></i> Cancelar
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-save"></i> Registrar Andamento
                                     </button>
                                 </div>
-                            </div>
+                            </form>
                         </div>
                     </div>
                 </div>
             </div>
-        `;
+        </div>
+    `;
 
-            this.showModal(`Detalhes do Documento - ${this.escapeHtml(documento.nome)}`, content, null, 'modal-xl');
+        this.showModal(`Detalhes do Documento - ${this.escapeHtml(documento.nome)}`, content, null, 'modal-xl');
 
-        } catch (error) {
-            console.error('Erro ao carregar detalhes do documento:', error);
-            this.showAlert(`Erro ao carregar detalhes: ${error.message}`, 'danger');
-        }
+    } catch (error) {
+        console.error('❌ Erro ao carregar detalhes do documento:', error);
+        this.showAlert(`Erro ao carregar detalhes: ${error.message}`, 'danger');
     }
+}
 
     // ✅ MÉTODO PARA ESCAPAR HTML (SEGURANÇA)
     escapeHtml(unsafe) {
@@ -704,162 +780,50 @@ class App {
             .replace(/'/g, "&#039;");
     }
 
-    // ✅ RENDERIZAR LISTA DE ANDAMENTOS
-    renderListaAndamentos(andamentos) {
-        return `
-        <div class="timeline">
+   // ✅ MÉTODO CORRIGIDO PARA RENDERIZAR ANDAMENTOS
+renderListaAndamentos(andamentos) {
+    return `
+        <div class="andamentos-list">
             ${andamentos.map(andamento => `
-                <div class="timeline-item ${andamento.status}">
-                    <div class="timeline-marker ${this.getStatusBadgeClass(andamento.status)}"></div>
-                    <div class="timeline-content">
-                        <div class="d-flex justify-content-between align-items-start mb-2">
-                            <strong>${andamento.responsavel_nome}</strong>
-                            <small class="text-muted">${andamento.data_formatada}</small>
+                <div class="andamento-item mb-3 p-3 border rounded ${andamento.status}">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            <strong class="d-block">${andamento.responsavel_nome}</strong>
+                            <small class="text-muted">${andamento.responsavel_funcao}</small>
                         </div>
-                        <p class="mb-2">${andamento.descricao}</p>
-                        <span class="badge ${this.getStatusBadgeClass(andamento.status)}">
-                            ${this.getStatusText(andamento.status)}
-                        </span>
+                        <div class="text-end">
+                            <small class="text-muted d-block">${andamento.data_formatada || this.formatDate(andamento.data_criacao)}</small>
+                            <span class="badge ${this.getStatusBadgeClass(andamento.status)}">
+                                ${this.getStatusText(andamento.status)}
+                            </span>
+                        </div>
                     </div>
+                    <p class="mb-0">${this.escapeHtml(andamento.descricao)}</p>
                 </div>
             `).join('')}
         </div>
-    `;
-    }
-
-
-   // ✅ MÉTODO ADICIONAR ANDAMENTO COM DEBUG COMPLETO
-async adicionarAndamento(event, documentoId) {
-    event.preventDefault();
-    
-    console.log('🟡 ========== INICIANDO ADIÇÃO DE ANDAMENTO ==========');
-    console.log('Documento ID:', documentoId);
-
-    try {
-        // Capturar dados do formulário
-        const responsavelSelect = document.getElementById('andamento_responsavel');
-        const descricaoTextarea = document.getElementById('andamento_descricao');
-        const statusSelect = document.getElementById('andamento_status');
         
-        const responsavel_id = responsavelSelect ? responsavelSelect.value : null;
-        const descricao = descricaoTextarea ? descricaoTextarea.value : '';
-        const status = statusSelect ? statusSelect.value : 'em_andamento';
-
-        console.log('📝 DADOS CAPTURADOS DO FORMULÁRIO:');
-        console.log('Responsável ID:', responsavel_id);
-        console.log('Descrição:', descricao);
-        console.log('Status:', status);
-        console.log('Elementos encontrados:', {
-            responsavel: !!responsavelSelect,
-            descricao: !!descricaoTextarea,
-            status: !!statusSelect
-        });
-
-        // Validação
-        if (!responsavel_id) {
-            console.log('❌ VALIDAÇÃO FALHOU: Responsável não selecionado');
-            this.showAlert('Selecione um responsável', 'warning');
-            return;
-        }
-
-        if (!descricao.trim()) {
-            console.log('❌ VALIDAÇÃO FALHOU: Descrição vazia');
-            this.showAlert('Digite uma descrição', 'warning');
-            return;
-        }
-
-        const formData = {
-            responsavel_id: parseInt(responsavel_id),
-            descricao: descricao.trim(),
-            status: status
-        };
-
-        console.log('📦 DADOS ENVIADOS:', formData);
-
-        // Mostrar loading
-        const btnSalvar = document.querySelector('#formAndamento button[type="submit"]');
-        if (btnSalvar) {
-            const originalText = btnSalvar.innerHTML;
-            btnSalvar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
-            btnSalvar.disabled = true;
-        }
-
-        console.log('🔄 ENVIANDO REQUISIÇÃO PARA API...');
-        console.log('URL:', `/api/documentos/${documentoId}/andamentos`);
-        
-        const response = await fetch(`/api/documentos/${documentoId}/andamentos`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(formData)
-        });
-
-        console.log('📨 RESPOSTA DA API RECEBIDA:');
-        console.log('Status:', response.status);
-        console.log('OK:', response.ok);
-        console.log('Headers:', Object.fromEntries(response.headers.entries()));
-
-        const responseText = await response.text();
-        console.log('Response Text:', responseText);
-
-        let data;
-        try {
-            data = JSON.parse(responseText);
-            console.log('📊 DADOS DA RESPOSTA (JSON):', data);
-        } catch (e) {
-            console.error('❌ ERRO AO CONVERTER RESPOSTA PARA JSON:', e);
-            console.log('Resposta original:', responseText);
-            throw new Error('Resposta inválida do servidor');
-        }
-
-        if (!response.ok) {
-            console.log('❌ ERRO NA RESPOSTA DA API:', data);
-            throw new Error(data.error || `Erro ${response.status}: ${data.message || 'Erro desconhecido'}`);
-        }
-
-        console.log('✅ ANDAMENTO SALVO COM SUCESSO!', data);
-        this.showAlert('Andamento registrado com sucesso!', 'success');
-        
-        // Fechar modal
-        console.log('🔒 FECHANDO MODAL...');
-        const modalElement = document.getElementById('dynamicModal');
-        if (modalElement) {
-            const modal = bootstrap.Modal.getInstance(modalElement);
-            if (modal) {
-                modal.hide();
-                console.log('✅ MODAL FECHADO');
-            } else {
-                console.log('⚠️  Instância do modal não encontrada');
+        <style>
+            .andamento-item {
+                background: #f8f9fa;
+                border-left: 4px solid #007bff !important;
             }
-        } else {
-            console.log('⚠️  Elemento do modal não encontrado');
-        }
-        
-        // Recarregar a página de documentos
-        console.log('🔄 RECARREGANDO PÁGINA DE DOCUMENTOS...');
-        setTimeout(() => {
-            this.loadPage('documentos');
-        }, 1500);
-
-    } catch (error) {
-        console.error('❌ ERRO CRÍTICO AO REGISTRAR ANDAMENTO:', error);
-        console.error('Stack trace:', error.stack);
-        this.showAlert(`Erro ao registrar andamento: ${error.message}`, 'danger');
-        
-        // Restaurar botão em caso de erro
-        const btnSalvar = document.querySelector('#formAndamento button[type="submit"]');
-        if (btnSalvar) {
-            btnSalvar.innerHTML = '<i class="fas fa-save"></i> Registrar Andamento';
-            btnSalvar.disabled = false;
-        }
-    }
-    
-    console.log('🟡 ========== FIM DO PROCESSO ==========');
+            .andamento-item.pendente {
+                border-left-color: #ffc107 !important;
+            }
+            .andamento-item.em_andamento {
+                border-left-color: #17a2b8 !important;
+            }
+            .andamento-item.concluido {
+                border-left-color: #28a745 !important;
+            }
+            .andamento-item.cancelado {
+                border-left-color: #dc3545 !important;
+            }
+        </style>
+    `;
 }
 
-
-    
     // ✅ MÉTODO ATUALIZAR STATUS CORRIGIDO
     async atualizarStatusDocumento(documentoId, status) {
         try {
@@ -883,26 +847,39 @@ async adicionarAndamento(event, documentoId) {
         }
     }
 
-    // ✅ MÉTODOS AUXILIARES PARA STATUS
-    getStatusBadgeClass(status) {
-        const classes = {
-            'pendente': 'bg-warning',
-            'em_andamento': 'bg-info',
-            'concluido': 'bg-success',
-            'cancelado': 'bg-danger'
-        };
-        return classes[status] || 'bg-secondary';
-    }
+    // ✅ MÉTODOS AUXILIARES
+getStatusBadgeClass(status) {
+    const classes = {
+        'pendente': 'bg-warning',
+        'em_andamento': 'bg-info',
+        'concluido': 'bg-success',
+        'cancelado': 'bg-danger'
+    };
+    return classes[status] || 'bg-secondary';
+}
 
-    getStatusText(status) {
-        const texts = {
-            'pendente': 'Pendente',
-            'em_andamento': 'Em Andamento',
-            'concluido': 'Concluído',
-            'cancelado': 'Cancelado'
-        };
-        return texts[status] || status;
+getStatusText(status) {
+    const texts = {
+        'pendente': 'Pendente',
+        'em_andamento': 'Em Andamento',
+        'concluido': 'Concluído',
+        'cancelado': 'Cancelado'
+    };
+    return texts[status] || status;
+}
+
+formatDate(dateString) {
+    if (!dateString) return 'N/A';
+    try {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('pt-BR') + ' ' + date.toLocaleTimeString('pt-BR', {
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    } catch (error) {
+        return 'Data inválida';
     }
+}
 
 
     // ✅ MÉTODOS PARA EMPRESAS
