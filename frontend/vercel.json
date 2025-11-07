@@ -22,7 +22,7 @@
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "https://seu-backend.railway.app/api/$1"
+      "dest": "https://gestao-documental-backend.up.railway.app/api/$1"
     },
     {
       "src": "/(.*)",

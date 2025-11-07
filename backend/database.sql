@@ -1,8 +1,6 @@
-drop database gestao_documental;
-
-create database gestao_documental;
-USE gestao_documental;
-
+DROP DATABASE railway;
+CREATE DATABASE railway;
+USE railway;
 -- Tabela de empresas
 CREATE TABLE IF NOT EXISTS empresas (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -66,10 +64,6 @@ CREATE TABLE IF NOT EXISTS documento_andamentos (
 
 -- Adicionar índices para melhor performance
 CREATE INDEX idx_documento_andamentos_documento_id ON documento_andamentos(documento_id);
-CREATE INDEX idx_documento_andamentos_data ON documento_andamentos(data_criacao);
-CREATE INDEX idx_documentos_status_geral ON documentos(status_geral);
-CREATE INDEX idx_documentos_vencimento ON documentos(data_vencimento);
-CREATE INDEX idx_empresas_cnpj ON empresas(cnpj);
 
 -- Dados de exemplo para empresas
 INSERT IGNORE INTO empresas (id, razao_social, nome_fantasia, cnpj, telefone, email, endereco) VALUES
