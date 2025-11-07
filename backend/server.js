@@ -54,10 +54,10 @@ const upload = multer({
 // ✅ CORS para desenvolvimento
 app.use(cors({
     origin: [
-        'http://localhost:3000', // Desenvolvimento
-        'https://gestao-documental-three.vercel.app', // Seu frontend
-        'https://gestao-documental-s6a0di2mq-samuelwinnners-projects.vercel.app', // Outra URL
-        'https://gestao-documental-git-main-samuelwinnners-projects.vercel.app' // Outra URL
+        'http://localhost:3000',
+        'https://gestao-documental-gold.vercel.app', // ✅ NOVO DOMÍNIO
+        'https://gestao-documental.vercel.app',      // ✅ DOMÍNIO ANTIGO
+        'https://gestao-documental-three.vercel.app' // ✅ OUTRO DOMÍNIO
     ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']

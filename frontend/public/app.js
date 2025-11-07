@@ -1,7 +1,11 @@
 // frontend/app.js
 
 // ✅ URL para PRODUÇÃO - SEU BACKEND NO VERCEL
-const API_BASE = 'https://gestao-documental-production.up.railway.app/api';
+// ✅ URL para desenvolvimento vs produção
+const API_BASE = window.location.hostname === 'localhost' 
+    ? 'http://localhost:3000/api'
+    : 'https://gestao-documental-production.up.railway.app/api';
+    
 class App {
     constructor() {
         this.currentPage = 'dashboard';
