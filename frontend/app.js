@@ -1,6 +1,7 @@
 // frontend/app.js
 
-const API_BASE = '/api';
+// URL do backend no Vercel
+const API_BASE = 'https://gestao-documental-backend-p1cw84m2t-samuelwinnners-projects.vercel.app/api';
 
 class App {
     constructor() {
@@ -19,7 +20,7 @@ class App {
     async testConnection() {
         try {
             console.log('Testando conexão com o servidor...');
-            const response = await fetch('/api/health');
+            const response = await fetch(`${API_BASE}/health`); // <-- aqui
             if (response.ok) {
                 const data = await response.json();
                 console.log('✅ Conexão com servidor OK:', data);
