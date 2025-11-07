@@ -11,15 +11,21 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+// ✅ PATHS CORRETOS PARA ESTRUTURA ATUAL
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const projectRoot = path.join(__dirname, '..'); // Raiz do projeto
 
+console.log('📁 Project Root:', projectRoot);
+console.log('📁 Backend Dir:', __dirname);
+
+// ✅ INICIALIZAR APP PRIMEIRO - ESTA É A CORREÇÃO PRINCIPAL
 const app = express();
 
 // ✅ CONFIGURAÇÃO DO UPLOAD
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-        const uploadsDir = path.join(__dirname, '../uploads/documentos');
+        const uploadsDir = path.join(projectRoot, 'uploads/documentos');
         if (!fs.existsSync(uploadsDir)) {
             fs.mkdirSync(uploadsDir, { recursive: true });
         }
@@ -44,11 +50,11 @@ const upload = multer({
     }
 });
 
-// ✅ MIDDLEWARE
+// ✅ MIDDLEWARE - AGORA APP JÁ ESTÁ DEFINIDO
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, '../frontend')));
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+app.use(express.static(path.join(projectRoot, 'frontend')));
+app.use('/uploads', express.static(path.join(projectRoot, 'uploads')));
 
 // Log de requisições
 app.use((req, res, next) => {
@@ -671,7 +677,7 @@ app.delete('/api/documentos/:id', async (req, res) => {
 
         // Excluir arquivo físico se existir
         if (documentos[0].arquivo_path) {
-            const filePath = path.join(__dirname, '../uploads/documentos', documentos[0].arquivo_path);
+            const filePath = path.join(projectRoot, 'uploads/documentos', documentos[0].arquivo_path);
             if (fs.existsSync(filePath)) {
                 fs.unlinkSync(filePath);
                 console.log('Arquivo físico excluído:', documentos[0].arquivo_path);
@@ -711,7 +717,7 @@ app.get('/api/documentos/:id/download', async (req, res) => {
         }
 
         const documento = documentos[0];
-        const filePath = path.join(__dirname, '../uploads/documentos', documento.arquivo_path);
+        const filePath = path.join(projectRoot, 'uploads/documentos', documento.arquivo_path);
 
         if (!fs.existsSync(filePath)) {
             return res.status(404).json({ error: 'Arquivo não encontrado no servidor' });
@@ -1024,13 +1030,13 @@ app.use((error, req, res, next) => {
 // =============================================
 app.get('/', (req, res) => {
     console.log('🏠 Servindo frontend para rota /');
-    res.sendFile(path.join(__dirname, '../frontend/index.html'));
+    res.sendFile(path.join(projectRoot, 'frontend/index.html'));
 });
 
 // Rota catch-all para SPA - DEVE SER A ÚLTIMA!
 app.get('*', (req, res) => {
     console.log('🏠 Rota catch-all servindo frontend para:', req.url);
-    res.sendFile(path.join(__dirname, '../frontend/index.html'));
+    res.sendFile(path.join(projectRoot, 'frontend/index.html'));
 });
 
 // =============================================

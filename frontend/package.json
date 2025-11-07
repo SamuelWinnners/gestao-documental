@@ -1,21 +1,31 @@
 {
-  "name": "sistema-gestao",
+  "name": "gestao-documental-completo",
   "version": "1.0.0",
-  "description": "📋 Sistema de Gestão Documental e Controle de Vencimentos\r Sistema web completo para gerenciamento de empresas, documentos e controle de vencimentos com alertas automáticos.",
-  "main": "index.js",
+  "type": "module",
+  "description": "Sistema completo de gestão documental",
+  "main": "backend/server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node backend/server.js",
+    "dev": "node --watch backend/server.js",
+    "build": "echo 'No build step required'",
+    "install-deps": "cd backend && npm install"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/SamuelWinnners/gestao-documental.git"
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^4.18.2",
+    "multer": "^1.4.5-lts.1",
+    "mysql2": "^3.6.0"
   },
-  "type": "commonjs",
-  "bugs": {
-    "url": "https://github.com/SamuelWinnners/gestao-documental/issues"
-  },
-  "homepage": "https://github.com/SamuelWinnners/gestao-documental#readme"
+  "keywords": [
+    "gestao",
+    "documentos",
+    "api",
+    "fullstack"
+  ],
+  "author": "Seu Nome",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  }
 }
