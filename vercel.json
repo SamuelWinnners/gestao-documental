@@ -6,15 +6,7 @@
       "use": "@vercel/node" 
     },
     {
-      "src": "frontend/public/index.html",
-      "use": "@vercel/static"
-    },
-    {
-      "src": "frontend/public/app.js", 
-      "use": "@vercel/static"
-    },
-    {
-      "src": "frontend/public/style.css",
+      "src": "frontend/public/**/*",
       "use": "@vercel/static"
     }
   ],
@@ -25,7 +17,7 @@
     },
     {
       "src": "/(.*)",
-      "dest": "/frontend/public/index.html"
+      "dest": "/frontend/public/$1"
     }
   ],
   "env": {
