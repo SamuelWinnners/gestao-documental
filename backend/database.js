@@ -13,4 +13,15 @@ const pool = mysql.createPool({
   queueLimit: 0,
 });
 
+// Testando conexão
+(async () => {
+  try {
+    const conn = await pool.getConnection();
+    console.log('✅ Conectado ao banco de dados MySQL!');
+    conn.release();
+  } catch (err) {
+    console.error('❌ Erro ao conectar no MySQL:', err);
+  }
+})();
+
 export default pool;
