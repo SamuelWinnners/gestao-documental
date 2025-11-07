@@ -51,9 +51,19 @@ const upload = multer({
 });
 
 // ✅ MIDDLEWARE - AGORA APP JÁ ESTÁ DEFINIDO
-app.use(cors());
+// ✅ CORS para desenvolvimento
+app.use(cors({
+    origin: [
+        'http://localhost:3000',
+        'http://127.0.0.1:3000',
+        'https://seu-frontend.vercel.app' // URL do Vercel
+    ],
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
+}));
+
 app.use(express.json());
-app.use(express.static(path.join(projectRoot, 'frontend')));
+app.use(express.static(path.join(projectRoot, 'frontend', 'public')));
 app.use('/uploads', express.static(path.join(projectRoot, 'uploads')));
 
 // Log de requisições
@@ -1036,7 +1046,7 @@ app.get('/', (req, res) => {
 // Rota catch-all para SPA - DEVE SER A ÚLTIMA!
 app.get('*', (req, res) => {
     console.log('🏠 Rota catch-all servindo frontend para:', req.url);
-    res.sendFile(path.join(projectRoot, 'frontend/index.html'));
+    res.sendFile(path.join(projectRoot, 'frontend', 'public', 'index.html'));
 });
 
 // =============================================

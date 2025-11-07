@@ -1,249 +1,219 @@
 📋 Sistema de Gestão Documental
-Sistema completo para gestão de documentos empresariais com controle de vencimentos, empresas e responsáveis.
+Sistema completo para gerenciamento de documentos empresariais, controle de vencimentos e acompanhamento de andamentos.
 
 🚀 Funcionalidades
 📊 Dashboard
-Visão geral do sistema com estatísticas
+Visão geral do status dos documentos
 
-Filtros avançados por status, empresa e pesquisa
+Alertas de vencimento (próximos e vencidos)
 
-Alertas de documentos próximos do vencimento
+Estatísticas em tempo real
 
-Cards informativos com métricas importantes
+Filtros avançados por status e empresa
 
 🏢 Gestão de Empresas
-Cadastro completo com CNPJ, razão social, nome fantasia
+Cadastro completo com consulta automática de CNPJ
 
-Consulta automática de CNPJ via Receita WS
+Acessos municipais e estaduais com campos seguros
 
-Campos de acesso municipal e estadual (login/senha)
+Regime tributário (Simples Nacional/Demais regimes)
 
-Regime tributário (Simples Nacional vs Demais)
-
-Olhinho para senhas 👁️ com opção de mostrar/ocultar
-
-Detalhes completos com visualização segura de senhas
+Contatos e observações
 
 📄 Gestão de Documentos
-Cadastro completo com tipo, datas de emissão/vencimento
-
-Upload de arquivos (PDF, JPG, PNG) até 10MB
-
 Controle de vencimentos com alertas automáticos
 
-Filtros por status (Vencidos, Próximos, Válidos)
+Upload de arquivos (PDF, JPG, PNG)
 
-Download de arquivos
+Tipos pré-definidos: Alvarás, Certidões, Licenças, TFF, etc.
 
-Associação com empresas e responsáveis
+Andamentos com histórico completo
 
-👥 Gestão de Responsáveis
-Cadastro de responsáveis por empresa
+👥 Responsáveis
+Vinculação de responsáveis por empresa
 
-Contato completo (nome, email, telefone, função)
+Controle de funções e contatos
 
-Associação com documentos
+Acompanhamento de atividades
 
-🛠️ Tecnologias Utilizadas
+🛠️ Tecnologias
 Backend
-Node.js com Express
+Node.js + Express
 
-MySQL com mysql2/promise
+MySQL com mysql2
 
 Multer para upload de arquivos
 
-CORS para comunicação frontend/backend
+CORS para integração frontend/backend
+
+dotenv para variáveis de ambiente
 
 Frontend
-HTML5 semântico
+HTML5 + CSS3 + JavaScript Vanilla
 
-CSS3 com variáveis e design responsivo
-
-JavaScript ES6+ com classes
-
-Bootstrap 5 para componentes UI
+Bootstrap 5 para interface
 
 Font Awesome para ícones
 
-📋 Pré-requisitos
-Node.js 16+
+Chart.js para gráficos (planejado)
 
-MySQL 8.0+
+📦 Instalação e Configuração
+Pré-requisitos
+Node.js 18+
 
-Navegador moderno
+MySQL 5.7+
 
-🚀 Instalação e Configuração
+Git
+
 1. Clone o repositório
 bash
-git clone <url-do-repositorio>
+git clone https://github.com/seu-usuario/gestao-documental.git
 cd gestao-documental
-2. Configuração do Banco de Dados
+2. Instale as dependências
 bash
-# Execute o script SQL no MySQL
-mysql -u root -p < database.sql
-3. Configuração do Backend
-bash
-cd backend
 npm install
-
-# Configure as variáveis de ambiente no database.js
-# Edite: host, user, password conforme seu MySQL
-4. Execução do Sistema
+3. Configure o banco de dados
 bash
-# Desenvolvimento (backend)
+# Execute o script SQL
+mysql -u root -p < backend/database.sql
+4. Configure as variáveis de ambiente
+Crie backend/.env:
+
+env
+DB_HOST=localhost
+DB_PORT=3306
+DB_USER=root
+DB_PASSWORD=sua_senha
+DB_NAME=gestao_documental
+PORT=3000
+NODE_ENV=development
+5. Execute o sistema
+bash
+# Desenvolvimento
 npm run dev
 
 # Produção
 npm start
-O sistema estará disponível em: http://localhost:3000
+🌐 Deploy
+Backend (Railway)
+Conecte o repositório no Railway
 
-🗄️ Estrutura do Banco de Dados
-Tabelas Principais
-empresas - Dados das empresas com campos de acesso
+Configure as variáveis de ambiente
 
-documentos - Documentos com controle de vencimento
+Deploy automático
 
-responsaveis - Responsáveis por empresa
+Frontend (Vercel)
+Conecte a pasta frontend no Vercel
 
-categorias_documentos - Categorias de documentos (opcional)
+Configure a URL do backend
 
-alertas_vencimento - Sistema de alertas (opcional)
+Deploy automático
 
-Views Úteis
-vw_documentos_proximos_vencimento - Documentos próximos do vencimento
-
-vw_dashboard_estatisticas - Estatísticas para dashboard
-
-vw_empresas_completas - Empresas com contagem de documentos
-
-📁 Estrutura do Projeto
+🗂️ Estrutura do Projeto
 text
 gestao-documental/
 ├── backend/
 │   ├── server.js          # Servidor principal
-│   ├── database.js        # Configuração do banco
-│   └── package.json       # Dependências
+│   ├── database.js        # Conexão com MySQL
+│   ├── database.sql       # Schema do banco
+│   └── .env              # Variáveis de ambiente
 ├── frontend/
-│   ├── index.html         # Página principal
-│   ├── app.js             # Aplicação frontend
-│   ├── style.css          # Estilos
-│   └── uploads/           # Arquivos uploadados
-├── database.sql           # Script do banco
-└── README.md             # Este arquivo
-🔧 Configurações Importantes
-Variáveis de Ambiente (database.js)
-javascript
-const pool = mysql.createPool({
-    host: 'localhost',      // Servidor MySQL
-    user: 'root',           // Usuário MySQL
-    password: 'sua_senha',  // Senha MySQL
-    database: 'gestao_documental',
-    // ... outras configurações
-});
-Upload de Arquivos
-Formatos permitidos: PDF, JPG, JPEG, PNG
+│   ├── index.html        # Aplicação SPA
+│   ├── app.js           # Lógica do frontend
+│   ├── style.css        # Estilos
+│   └── vercel.json      # Config Vercel
+├── uploads/
+│   └── documentos/      # Arquivos uploadados
+├── package.json
+├── railway.toml
+└── README.md
+📋 Tipos de Documentos Suportados
+📑 Alvarás
+Alvará de Funcionamento
 
-Tamanho máximo: 10MB
+Alvará Sanitário
 
-Local de armazenamento: frontend/uploads/documentos/
+Alvará de Publicidade
 
-🎯 Como Usar
-1. Cadastro de Empresas
-Acesse "Empresas" no menu
+Alvará Ambiental
 
-Clique em "Nova Empresa"
+AVCB
 
-Use a consulta de CNPJ para preenchimento automático
+📜 Certidões Negativas
+Federal, Estadual, Municipal
 
-Preencha os dados de acesso municipal/estadual
+Trabalhista, FGTS
 
-Selecione o regime tributário
+Concordata e Falência
 
-2. Cadastro de Documentos
-Acesse "Documentos" no menu
+🏭 TFF (Diversas Cidades)
+Salvador, Lauro de Freitas, Camaçari
 
-Clique em "Novo Documento"
+Dias D'Avila, Feira da Mata, Fortaleza
 
-Selecione empresa e responsável
+E muitas outras...
 
-Informe datas de emissão e vencimento
+📝 Outros
+Procurações Eletrônicas
 
-Faça upload do arquivo (opcional)
+Declarações (SIMEI, Faturamento)
 
-3. Monitoramento no Dashboard
-Acesse o "Dashboard"
+Licenças Ambientais
 
-Use os filtros para encontrar documentos específicos
+TVL Salvador
 
-Veja alertas de vencimentos próximos
+🔐 Segurança
+Senhas ocultas com toggle de visibilidade
 
-Acompanhe as estatísticas do sistema
+Validação de CNPJ integrada
 
-🔒 Segurança
-Senhas ocultas por padrão nos formulários
+Upload seguro de arquivos
 
-Visualização controlada de senhas com timeout automático
+CORS configurado para domínios específicos
 
-Upload seguro com validação de tipos e tamanhos
+📊 Status dos Documentos
+✅ Válido - Vencimento > 30 dias
 
-Consulta CNPJ com validação completa
+⚠️ Vencendo - Vencimento ≤ 30 dias
 
-CORS configurado para comunicação segura
+❌ Vencido - Data passada
 
-🐛 Solução de Problemas
-Problemas Comuns
-Conexão com banco falha
+🔄 Em Andamento - Processo ativo
 
-Verifique credenciais no database.js
+🤝 Contribuição
+Fork o projeto
 
-Confirme se o MySQL está rodando
+Crie uma branch para sua feature (git checkout -b feature/AmazingFeature)
 
-Upload de arquivos não funciona
+Commit suas mudanças (git commit -m 'Add some AmazingFeature')
 
-Verifique permissões da pasta uploads/
+Push para a branch (git push origin feature/AmazingFeature)
 
-Confirme tamanho e tipo do arquivo
-
-Consulta CNPJ não retorna dados
-
-Verifique conexão com internet
-
-Confirme se o CNPJ é válido
-
-Filtros do dashboard não funcionam
-
-Verifique console do navegador para erros
-
-Confirme se há documentos cadastrados
-
-Logs e Debug
-Backend: Logs no terminal onde o servidor está rodando
-
-Frontend: Console do navegador (F12)
+Abra um Pull Request
 
 📞 Suporte
 Em caso de problemas:
 
-Verifique os logs do sistema
+Verifique os logs no console
 
-Confirme os pré-requisitos
+Confirme as variáveis de ambiente
 
-Consulte esta documentação
+Teste a conexão com o banco de dados
 
-Entre em contato com o administrador
+Verifique as permissões de upload
 
-🔄 Próximas Atualizações
-Relatórios em PDF
+📄 Licença
+Este projeto está sob a licença MIT. Veja o arquivo LICENSE para detalhes.
 
+🎯 Próximas Funcionalidades
 Notificações por email
+
+Relatórios PDF
+
+Gráficos de analytics
 
 Backup automático
 
-API REST completa
+API REST documentada
 
-Múltiplos usuários
-
-Dashboard com gráficos
-
-📄 Licença
-Este projeto é para uso interno. Desenvolvido para gestão documental empresarial.
+Desenvolvido com ❤️ para otimizar a gestão documental empresarial
