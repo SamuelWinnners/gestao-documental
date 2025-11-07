@@ -1,7 +1,7 @@
 // frontend/app.js
 
-// URL do backend no Vercel
-const API_BASE = 'http://localhost:3000/api';
+// ✅ URL para PRODUÇÃO - SEU BACKEND NO VERCEL
+const API_BASE = 'https://gestao-documental-backend.vercel.app/api';
 class App {
     constructor() {
         this.currentPage = 'dashboard';
