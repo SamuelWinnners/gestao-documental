@@ -1,7 +1,7 @@
 // frontend/app.js
 
 // ✅ URL para PRODUÇÃO - SEU BACKEND NO VERCEL
-const API_BASE = 'https://gestao-documental.vercel.app/api';
+const API_BASE = 'https://gestao-documental-production.up.railway.app/api';
 class App {
     constructor() {
         this.currentPage = 'dashboard';
