@@ -2,10 +2,10 @@
 
 // ✅ URL para PRODUÇÃO - SEU BACKEND NO VERCEL
 // ✅ URL para desenvolvimento vs produção
-const API_BASE = window.location.hostname === 'localhost' 
+const API_BASE = window.location.hostname === 'localhost'
     ? 'http://localhost:3000/api'
     : 'https://gestao-documental-production.up.railway.app/api';
-    
+
 class App {
     constructor() {
         this.currentPage = 'dashboard';
@@ -527,131 +527,131 @@ class App {
     exportarDocumentos() {
         this.showAlert('Funcionalidade de exportação em desenvolvimento', 'info');
     }
-// ✅ MÉTODO ADICIONAR ANDAMENTO CORRIGIDO
-async adicionarAndamento(event, documentoId) {
-    event.preventDefault();
+    // ✅ MÉTODO ADICIONAR ANDAMENTO CORRIGIDO
+    async adicionarAndamento(event, documentoId) {
+        event.preventDefault();
 
-    console.log(`🟡 ADICIONANDO ANDAMENTO PARA DOCUMENTO ${documentoId}`);
+        console.log(`🟡 ADICIONANDO ANDAMENTO PARA DOCUMENTO ${documentoId}`);
 
-    // Capturar dados do formulário
-    const responsavel_id = document.getElementById('andamento_responsavel').value;
-    const descricao = document.getElementById('andamento_descricao').value;
-    const status = document.getElementById('andamento_status').value;
+        // Capturar dados do formulário
+        const responsavel_id = document.getElementById('andamento_responsavel').value;
+        const descricao = document.getElementById('andamento_descricao').value;
+        const status = document.getElementById('andamento_status').value;
 
-    console.log('📝 DADOS DO FORMULÁRIO:', { responsavel_id, descricao, status });
+        console.log('📝 DADOS DO FORMULÁRIO:', { responsavel_id, descricao, status });
 
-    // Validação
-    if (!responsavel_id || !descricao.trim()) {
-        this.showAlert('Preencha todos os campos obrigatórios', 'warning');
-        return;
-    }
-
-    try {
-        // Mostrar loading
-        const btnSalvar = document.querySelector('#formAndamento button[type="submit"]');
-        const originalText = btnSalvar.innerHTML;
-        btnSalvar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
-        btnSalvar.disabled = true;
-
-        console.log('🔄 ENVIANDO PARA API...');
-
-        // Fazer requisição para API
-        const response = await fetch(`/api/documentos/${documentoId}/andamentos`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                responsavel_id: parseInt(responsavel_id),
-                descricao: descricao.trim(),
-                status: status
-            })
-        });
-
-        console.log('📊 RESPOSTA DA API - Status:', response.status);
-
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || `Erro ${response.status}`);
+        // Validação
+        if (!responsavel_id || !descricao.trim()) {
+            this.showAlert('Preencha todos os campos obrigatórios', 'warning');
+            return;
         }
 
-        const resultado = await response.json();
-        console.log('✅ ANDAMENTO CRIADO COM SUCESSO:', resultado);
+        try {
+            // Mostrar loading
+            const btnSalvar = document.querySelector('#formAndamento button[type="submit"]');
+            const originalText = btnSalvar.innerHTML;
+            btnSalvar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
+            btnSalvar.disabled = true;
 
-        this.showAlert('Andamento registrado com sucesso!', 'success');
+            console.log('🔄 ENVIANDO PARA API...');
 
-        // ✅ CORREÇÃO: Fechar modal ANTES de recarregar
-        const modalElement = document.getElementById('dynamicModal');
-        if (modalElement) {
-            const modal = bootstrap.Modal.getInstance(modalElement);
-            if (modal) {
-                modal.hide();
-                console.log('✅ Modal fechado');
-                
-                // ✅ AGUARDAR o modal fechar completamente antes de recarregar
-                modalElement.addEventListener('hidden.bs.modal', () => {
-                    console.log('🔄 Modal completamente fechado, recarregando página...');
-                    // Recarregar a página de documentos
+            // Fazer requisição para API
+            const response = await fetch(`/api/documentos/${documentoId}/andamentos`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    responsavel_id: parseInt(responsavel_id),
+                    descricao: descricao.trim(),
+                    status: status
+                })
+            });
+
+            console.log('📊 RESPOSTA DA API - Status:', response.status);
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || `Erro ${response.status}`);
+            }
+
+            const resultado = await response.json();
+            console.log('✅ ANDAMENTO CRIADO COM SUCESSO:', resultado);
+
+            this.showAlert('Andamento registrado com sucesso!', 'success');
+
+            // ✅ CORREÇÃO: Fechar modal ANTES de recarregar
+            const modalElement = document.getElementById('dynamicModal');
+            if (modalElement) {
+                const modal = bootstrap.Modal.getInstance(modalElement);
+                if (modal) {
+                    modal.hide();
+                    console.log('✅ Modal fechado');
+
+                    // ✅ AGUARDAR o modal fechar completamente antes de recarregar
+                    modalElement.addEventListener('hidden.bs.modal', () => {
+                        console.log('🔄 Modal completamente fechado, recarregando página...');
+                        // Recarregar a página de documentos
+                        setTimeout(() => {
+                            this.loadPage('documentos');
+                        }, 300);
+                    });
+                } else {
+                    // Fallback se não conseguir pegar a instância do modal
+                    console.log('⚠️ Não conseguiu pegar instância do modal, recarregando diretamente...');
                     setTimeout(() => {
                         this.loadPage('documentos');
-                    }, 300);
-                });
+                    }, 500);
+                }
             } else {
-                // Fallback se não conseguir pegar a instância do modal
-                console.log('⚠️ Não conseguiu pegar instância do modal, recarregando diretamente...');
+                // Fallback se o modal não existir
+                console.log('⚠️ Modal não encontrado, recarregando diretamente...');
                 setTimeout(() => {
                     this.loadPage('documentos');
                 }, 500);
             }
-        } else {
-            // Fallback se o modal não existir
-            console.log('⚠️ Modal não encontrado, recarregando diretamente...');
-            setTimeout(() => {
-                this.loadPage('documentos');
-            }, 500);
-        }
 
-    } catch (error) {
-        console.error('❌ ERRO AO ADICIONAR ANDAMENTO:', error);
-        this.showAlert(`Erro: ${error.message}`, 'danger');
+        } catch (error) {
+            console.error('❌ ERRO AO ADICIONAR ANDAMENTO:', error);
+            this.showAlert(`Erro: ${error.message}`, 'danger');
 
-        // Restaurar botão
-        const btnSalvar = document.querySelector('#formAndamento button[type="submit"]');
-        if (btnSalvar) {
-            btnSalvar.innerHTML = '<i class="fas fa-save"></i> Registrar Andamento';
-            btnSalvar.disabled = false;
+            // Restaurar botão
+            const btnSalvar = document.querySelector('#formAndamento button[type="submit"]');
+            if (btnSalvar) {
+                btnSalvar.innerHTML = '<i class="fas fa-save"></i> Registrar Andamento';
+                btnSalvar.disabled = false;
+            }
         }
     }
-}
 
     // ✅ MÉTODO CORRIGIDO PARA VISUALIZAR DOCUMENTO
-async visualizarDocumento(id) {
-    try {
-        console.log(`🔍 Carregando detalhes do documento ID: ${id}`);
+    async visualizarDocumento(id) {
+        try {
+            console.log(`🔍 Carregando detalhes do documento ID: ${id}`);
 
-        // Fazer todas as requisições em paralelo
-        const [documento, responsaveis, andamentos] = await Promise.all([
-            this.apiRequest(`/documentos/${id}`).catch(error => {
-                console.error('Erro ao carregar documento:', error);
-                throw new Error('Não foi possível carregar os dados do documento');
-            }),
-            this.apiRequest('/responsaveis').catch(error => {
-                console.error('Erro ao carregar responsáveis:', error);
-                return [];
-            }),
-            this.apiRequest(`/documentos/${id}/andamentos`).catch(error => {
-                console.error('Erro ao carregar andamentos:', error);
-                return []; // Retorna array vazio se der erro, não quebra a aplicação
-            })
-        ]);
+            // Fazer todas as requisições em paralelo
+            const [documento, responsaveis, andamentos] = await Promise.all([
+                this.apiRequest(`/documentos/${id}`).catch(error => {
+                    console.error('Erro ao carregar documento:', error);
+                    throw new Error('Não foi possível carregar os dados do documento');
+                }),
+                this.apiRequest('/responsaveis').catch(error => {
+                    console.error('Erro ao carregar responsáveis:', error);
+                    return [];
+                }),
+                this.apiRequest(`/documentos/${id}/andamentos`).catch(error => {
+                    console.error('Erro ao carregar andamentos:', error);
+                    return []; // Retorna array vazio se der erro, não quebra a aplicação
+                })
+            ]);
 
-        console.log('✅ Dados carregados:', {
-            documento: documento.nome,
-            responsaveis: responsaveis.length,
-            andamentos: andamentos.length
-        });
+            console.log('✅ Dados carregados:', {
+                documento: documento.nome,
+                responsaveis: responsaveis.length,
+                andamentos: andamentos.length
+            });
 
-        const content = `
+            const content = `
         <div class="documento-detalhes">
             <!-- Cabeçalho do Documento -->
             <div class="card mb-4">
@@ -705,9 +705,9 @@ async visualizarDocumento(id) {
                         </div>
                         <div class="card-body">
                             ${andamentos.length === 0 ?
-                                '<div class="text-center py-4"><i class="fas fa-inbox fa-2x text-muted mb-2"></i><p class="text-muted">Nenhum andamento registrado</p></div>' :
-                                this.renderListaAndamentos(andamentos)
-                            }
+                    '<div class="text-center py-4"><i class="fas fa-inbox fa-2x text-muted mb-2"></i><p class="text-muted">Nenhum andamento registrado</p></div>' :
+                    this.renderListaAndamentos(andamentos)
+                }
                         </div>
                     </div>
                 </div>
@@ -764,13 +764,13 @@ async visualizarDocumento(id) {
         </div>
     `;
 
-        this.showModal(`Detalhes do Documento - ${this.escapeHtml(documento.nome)}`, content, null, 'modal-xl');
+            this.showModal(`Detalhes do Documento - ${this.escapeHtml(documento.nome)}`, content, null, 'modal-xl');
 
-    } catch (error) {
-        console.error('❌ Erro ao carregar detalhes do documento:', error);
-        this.showAlert(`Erro ao carregar detalhes: ${error.message}`, 'danger');
+        } catch (error) {
+            console.error('❌ Erro ao carregar detalhes do documento:', error);
+            this.showAlert(`Erro ao carregar detalhes: ${error.message}`, 'danger');
+        }
     }
-}
 
     // ✅ MÉTODO PARA ESCAPAR HTML (SEGURANÇA)
     escapeHtml(unsafe) {
@@ -784,9 +784,9 @@ async visualizarDocumento(id) {
             .replace(/'/g, "&#039;");
     }
 
-   // ✅ MÉTODO CORRIGIDO PARA RENDERIZAR ANDAMENTOS
-renderListaAndamentos(andamentos) {
-    return `
+    // ✅ MÉTODO CORRIGIDO PARA RENDERIZAR ANDAMENTOS
+    renderListaAndamentos(andamentos) {
+        return `
         <div class="andamentos-list">
             ${andamentos.map(andamento => `
                 <div class="andamento-item mb-3 p-3 border rounded ${andamento.status}">
@@ -826,7 +826,7 @@ renderListaAndamentos(andamentos) {
             }
         </style>
     `;
-}
+    }
 
     // ✅ MÉTODO ATUALIZAR STATUS CORRIGIDO
     async atualizarStatusDocumento(documentoId, status) {
@@ -852,38 +852,38 @@ renderListaAndamentos(andamentos) {
     }
 
     // ✅ MÉTODOS AUXILIARES
-getStatusBadgeClass(status) {
-    const classes = {
-        'pendente': 'bg-warning',
-        'em_andamento': 'bg-info',
-        'concluido': 'bg-success',
-        'cancelado': 'bg-danger'
-    };
-    return classes[status] || 'bg-secondary';
-}
-
-getStatusText(status) {
-    const texts = {
-        'pendente': 'Pendente',
-        'em_andamento': 'Em Andamento',
-        'concluido': 'Concluído',
-        'cancelado': 'Cancelado'
-    };
-    return texts[status] || status;
-}
-
-formatDate(dateString) {
-    if (!dateString) return 'N/A';
-    try {
-        const date = new Date(dateString);
-        return date.toLocaleDateString('pt-BR') + ' ' + date.toLocaleTimeString('pt-BR', {
-            hour: '2-digit',
-            minute: '2-digit'
-        });
-    } catch (error) {
-        return 'Data inválida';
+    getStatusBadgeClass(status) {
+        const classes = {
+            'pendente': 'bg-warning',
+            'em_andamento': 'bg-info',
+            'concluido': 'bg-success',
+            'cancelado': 'bg-danger'
+        };
+        return classes[status] || 'bg-secondary';
     }
-}
+
+    getStatusText(status) {
+        const texts = {
+            'pendente': 'Pendente',
+            'em_andamento': 'Em Andamento',
+            'concluido': 'Concluído',
+            'cancelado': 'Cancelado'
+        };
+        return texts[status] || status;
+    }
+
+    formatDate(dateString) {
+        if (!dateString) return 'N/A';
+        try {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('pt-BR') + ' ' + date.toLocaleTimeString('pt-BR', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        } catch (error) {
+            return 'Data inválida';
+        }
+    }
 
 
     // ✅ MÉTODOS PARA EMPRESAS
@@ -978,7 +978,6 @@ formatDate(dateString) {
         `;
     }
 
-    // ✅ MÉTODO openEmpresaModal ATUALIZADO
     // ✅ MÉTODO openEmpresaModal ATUALIZADO COM OLHINHO
     openEmpresaModal(empresa = null) {
         const title = empresa ? 'Editar Empresa' : 'Nova Empresa';
@@ -2003,7 +2002,183 @@ formatDate(dateString) {
         div.innerHTML = '';
     }
 
-    // ✅ MÉTODOS PARA RESPONSÁVEIS
+    // ✅ MÉTODO COMPLETO PARA MODAL DE RESPONSÁVEIS
+async openResponsavelModal(responsavel = null) {
+    try {
+        console.log('Abrindo modal de responsável:', responsavel);
+        
+        // Buscar empresas para o select
+        const empresas = await this.apiRequest('/empresas');
+        
+        const title = responsavel ? 'Editar Responsável' : 'Novo Responsável';
+        const isEdicao = !!responsavel;
+        
+        console.log('Modo:', isEdicao ? 'Edição' : 'Cadastro');
+        console.log('Dados do responsável:', responsavel);
+        console.log('Empresas disponíveis:', empresas.length);
+
+        const content = `
+            <form id="responsavelForm">
+                <input type="hidden" id="responsavelId" value="${responsavel?.id || ''}">
+                
+                <div class="mb-3">
+                    <label class="form-label">Nome Completo *</label>
+                    <input type="text" class="form-control" id="responsavelNome" 
+                           value="${responsavel?.nome || ''}" 
+                           placeholder="Digite o nome completo" required>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">E-mail *</label>
+                    <input type="email" class="form-control" id="responsavelEmail" 
+                           value="${responsavel?.email || ''}" 
+                           placeholder="email@empresa.com" required>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Telefone *</label>
+                    <input type="text" class="form-control" id="responsavelTelefone" 
+                           value="${responsavel?.telefone || ''}" 
+                           placeholder="(11) 99999-9999" required>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Função *</label>
+                    <select class="form-select" id="responsavelFuncao" required>
+                        <option value="">Selecione a função...</option>
+                        <option value="Fiscal" ${responsavel?.funcao === 'Fiscal' ? 'selected' : ''}>Fiscal</option>
+                        <option value="Contábil" ${responsavel?.funcao === 'Contábil' ? 'selected' : ''}>Contábil</option>
+                        <option value="Departamento Pessoal" ${responsavel?.funcao === 'Departamento Pessoal' ? 'selected' : ''}>Departamento Pessoal</option>
+                        <option value="Administrativo" ${responsavel?.funcao === 'Administrativo' ? 'selected' : ''}>Administrativo</option>
+                        <option value="Jurídico" ${responsavel?.funcao === 'Jurídico' ? 'selected' : ''}>Jurídico</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Empresa *</label>
+                    <select class="form-select" id="responsavelEmpresaId" required>
+                        <option value="">Selecione a empresa...</option>
+                        ${empresas.map(empresa => `
+                            <option value="${empresa.id}" ${responsavel?.empresa_id == empresa.id ? 'selected' : ''}>
+                                ${empresa.razao_social} 
+                                ${empresa.nome_fantasia ? `- ${empresa.nome_fantasia}` : ''}
+                            </option>
+                        `).join('')}
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Observações</label>
+                    <textarea class="form-control" id="responsavelObservacoes" rows="3" 
+                              placeholder="Informações adicionais sobre o responsável">${responsavel?.observacoes || ''}</textarea>
+                </div>
+            </form>
+        `;
+
+        this.showModal(title, content, () => this.saveResponsavel());
+        
+        console.log('Modal aberto com sucesso');
+
+    } catch (error) {
+        console.error('Erro ao abrir modal de responsável:', error);
+        this.showAlert('Erro ao carregar dados do responsável: ' + error.message, 'danger');
+    }
+}
+
+    // ✅ MÉTODO CORRIGIDO PARA SALVAR RESPONSÁVEL
+    async saveResponsavel() {
+    try {
+        console.log('🟡 INICIANDO saveResponsavel...');
+
+        // Capturar dados do formulário
+        const responsavelId = document.getElementById('responsavelId')?.value || '';
+        const nome = document.getElementById('responsavelNome')?.value || '';
+        const email = document.getElementById('responsavelEmail')?.value || '';
+        const telefone = document.getElementById('responsavelTelefone')?.value || '';
+        const funcao = document.getElementById('responsavelFuncao')?.value || '';
+        const empresa_id = document.getElementById('responsavelEmpresaId')?.value || '';
+
+        console.log('📝 Dados capturados do formulário:', {
+            responsavelId,
+            nome,
+            email,
+            telefone,
+            funcao,
+            empresa_id
+        });
+
+        // Validação dos campos obrigatórios
+        const camposObrigatorios = { nome, email, telefone, funcao, empresa_id };
+        for (const [campo, valor] of Object.entries(camposObrigatorios)) {
+            if (!valor.trim()) {
+                const mensagem = `Preencha o campo: ${campo}`;
+                console.log(`❌ ${mensagem}`);
+                this.showAlert(mensagem, 'warning');
+                return;
+            }
+        }
+
+        const formData = {
+            nome: nome.trim(),
+            email: email.trim(),
+            telefone: telefone.trim(),
+            funcao: funcao,
+            empresa_id: parseInt(empresa_id)
+            // Removido observacoes
+        };
+
+        console.log('📤 Dados que serão enviados para API:', formData);
+
+        const isEdicao = !!responsavelId;
+        const url = isEdicao ? `/responsaveis/${responsavelId}` : '/responsaveis';
+        const method = isEdicao ? 'PUT' : 'POST';
+
+        console.log(`🔄 Fazendo requisição: ${method} ${url}`);
+
+        const response = await this.apiRequest(url, {
+            method: method,
+            body: formData
+        });
+
+        console.log('✅ Resposta da API:', response);
+
+        this.showAlert(
+            `Responsável ${isEdicao ? 'atualizado' : 'criado'} com sucesso!`, 
+            'success'
+        );
+
+        // Fechar modal e recarregar
+        const modal = bootstrap.Modal.getInstance(document.getElementById('dynamicModal'));
+        if (modal) modal.hide();
+
+        setTimeout(() => {
+            this.loadPage('responsaveis');
+        }, 1000);
+
+    } catch (error) {
+        console.error('❌ ERRO DETALHADO no saveResponsavel:', error);
+        this.showAlert(`Erro ao salvar responsável: ${error.message}`, 'danger');
+    }
+}
+
+    // ✅ MÉTODO PARA FORMATAR TELEFONE
+    formatarTelefone(input) {
+        let value = input.value.replace(/\D/g, '');
+
+        if (value.length <= 11) {
+            if (value.length <= 2) {
+                value = value.replace(/(\d{0,2})/, '($1');
+            } else if (value.length <= 6) {
+                value = value.replace(/(\d{2})(\d{0,4})/, '($1) $2');
+            } else if (value.length <= 10) {
+                value = value.replace(/(\d{2})(\d{4})(\d{0,4})/, '($1) $2-$3');
+            } else {
+                value = value.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
+            }
+        }
+
+        input.value = value;
+    }
     async renderResponsaveis() {
         try {
             const responsaveis = await this.apiRequest('/responsaveis');
@@ -2044,42 +2219,158 @@ formatDate(dateString) {
         }
     }
 
-    renderResponsaveisTable(responsaveis) {
-        return `
-            <div class="table-responsive">
-                <table class="table table-hover">
-                    <thead>
+  renderResponsaveisTable(responsaveis) {
+    return `
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Nome</th>
+                        <th>E-mail</th>
+                        <th>Telefone</th>
+                        <th>Função</th>
+                        <th>Empresa</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${responsaveis.map(resp => `
                         <tr>
-                            <th>Nome</th>
-                            <th>E-mail</th>
-                            <th>Telefone</th>
-                            <th>Função</th>
-                            <th>Empresa</th>
+                            <td>${resp.nome}</td>
+                            <td>${resp.email}</td>
+                            <td>${resp.telefone}</td>
+                            <td><span class="badge bg-secondary">${resp.funcao}</span></td>
+                            <td>${resp.empresa_nome || 'N/A'}</td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-warning" onclick="app.editarResponsavel(${resp.id})" title="Editar">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-outline-danger" onclick="app.excluirResponsavel(${resp.id})" title="Excluir">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
                         </tr>
-                    </thead>
-                    <tbody>
-                        ${responsaveis.map(resp => `
-                            <tr>
-                                <td>${resp.nome}</td>
-                                <td>${resp.email}</td>
-                                <td>${resp.telefone}</td>
-                                <td><span class="badge bg-secondary">${resp.funcao}</span></td>
-                                <td>${resp.empresa_nome || 'N/A'}</td>
-                            </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        </div>
+    `;
+}
+
+    // ✅ MÉTODO SIMPLIFICADO PARA TESTE
+    async openResponsavelModal(responsavel = null) {
+        try {
+            // Buscar empresas para o select
+            const empresas = await this.apiRequest('/empresas');
+
+            const title = responsavel ? 'Editar Responsável' : 'Novo Responsável';
+            const content = `
+            <form id="responsavelForm">
+                <input type="hidden" id="responsavelId" value="${responsavel?.id || ''}">
+                
+                <div class="mb-3">
+                    <label class="form-label">Nome Completo *</label>
+                    <input type="text" class="form-control" id="responsavelNome" 
+                           value="${responsavel?.nome || ''}" required>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">E-mail *</label>
+                    <input type="email" class="form-control" id="responsavelEmail" 
+                           value="${responsavel?.email || ''}" required>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Telefone *</label>
+                    <input type="text" class="form-control" id="responsavelTelefone" 
+                           value="${responsavel?.telefone || ''}" required>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Função *</label>
+                    <select class="form-select" id="responsavelFuncao" required>
+                        <option value="">Selecione a função...</option>
+                        <option value="Fiscal">Fiscal</option>
+                        <option value="Contábil">Contábil</option>
+                        <option value="Departamento Pessoal">Departamento Pessoal</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Empresa *</label>
+                    <select class="form-select" id="responsavelEmpresaId" required>
+                        <option value="">Selecione a empresa...</option>
+                        ${empresas.map(empresa => `
+                            <option value="${empresa.id}">
+                                ${empresa.razao_social}
+                            </option>
                         `).join('')}
-                    </tbody>
-                </table>
-            </div>
+                    </select>
+                </div>
+            </form>
         `;
+
+            this.showModal(title, content, () => this.saveResponsavel());
+
+        } catch (error) {
+            console.error('Erro ao abrir modal de responsável:', error);
+            this.showAlert('Erro ao carregar dados do responsável', 'danger');
+        }
     }
 
-    openResponsavelModal() {
-        this.showModal('Novo Responsável', `
-            <div class="alert alert-info">
-                <i class="fas fa-info-circle"></i> Funcionalidade em desenvolvimento
-            </div>
-        `, () => { });
+
+   // ✅ MÉTODO PARA EDITAR RESPONSÁVEL
+async editarResponsavel(id) {
+    try {
+        console.log(`Editando responsável ID: ${id}`);
+        
+        // Buscar dados do responsável
+        const responsavel = await this.apiRequest(`/responsaveis/${id}`);
+        console.log('Dados do responsável:', responsavel);
+        
+        // Abrir modal de edição
+        await this.openResponsavelModal(responsavel);
+        
+    } catch (error) {
+        console.error('Erro ao carregar responsável para edição:', error);
+        this.showAlert(`Erro ao carregar responsável: ${error.message}`, 'danger');
     }
+}
+
+    // ✅ MÉTODO PARA EXCLUIR RESPONSÁVEL
+async excluirResponsavel(id) {
+    try {
+        console.log(`Tentando excluir responsável ID: ${id}`);
+        
+        if (!confirm('Tem certeza que deseja excluir este responsável?')) {
+            return;
+        }
+
+        // Buscar dados do responsável para confirmar
+        const responsavel = await this.apiRequest(`/responsaveis/${id}`);
+        
+        if (!confirm(`Confirmar exclusão do responsável: ${responsavel.nome}?`)) {
+            return;
+        }
+
+        await this.apiRequest(`/responsaveis/${id}`, { method: 'DELETE' });
+        this.showAlert('Responsável excluído com sucesso!', 'success');
+        
+        // Recarregar a lista
+        this.loadPage('responsaveis');
+        
+    } catch (error) {
+        console.error('Erro ao excluir responsável:', error);
+        
+        if (error.message.includes('documentos vinculados')) {
+            this.showAlert('Não é possível excluir: existem documentos vinculados a este responsável', 'warning');
+        } else {
+            this.showAlert(`Erro ao excluir responsável: ${error.message}`, 'danger');
+        }
+    }
+}
 
     // ✅ MÉTODOS AUXILIARES
     getDocumentStatus(documento) {
@@ -2232,7 +2523,7 @@ formatDate(dateString) {
         input.value = value;
     }
 
-    // ✅ MÉTODOS GERAIS
+    // MÉTODOS GERAIS
     // ✅ MÉTODO SHOWMODAL ATUALIZADO
     showModal(title, content, onSave, size = 'modal-lg') {
         const modalHtml = `

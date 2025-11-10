@@ -106,3 +106,6 @@ INSERT IGNORE INTO documento_andamentos (id, documento_id, responsavel_id, descr
 (7, 3, 1, 'Documentação complementar enviada', 'em_andamento', '2024-01-18 15:20:00'),
 (8, 4, 4, 'Contrato revisado pelo departamento jurídico', 'concluido', '2024-02-02 09:45:00'),
 (9, 5, 2, 'Certidão trabalhista emitida com sucesso', 'concluido', '2024-02-06 11:30:00');
+
+
+SELECT * FROM empresas;

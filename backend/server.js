@@ -744,7 +744,7 @@ app.get('/api/documentos/:id/download', async (req, res) => {
     }
 });
 
-// ✅ ROTAS DE RESPONSÁVEIS
+// ✅ ROTAS DE RESPONSÁVEIS - ADICIONAR AQUI
 app.get('/api/responsaveis', async (req, res) => {
     try {
         console.log('Buscando responsáveis...');
@@ -762,27 +762,158 @@ app.get('/api/responsaveis', async (req, res) => {
     }
 });
 
+// ✅ ROTA GET RESPONSÁVEL POR ID - NOVA
+app.get('/api/responsaveis/:id', async (req, res) => {
+    try {
+        const responsavelId = req.params.id;
+        console.log(`Buscando responsável ID: ${responsavelId}`);
+
+        const [rows] = await pool.execute(`
+            SELECT r.*, e.razao_social as empresa_nome 
+            FROM responsaveis r 
+            LEFT JOIN empresas e ON r.empresa_id = e.id 
+            WHERE r.id = ?
+        `, [responsavelId]);
+
+        if (rows.length === 0) {
+            return res.status(404).json({ error: 'Responsável não encontrado' });
+        }
+
+        res.json(rows[0]);
+    } catch (error) {
+        console.error('Erro ao buscar responsável:', error);
+        res.status(500).json({ error: 'Erro ao buscar responsável' });
+    }
+});
+
+// ✅ ROTA PUT COMPLETAMENTE CORRIGIDA
+app.put('/api/responsaveis/:id', async (req, res) => {
+    try {
+        const responsavelId = req.params.id;
+        const { nome, email, telefone, funcao, empresa_id } = req.body;
+
+        console.log('🎯 ROTA PUT /api/responsaveis/:id - DETALHES:');
+        console.log('📝 ID do responsável:', responsavelId);
+        console.log('📝 Dados recebidos:', req.body);
+
+        // Validações básicas
+        if (!nome || !email || !telefone || !funcao || !empresa_id) {
+            console.log('❌ Campos obrigatórios faltando');
+            return res.status(400).json({
+                error: 'Preencha todos os campos obrigatórios: nome, email, telefone, função, empresa'
+            });
+        }
+
+        console.log('🔄 Executando UPDATE no banco...');
+        // ✅ QUERY CORRIGIDA - SEM observacoes
+        const [result] = await pool.execute(
+            `UPDATE responsaveis SET 
+                nome = ?, email = ?, telefone = ?, funcao = ?, empresa_id = ?
+            WHERE id = ?`,
+            [nome, email, telefone, funcao, empresa_id, responsavelId]
+        );
+
+        console.log('📊 Resultado do UPDATE:', {
+            affectedRows: result.affectedRows,
+            changedRows: result.changedRows
+        });
+
+        if (result.affectedRows === 0) {
+            console.log('❌ Nenhum registro afetado - responsável não encontrado');
+            return res.status(404).json({ error: 'Responsável não encontrado' });
+        }
+
+        console.log('✅ Responsável atualizado com sucesso');
+        res.json({
+            message: 'Responsável atualizado com sucesso',
+            affectedRows: result.affectedRows
+        });
+
+    } catch (error) {
+        console.error('❌ ERRO DETALHADO ao atualizar responsável:');
+        console.error('📌 Código do erro:', error.code);
+        console.error('📌 Mensagem do erro:', error.message);
+
+        res.status(500).json({
+            error: 'Erro ao atualizar responsável',
+            details: error.message
+        });
+    }
+});
+
+// ✅ ROTA DELETE RESPONSÁVEL - NOVA
+app.delete('/api/responsaveis/:id', async (req, res) => {
+    try {
+        const responsavelId = req.params.id;
+        console.log(`Excluindo responsável ID: ${responsavelId}`);
+
+        // Verificar se existem documentos vinculados
+        const [documentos] = await pool.execute(
+            'SELECT id FROM documentos WHERE responsavel_id = ?',
+            [responsavelId]
+        );
+
+        if (documentos.length > 0) {
+            return res.status(400).json({
+                error: 'Não é possível excluir: existem documentos vinculados a este responsável'
+            });
+        }
+
+        const [result] = await pool.execute(
+            'DELETE FROM responsaveis WHERE id = ?',
+            [responsavelId]
+        );
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: 'Responsável não encontrado' });
+        }
+
+        console.log('Responsável excluído com sucesso');
+        res.json({ message: 'Responsável excluído com sucesso' });
+
+    } catch (error) {
+        console.error('Erro ao excluir responsável:', error);
+        res.status(500).json({ error: 'Erro ao excluir responsável' });
+    }
+});
+
+/// ✅ ROTA POST COMPLETAMENTE CORRIGIDA
 app.post('/api/responsaveis', async (req, res) => {
     try {
+        console.log('🎯 ROTA POST /api/responsaveis - Criando responsável...');
+        console.log('📝 Dados recebidos:', req.body);
+
         const { nome, email, telefone, funcao, empresa_id } = req.body;
 
         if (!nome || !email || !telefone || !funcao || !empresa_id) {
-            return res.status(400).json({ error: 'Preencha todos os campos obrigatórios' });
+            console.log('❌ Campos obrigatórios faltando');
+            return res.status(400).json({
+                error: 'Preencha todos os campos obrigatórios: nome, email, telefone, função, empresa'
+            });
         }
 
+        console.log('🔄 Executando INSERT no banco...');
+        // ✅ QUERY CORRIGIDA - SEM observacoes
         const [result] = await pool.execute(
             'INSERT INTO responsaveis (nome, email, telefone, funcao, empresa_id) VALUES (?, ?, ?, ?, ?)',
             [nome, email, telefone, funcao, empresa_id]
         );
 
+        console.log('✅ Responsável criado com ID:', result.insertId);
         res.status(201).json({
             id: result.insertId,
             message: 'Responsável criado com sucesso'
         });
 
     } catch (error) {
-        console.error('Erro ao criar responsável:', error);
-        res.status(500).json({ error: 'Erro ao criar responsável' });
+        console.error('❌ ERRO DETALHADO ao criar responsável:');
+        console.error('📌 Código do erro:', error.code);
+        console.error('📌 Mensagem do erro:', error.message);
+
+        res.status(500).json({
+            error: 'Erro ao criar responsável',
+            details: error.message
+        });
     }
 });
 
