@@ -412,6 +412,39 @@ app.get('/api/empresas/:id', async (req, res) => {
     }
 });
 
+// ✅ ROTA SIMPLES PARA ALERTAS - ADICIONE ISSO
+app.get('/api/alertas', async (req, res) => {
+    try {
+        console.log('🔔 Alertas chamado');
+        
+        // Documentos vencidos
+        const [vencidos] = await pool.execute(`
+            SELECT id, nome, tipo, data_vencimento 
+            FROM documentos 
+            WHERE data_vencimento < CURDATE()
+        `);
+
+        // Documentos próximos (7 dias)
+        const [proximos] = await pool.execute(`
+            SELECT id, nome, tipo, data_vencimento 
+            FROM documentos 
+            WHERE data_vencimento BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 7 DAY)
+        `);
+
+        res.json({
+            vencidos: vencidos,
+            proximos: proximos,
+            totalVencidos: vencidos.length,
+            totalProximos: proximos.length,
+            totalAlertas: vencidos.length + proximos.length
+        });
+
+    } catch (error) {
+        console.error('Erro alertas:', error);
+        res.status(500).json({ error: 'Erro' });
+    }
+});
+
 // ✅ ROTAS DE DOCUMENTOS
 app.post('/api/documentos', upload.single('arquivo'), async (req, res) => {
     try {

@@ -7,18 +7,94 @@ const API_BASE = window.location.hostname === 'localhost'
     : 'https://gestao-documental-production.up.railway.app/api';
 
 class App {
-    constructor() {
-        this.currentPage = 'dashboard';
-        this.documentoAtual = null;
-        this.arquivoSelecionado = null;
-        this.init();
-    }
+    co// ✅ CONSTRUTOR
+constructor() {
+    this.currentPage = 'dashboard';
+    this.init();
+}
 
-    init() {
-        this.testConnection();
-        this.bindEvents();
-        this.loadPage('dashboard');
+// ✅ INIT
+init() {
+    this.testConnection();
+    this.bindEvents();
+    this.loadPage('dashboard');
+    
+    // Notificações após 3 segundos
+    setTimeout(() => {
+        this.notificacoesSimples();
+    }, 3000);
+}
+
+// ✅ SISTEMA SIMPLES DE NOTIFICAÇÕES
+async notificacoesSimples() {
+    try {
+        console.log('🔔 Verificando alertas...');
+        
+        const response = await fetch('/api/alertas');
+        const alertas = await response.json();
+        
+        console.log('📊 Alertas:', alertas.totalAlertas);
+        
+        if (alertas.totalAlertas > 0) {
+            this.mostrarNotificacao(alertas);
+        }
+        
+    } catch (error) {
+        console.log('Erro alertas:', error);
     }
+}
+
+// ✅ NOTIFICAÇÃO SIMPLES
+mostrarNotificacao(alertas) {
+    // Verificar se o navegador suporta
+    if (!("Notification" in window)) {
+        console.log('Navegador não suporta notificações');
+        return;
+    }
+    
+    // Se já tem permissão
+    if (Notification.permission === "granted") {
+        this.criarNoti(alertas);
+    }
+    // Se precisa pedir permissão
+    else if (Notification.permission === "default") {
+        Notification.requestPermission().then(permissao => {
+            if (permissao === "granted") {
+                this.criarNoti(alertas);
+            }
+        });
+    }
+}
+
+// ✅ CRIAR NOTIFICAÇÃO
+criarNoti(alertas) {
+    let mensagem = '';
+    
+    if (alertas.totalVencidos > 0 && alertas.totalProximos > 0) {
+        mensagem = `${alertas.totalVencidos} vencidos + ${alertas.totalProximos} próximos`;
+    } else if (alertas.totalVencidos > 0) {
+        mensagem = `${alertas.totalVencidos} documento(s) VENCIDO(S)`;
+    } else {
+        mensagem = `${alertas.totalProximos} documento(s) próximo(s)`;
+    }
+    
+    // Criar notificação
+    const notificacao = new Notification("📋 Gestão Documental", {
+        body: mensagem,
+        icon: "/icon.png"
+    });
+    
+    // Quando clicar, abrir documentos
+    notificacao.onclick = () => {
+        window.focus();
+        this.loadPage('documentos');
+    };
+    
+    // Fechar após 5 segundos
+    setTimeout(() => {
+        notificacao.close();
+    }, 5000);
+}
 
     async testConnection() {
         try {
@@ -57,65 +133,92 @@ class App {
         activeLink.classList.add('active');
     }
 
-    async loadPage(page) {
-        this.currentPage = page;
-        console.log(`Carregando página: ${page}`);
+// ✅ MÉTODO LOADPAGE CORRIGIDO
+async loadPage(page) {
+    this.currentPage = page;
+    console.log(`Carregando página: ${page}`);
 
-        // Mostrar loading
+    // ✅ CORREÇÃO: Atualizar menu ativo primeiro
+    this.setActiveMenu(page);
+
+    // Mostrar loading
+    document.getElementById('page-content').innerHTML = `
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Carregando...</span>
+            </div>
+            <p class="mt-2">Carregando ${page}...</p>
+        </div>
+    `;
+
+    try {
+        let content = '';
+
+        switch (page) {
+            case 'dashboard':
+                content = await this.renderDashboard();
+                break;
+            case 'empresas':
+                content = await this.renderEmpresas();
+                break;
+            case 'documentos':
+                content = await this.renderDocumentos();
+                break;
+            case 'responsaveis':
+                content = await this.renderResponsaveis();
+                break;
+            default:
+                content = '<div class="alert alert-warning">Página não encontrada</div>';
+        }
+
+        document.getElementById('page-content').innerHTML = content;
+        this.initializePageEvents(page);
+
+    } catch (error) {
+        console.error('Erro ao carregar página:', error);
         document.getElementById('page-content').innerHTML = `
-            <div class="text-center py-5">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">Carregando...</span>
-                </div>
-                <p class="mt-2">Carregando ${page}...</p>
+            <div class="alert alert-danger">
+                <h4>Erro ao carregar a página</h4>
+                <p><strong>${error.message}</strong></p>
+                <button class="btn btn-sm btn-outline-primary" onclick="app.loadPage('${page}')">
+                    Tentar Novamente
+                </button>
             </div>
         `;
-
-        try {
-            let content = '';
-
-            switch (page) {
-                case 'dashboard':
-                    content = await this.renderDashboard();
-                    break;
-                case 'empresas':
-                    content = await this.renderEmpresas();
-                    break;
-                case 'documentos':
-                    content = await this.renderDocumentos();
-                    break;
-                case 'responsaveis':
-                    content = await this.renderResponsaveis();
-                    break;
-                default:
-                    content = '<div class="alert alert-warning">Página não encontrada</div>';
-            }
-
-            document.getElementById('page-content').innerHTML = content;
-            this.initializePageEvents(page);
-
-        } catch (error) {
-            console.error('Erro ao carregar página:', error);
-            document.getElementById('page-content').innerHTML = `
-                <div class="alert alert-danger">
-                    <h4>Erro ao carregar a página</h4>
-                    <p><strong>${error.message}</strong></p>
-                    <p>Verifique se:</p>
-                    <ul>
-                        <li>O servidor backend está rodando</li>
-                        <li>O banco de dados foi importado</li>
-                        <li>Não há erros no console do navegador</li>
-                    </ul>
-                    <button class="btn btn-sm btn-outline-primary" onclick="app.loadPage('${page}')">
-                        Tentar Novamente
-                    </button>
-                    <button class="btn btn-sm btn-outline-secondary" onclick="app.testConnection()">
-                        Testar Conexão
-                    </button>
-                </div>
-            `;
-        }
     }
+}
+
+// ✅ MÉTODO PARA ATIVAR MENU CORRETO
+setActiveMenu(page) {
+    // Remover active de todos os links
+    document.querySelectorAll('.sidebar-nav .nav-link').forEach(link => {
+        link.classList.remove('active');
+    });
+    
+    // Adicionar active no link correto
+    const activeLink = document.querySelector(`[data-page="${page}"]`);
+    if (activeLink) {
+        activeLink.classList.add('active');
+        console.log(`✅ Menu ativado: ${page}`);
+    } else {
+        console.warn(`❌ Link do menu não encontrado: ${page}`);
+    }
+}
+
+// ✅ CORRIGIR O BIND EVENTS
+bindEvents() {
+    // Navegação do sidebar
+    document.addEventListener('click', (e) => {
+        if (e.target.closest('.sidebar-nav .nav-link')) {
+            e.preventDefault();
+            const link = e.target.closest('.nav-link');
+            const page = link.getAttribute('data-page');
+            
+            console.log(`📱 Clicou no menu: ${page}`);
+            this.loadPage(page);
+        }
+    });
+}
 
     async renderDashboard() {
         try {
