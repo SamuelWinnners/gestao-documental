@@ -162,7 +162,7 @@ body {
     border-color: #2980b9;
 }
 
-.btn-group-sm > .btn {
+.btn-group-sm>.btn {
     border-radius: 4px;
 }
 
@@ -265,43 +265,43 @@ body {
     padding: 15px;
     border-radius: 8px;
     border-left: 4px solid;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
-.timeline-item.pendente .timeline-content { 
-    border-left-color: #ffc107; 
+.timeline-item.pendente .timeline-content {
+    border-left-color: #ffc107;
 }
 
-.timeline-item.em_andamento .timeline-content { 
-    border-left-color: #0dcaf0; 
+.timeline-item.em_andamento .timeline-content {
+    border-left-color: #0dcaf0;
 }
 
-.timeline-item.concluido .timeline-content { 
-    border-left-color: #198754; 
+.timeline-item.concluido .timeline-content {
+    border-left-color: #198754;
 }
 
-.timeline-item.cancelado .timeline-content { 
-    border-left-color: #dc3545; 
+.timeline-item.cancelado .timeline-content {
+    border-left-color: #dc3545;
 }
 
-.timeline-marker.bg-warning { 
+.timeline-marker.bg-warning {
     background-color: #ffc107 !important;
-    box-shadow: 0 0 0 3px #ffc107; 
+    box-shadow: 0 0 0 3px #ffc107;
 }
 
-.timeline-marker.bg-info { 
+.timeline-marker.bg-info {
     background-color: #0dcaf0 !important;
-    box-shadow: 0 0 0 3px #0dcaf0; 
+    box-shadow: 0 0 0 3px #0dcaf0;
 }
 
-.timeline-marker.bg-success { 
+.timeline-marker.bg-success {
     background-color: #198754 !important;
-    box-shadow: 0 0 0 3px #198754; 
+    box-shadow: 0 0 0 3px #198754;
 }
 
-.timeline-marker.bg-danger { 
+.timeline-marker.bg-danger {
     background-color: #dc3545 !important;
-    box-shadow: 0 0 0 3px #dc3545; 
+    box-shadow: 0 0 0 3px #dc3545;
 }
 
 /* Status colors */
@@ -374,4 +374,152 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
     background: #a8a8a8;
+}
+
+/* ✅ CALENDÁRIO COM NAVEGAÇÃO */
+.calendario-header {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    background: #f8f9fa;
+    border-bottom: 2px solid #dee2e6;
+    font-weight: bold;
+}
+
+.calendario-dia-header {
+    padding: 12px;
+    text-align: center;
+    border-right: 1px solid #dee2e6;
+}
+
+.calendario-dia-header:last-child {
+    border-right: none;
+}
+
+.calendario-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 1px;
+    background: #dee2e6;
+}
+
+.calendario-dia {
+    background: white;
+    min-height: 120px;
+    padding: 8px;
+    position: relative;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.calendario-dia:hover {
+    background: #f8f9fa;
+    transform: scale(1.02);
+}
+
+.calendario-dia.hoje {
+    background: #e7f3ff;
+    border: 2px solid #0d6efd;
+}
+
+.calendario-dia.com-documentos {
+    background: #fff3cd;
+    border-left: 4px solid #ffc107;
+}
+
+.calendario-dia.vazio {
+    background: #f8f9fa;
+    cursor: default;
+}
+
+.calendario-dia.vazio:hover {
+    transform: none;
+}
+
+.dia-numero {
+    font-weight: bold;
+    font-size: 1.1rem;
+    margin-bottom: 5px;
+}
+
+.documentos-info {
+    text-align: center;
+}
+
+.tipos-documentos {
+    margin-top: 3px;
+}
+
+.tipo-badge {
+    display: block;
+    background: rgba(0,0,0,0.1);
+    padding: 1px 4px;
+    border-radius: 3px;
+    font-size: 0.6rem;
+    margin: 1px 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ✅ NAVEGAÇÃO */
+.btn-group .btn {
+    border-radius: 0;
+}
+
+.btn-group .btn:first-child {
+    border-top-left-radius: 6px;
+    border-bottom-left-radius: 6px;
+}
+
+.btn-group .btn:last-child {
+    border-top-right-radius: 6px;
+    border-bottom-right-radius: 6px;
+}
+
+/* ✅ RESPONSIVO */
+@media (max-width: 768px) {
+    .calendario-dia {
+        min-height: 80px;
+        padding: 4px;
+    }
+    
+    .dia-numero {
+        font-size: 0.9rem;
+    }
+    
+    .tipo-badge {
+        font-size: 0.5rem;
+    }
+}
+/* ✅ BOTÕES DE NAVEGAÇÃO MELHORADOS */
+.btn-group .btn {
+    border-radius: 0;
+    transition: all 0.3s ease;
+}
+
+.btn-group .btn:first-child {
+    border-top-left-radius: 6px !important;
+    border-bottom-left-radius: 6px !important;
+}
+
+.btn-group .btn:last-child {
+    border-top-right-radius: 6px !important;
+    border-bottom-right-radius: 6px !important;
+}
+
+.btn-group .btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+/* ✅ CARREGAMENTO */
+.carregando-calendario {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
 }

@@ -8,93 +8,93 @@ const API_BASE = window.location.hostname === 'localhost'
 
 class App {
     co// ✅ CONSTRUTOR
-constructor() {
-    this.currentPage = 'dashboard';
-    this.init();
-}
-
-// ✅ INIT
-init() {
-    this.testConnection();
-    this.bindEvents();
-    this.loadPage('dashboard');
-    
-    // Notificações após 3 segundos
-    setTimeout(() => {
-        this.notificacoesSimples();
-    }, 3000);
-}
-
-// ✅ SISTEMA SIMPLES DE NOTIFICAÇÕES
-async notificacoesSimples() {
-    try {
-        console.log('🔔 Verificando alertas...');
-        
-        const response = await fetch('/api/alertas');
-        const alertas = await response.json();
-        
-        console.log('📊 Alertas:', alertas.totalAlertas);
-        
-        if (alertas.totalAlertas > 0) {
-            this.mostrarNotificacao(alertas);
-        }
-        
-    } catch (error) {
-        console.log('Erro alertas:', error);
+    constructor() {
+        this.currentPage = 'dashboard';
+        this.init();
     }
-}
 
-// ✅ NOTIFICAÇÃO SIMPLES
-mostrarNotificacao(alertas) {
-    // Verificar se o navegador suporta
-    if (!("Notification" in window)) {
-        console.log('Navegador não suporta notificações');
-        return;
+    // ✅ INIT
+    init() {
+        this.testConnection();
+        this.bindEvents();
+        this.loadPage('dashboard');
+
+        // Notificações após 3 segundos
+        setTimeout(() => {
+            this.notificacoesSimples();
+        }, 3000);
     }
-    
-    // Se já tem permissão
-    if (Notification.permission === "granted") {
-        this.criarNoti(alertas);
-    }
-    // Se precisa pedir permissão
-    else if (Notification.permission === "default") {
-        Notification.requestPermission().then(permissao => {
-            if (permissao === "granted") {
-                this.criarNoti(alertas);
+
+    // ✅ SISTEMA SIMPLES DE NOTIFICAÇÕES
+    async notificacoesSimples() {
+        try {
+            console.log('🔔 Verificando alertas...');
+
+            const response = await fetch('/api/alertas');
+            const alertas = await response.json();
+
+            console.log('📊 Alertas:', alertas.totalAlertas);
+
+            if (alertas.totalAlertas > 0) {
+                this.mostrarNotificacao(alertas);
             }
-        });
-    }
-}
 
-// ✅ CRIAR NOTIFICAÇÃO
-criarNoti(alertas) {
-    let mensagem = '';
-    
-    if (alertas.totalVencidos > 0 && alertas.totalProximos > 0) {
-        mensagem = `${alertas.totalVencidos} vencidos + ${alertas.totalProximos} próximos`;
-    } else if (alertas.totalVencidos > 0) {
-        mensagem = `${alertas.totalVencidos} documento(s) VENCIDO(S)`;
-    } else {
-        mensagem = `${alertas.totalProximos} documento(s) próximo(s)`;
+        } catch (error) {
+            console.log('Erro alertas:', error);
+        }
     }
-    
-    // Criar notificação
-    const notificacao = new Notification("📋 Gestão Documental", {
-        body: mensagem,
-        icon: "/icon.png"
-    });
-    
-    // Quando clicar, abrir documentos
-    notificacao.onclick = () => {
-        window.focus();
-        this.loadPage('documentos');
-    };
-    
-    // Fechar após 5 segundos
-    setTimeout(() => {
-        notificacao.close();
-    }, 5000);
-}
+
+    // ✅ NOTIFICAÇÃO SIMPLES
+    mostrarNotificacao(alertas) {
+        // Verificar se o navegador suporta
+        if (!("Notification" in window)) {
+            console.log('Navegador não suporta notificações');
+            return;
+        }
+
+        // Se já tem permissão
+        if (Notification.permission === "granted") {
+            this.criarNoti(alertas);
+        }
+        // Se precisa pedir permissão
+        else if (Notification.permission === "default") {
+            Notification.requestPermission().then(permissao => {
+                if (permissao === "granted") {
+                    this.criarNoti(alertas);
+                }
+            });
+        }
+    }
+
+    // ✅ CRIAR NOTIFICAÇÃO
+    criarNoti(alertas) {
+        let mensagem = '';
+
+        if (alertas.totalVencidos > 0 && alertas.totalProximos > 0) {
+            mensagem = `${alertas.totalVencidos} vencidos + ${alertas.totalProximos} próximos`;
+        } else if (alertas.totalVencidos > 0) {
+            mensagem = `${alertas.totalVencidos} documento(s) VENCIDO(S)`;
+        } else {
+            mensagem = `${alertas.totalProximos} documento(s) próximo(s)`;
+        }
+
+        // Criar notificação
+        const notificacao = new Notification("📋 Gestão Documental", {
+            body: mensagem,
+            icon: "/icon.png"
+        });
+
+        // Quando clicar, abrir documentos
+        notificacao.onclick = () => {
+            window.focus();
+            this.loadPage('documentos');
+        };
+
+        // Fechar após 5 segundos
+        setTimeout(() => {
+            notificacao.close();
+        }, 5000);
+    }
 
     async testConnection() {
         try {
@@ -133,16 +133,336 @@ criarNoti(alertas) {
         activeLink.classList.add('active');
     }
 
-// ✅ MÉTODO LOADPAGE CORRIGIDO
-async loadPage(page) {
-    this.currentPage = page;
-    console.log(`Carregando página: ${page}`);
+// ✅ MÉTODOS DO CALENDÁRIO COMPLETOS E CORRIGIDOS
 
-    // ✅ CORREÇÃO: Atualizar menu ativo primeiro
-    this.setActiveMenu(page);
+// ✅ RENDERIZAR CALENDÁRIO PRINCIPAL
+async renderCalendario() {
+    try {
+        const hoje = new Date();
+        const ano = hoje.getFullYear();
+        const mes = hoje.getMonth() + 1;
+        
+        return await this.renderCalendarioComDados(ano, mes);
+    } catch (error) {
+        return this.renderError('calendário', error);
+    }
+}
 
-    // Mostrar loading
-    document.getElementById('page-content').innerHTML = `
+// ✅ RENDERIZAR CALENDÁRIO COM DADOS ESPECÍFICOS
+async renderCalendarioComDados(ano, mes) {
+    try {
+        console.log(`📅 Carregando calendário: ${mes}/${ano}`);
+        
+        const calendario = await this.apiRequest(`/calendario/${ano}/${mes}`);
+        
+        // Salvar estado atual
+        this.calendarioAtual = { ano: calendario.ano, mes: calendario.mes };
+        
+        return `
+            <div class="calendario-container">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h1 class="page-title">
+                        <i class="fas fa-calendar-alt me-2"></i>Calendário
+                    </h1>
+                    <div class="btn-group">
+                        <button class="btn btn-outline-primary" onclick="app.navegarMesAnterior()">
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+                        <button class="btn btn-outline-secondary" style="min-width: 180px;">
+                            <strong>${this.getNomeMes(calendario.mes)} ${calendario.ano}</strong>
+                        </button>
+                        <button class="btn btn-outline-primary" onclick="app.navegarProximoMes()">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="card bg-light">
+                            <div class="card-body py-2">
+                                <small>
+                                    <i class="fas fa-file-alt me-1"></i>
+                                    <strong>${calendario.total}</strong> documento(s) em ${this.getNomeMes(calendario.mes)}
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 text-end">
+                        <button class="btn btn-sm btn-primary" onclick="app.irParaMesAtual()">
+                            <i class="fas fa-calendar-day"></i> Hoje
+                        </button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-body p-0">
+                        ${this.renderCalendarioGrid(calendario)}
+                    </div>
+                </div>
+
+                <!-- Navegação Rápida -->
+                <div class="mt-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h6 class="mb-0">
+                                <i class="fas fa-bolt me-2"></i>Navegação Rápida
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Mês</label>
+                                    <select class="form-select" id="selectMes" onchange="app.irParaMes(this.value)">
+                                        ${Array.from({length: 12}, (_, i) => `
+                                            <option value="${i + 1}" ${calendario.mes === i + 1 ? 'selected' : ''}>
+                                                ${this.getNomeMes(i + 1)}
+                                            </option>
+                                        `).join('')}
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Ano</label>
+                                    <select class="form-select" id="selectAno" onchange="app.irParaAno(this.value)">
+                                        ${Array.from({length: 5}, (_, i) => {
+                                            const anoOpcao = new Date().getFullYear() - 2 + i;
+                                            return `
+                                                <option value="${anoOpcao}" ${calendario.ano === anoOpcao ? 'selected' : ''}>
+                                                    ${anoOpcao}
+                                                </option>
+                                            `;
+                                        }).join('')}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    } catch (error) {
+        console.error('❌ Erro no calendário:', error);
+        return `
+            <div class="alert alert-danger">
+                <h4>Erro ao carregar calendário</h4>
+                <p>${error.message}</p>
+                <button class="btn btn-primary" onclick="app.loadPage('calendario')">
+                    Tentar Novamente
+                </button>
+            </div>
+        `;
+    }
+}
+
+// ✅ FUNÇÕES AUXILIARES DO CALENDÁRIO
+getNomeMes(mes) {
+    const meses = [
+        'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+        'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+    ];
+    return meses[mes - 1] || 'Mês Inválido';
+}
+
+getDataAtual() {
+    const hoje = new Date();
+    return {
+        ano: hoje.getFullYear(),
+        mes: hoje.getMonth() + 1
+    };
+}
+
+// ✅ NAVEGAÇÃO DO CALENDÁRIO
+async navegarMesAnterior() {
+    try {
+        let { ano, mes } = this.calendarioAtual || this.getDataAtual();
+        
+        mes--;
+        if (mes < 1) {
+            mes = 12;
+            ano--;
+        }
+        
+        console.log(`◀️ Navegando para: ${mes}/${ano}`);
+        await this.atualizarCalendario(ano, mes);
+        
+    } catch (error) {
+        console.error('❌ Erro navegação anterior:', error);
+    }
+}
+
+async navegarProximoMes() {
+    try {
+        let { ano, mes } = this.calendarioAtual || this.getDataAtual();
+        
+        mes++;
+        if (mes > 12) {
+            mes = 1;
+            ano++;
+        }
+        
+        console.log(`▶️ Navegando para: ${mes}/${ano}`);
+        await this.atualizarCalendario(ano, mes);
+        
+    } catch (error) {
+        console.error('❌ Erro navegação próximo:', error);
+    }
+}
+
+async irParaMesAtual() {
+    try {
+        const { ano, mes } = this.getDataAtual();
+        console.log(`🗓️ Indo para mês atual: ${mes}/${ano}`);
+        await this.atualizarCalendario(ano, mes);
+        
+    } catch (error) {
+        console.error('❌ Erro mês atual:', error);
+    }
+}
+
+async irParaMes(novoMes) {
+    try {
+        const { ano } = this.calendarioAtual || this.getDataAtual();
+        console.log(`📅 Indo para mês: ${novoMes}/${ano}`);
+        await this.atualizarCalendario(ano, parseInt(novoMes));
+        
+    } catch (error) {
+        console.error('❌ Erro ir para mês:', error);
+    }
+}
+
+async irParaAno(novoAno) {
+    try {
+        const { mes } = this.calendarioAtual || this.getDataAtual();
+        console.log(`📅 Indo para ano: ${mes}/${novoAno}`);
+        await this.atualizarCalendario(parseInt(novoAno), mes);
+        
+    } catch (error) {
+        console.error('❌ Erro ir para ano:', error);
+    }
+}
+
+async atualizarCalendario(ano, mes) {
+    try {
+        console.log(`🔄 Atualizando calendário para: ${mes}/${ano}`);
+        
+        // Mostrar loading
+        const pageContent = document.getElementById('page-content');
+        if (pageContent) {
+            pageContent.innerHTML = `
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Carregando...</span>
+                    </div>
+                    <p class="mt-2">Carregando calendário...</p>
+                </div>
+            `;
+        }
+        
+        // Carregar novo calendário
+        const novoCalendario = await this.renderCalendarioComDados(ano, mes);
+        
+        if (pageContent) {
+            pageContent.innerHTML = novoCalendario;
+        }
+        
+        console.log('✅ Calendário atualizado com sucesso!');
+        
+    } catch (error) {
+        console.error('❌ Erro ao atualizar calendário:', error);
+        this.showAlert('Erro ao carregar calendário: ' + error.message, 'danger');
+    }
+}
+
+// ✅ RENDERIZAR GRID DO CALENDÁRIO
+renderCalendarioGrid(calendario) {
+    const hoje = new Date();
+    const ano = calendario.ano;
+    const mes = calendario.mes - 1;
+    
+    const primeiroDia = new Date(ano, mes, 1);
+    const ultimoDia = new Date(ano, mes + 1, 0);
+    const diasNoMes = ultimoDia.getDate();
+    const primeiroDiaSemana = primeiroDia.getDay();
+
+    let html = `
+        <div class="calendario-header">
+            <div class="calendario-dia-header">Dom</div>
+            <div class="calendario-dia-header">Seg</div>
+            <div class="calendario-dia-header">Ter</div>
+            <div class="calendario-dia-header">Qua</div>
+            <div class="calendario-dia-header">Qui</div>
+            <div class="calendario-dia-header">Sex</div>
+            <div class="calendario-dia-header">Sáb</div>
+        </div>
+        <div class="calendario-grid">
+    `;
+    
+    // Dias vazios no início
+    for (let i = 0; i < primeiroDiaSemana; i++) {
+        html += '<div class="calendario-dia vazio"></div>';
+    }
+
+    // Dias do mês
+    for (let dia = 1; dia <= diasNoMes; dia++) {
+        const documentos = calendario.documentosPorDia[dia] || [];
+        const isHoje = dia === hoje.getDate() && 
+                      mes === hoje.getMonth() && 
+                      ano === hoje.getFullYear();
+        
+        let classe = 'calendario-dia';
+        if (isHoje) classe += ' hoje';
+        if (documentos.length > 0) classe += ' com-documentos';
+        
+        html += `
+            <div class="${classe}" onclick="app.verDia(${dia}, ${calendario.mes}, ${calendario.ano})">
+                <div class="dia-numero">${dia}</div>
+                ${documentos.length > 0 ? `
+                    <div class="documentos-info">
+                        <small>${documentos.length} doc(s)</small>
+                        <div class="tipos-documentos">
+                            ${documentos.slice(0, 2).map(doc => 
+                                `<span class="tipo-badge">${doc.tipo}</span>`
+                            ).join('')}
+                            ${documentos.length > 2 ? '<span class="tipo-badge">...</span>' : ''}
+                        </div>
+                    </div>
+                ` : ''}
+            </div>
+        `;
+    }
+
+    html += '</div>';
+    return html;
+}
+
+// ✅ VER DETALHES DO DIA
+verDia(dia, mes, ano) {
+    const dataFormatada = `${dia.toString().padStart(2, '0')}/${mes.toString().padStart(2, '0')}/${ano}`;
+    
+    this.showModal(`Documentos do dia ${dataFormatada}`, `
+        <div class="alert alert-info">
+            <i class="fas fa-calendar-day me-2"></i>
+            Documentos vencendo em <strong>${dataFormatada}</strong>
+        </div>
+        <p>Funcionalidade em desenvolvimento...</p>
+        <div class="text-center">
+            <button class="btn btn-primary" onclick="app.loadPage('documentos')">
+                <i class="fas fa-file-alt me-1"></i> Ver Todos os Documentos
+            </button>
+        </div>
+    `);
+}
+
+    // ✅ MÉTODO LOADPAGE CORRIGIDO
+    async loadPage(page) {
+        this.currentPage = page;
+        console.log(`Carregando página: ${page}`);
+
+        // ✅ CORREÇÃO: Atualizar menu ativo primeiro
+        this.setActiveMenu(page);
+
+        // Mostrar loading
+        document.getElementById('page-content').innerHTML = `
         <div class="text-center py-5">
             <div class="spinner-border text-primary" role="status">
                 <span class="visually-hidden">Carregando...</span>
@@ -151,7 +471,7 @@ async loadPage(page) {
         </div>
     `;
 
-    try {
+        try {
         let content = '';
 
         switch (page) {
@@ -167,16 +487,18 @@ async loadPage(page) {
             case 'responsaveis':
                 content = await this.renderResponsaveis();
                 break;
+            case 'calendario': // ✅ NOVO
+                content = await this.renderCalendario();
+                break;
             default:
                 content = '<div class="alert alert-warning">Página não encontrada</div>';
         }
 
         document.getElementById('page-content').innerHTML = content;
-        this.initializePageEvents(page);
 
     } catch (error) {
-        console.error('Erro ao carregar página:', error);
-        document.getElementById('page-content').innerHTML = `
+            console.error('Erro ao carregar página:', error);
+            document.getElementById('page-content').innerHTML = `
             <div class="alert alert-danger">
                 <h4>Erro ao carregar a página</h4>
                 <p><strong>${error.message}</strong></p>
@@ -185,40 +507,40 @@ async loadPage(page) {
                 </button>
             </div>
         `;
-    }
-}
-
-// ✅ MÉTODO PARA ATIVAR MENU CORRETO
-setActiveMenu(page) {
-    // Remover active de todos os links
-    document.querySelectorAll('.sidebar-nav .nav-link').forEach(link => {
-        link.classList.remove('active');
-    });
-    
-    // Adicionar active no link correto
-    const activeLink = document.querySelector(`[data-page="${page}"]`);
-    if (activeLink) {
-        activeLink.classList.add('active');
-        console.log(`✅ Menu ativado: ${page}`);
-    } else {
-        console.warn(`❌ Link do menu não encontrado: ${page}`);
-    }
-}
-
-// ✅ CORRIGIR O BIND EVENTS
-bindEvents() {
-    // Navegação do sidebar
-    document.addEventListener('click', (e) => {
-        if (e.target.closest('.sidebar-nav .nav-link')) {
-            e.preventDefault();
-            const link = e.target.closest('.nav-link');
-            const page = link.getAttribute('data-page');
-            
-            console.log(`📱 Clicou no menu: ${page}`);
-            this.loadPage(page);
         }
-    });
-}
+    }
+
+    // ✅ MÉTODO PARA ATIVAR MENU CORRETO
+    setActiveMenu(page) {
+        // Remover active de todos os links
+        document.querySelectorAll('.sidebar-nav .nav-link').forEach(link => {
+            link.classList.remove('active');
+        });
+
+        // Adicionar active no link correto
+        const activeLink = document.querySelector(`[data-page="${page}"]`);
+        if (activeLink) {
+            activeLink.classList.add('active');
+            console.log(`✅ Menu ativado: ${page}`);
+        } else {
+            console.warn(`❌ Link do menu não encontrado: ${page}`);
+        }
+    }
+
+    // ✅ CORRIGIR O BIND EVENTS
+    bindEvents() {
+        // Navegação do sidebar
+        document.addEventListener('click', (e) => {
+            if (e.target.closest('.sidebar-nav .nav-link')) {
+                e.preventDefault();
+                const link = e.target.closest('.nav-link');
+                const page = link.getAttribute('data-page');
+
+                console.log(`📱 Clicou no menu: ${page}`);
+                this.loadPage(page);
+            }
+        });
+    }
 
     async renderDashboard() {
         try {
@@ -2106,21 +2428,21 @@ bindEvents() {
     }
 
     // ✅ MÉTODO COMPLETO PARA MODAL DE RESPONSÁVEIS
-async openResponsavelModal(responsavel = null) {
-    try {
-        console.log('Abrindo modal de responsável:', responsavel);
-        
-        // Buscar empresas para o select
-        const empresas = await this.apiRequest('/empresas');
-        
-        const title = responsavel ? 'Editar Responsável' : 'Novo Responsável';
-        const isEdicao = !!responsavel;
-        
-        console.log('Modo:', isEdicao ? 'Edição' : 'Cadastro');
-        console.log('Dados do responsável:', responsavel);
-        console.log('Empresas disponíveis:', empresas.length);
+    async openResponsavelModal(responsavel = null) {
+        try {
+            console.log('Abrindo modal de responsável:', responsavel);
 
-        const content = `
+            // Buscar empresas para o select
+            const empresas = await this.apiRequest('/empresas');
+
+            const title = responsavel ? 'Editar Responsável' : 'Novo Responsável';
+            const isEdicao = !!responsavel;
+
+            console.log('Modo:', isEdicao ? 'Edição' : 'Cadastro');
+            console.log('Dados do responsável:', responsavel);
+            console.log('Empresas disponíveis:', empresas.length);
+
+            const content = `
             <form id="responsavelForm">
                 <input type="hidden" id="responsavelId" value="${responsavel?.id || ''}">
                 
@@ -2178,91 +2500,91 @@ async openResponsavelModal(responsavel = null) {
             </form>
         `;
 
-        this.showModal(title, content, () => this.saveResponsavel());
-        
-        console.log('Modal aberto com sucesso');
+            this.showModal(title, content, () => this.saveResponsavel());
 
-    } catch (error) {
-        console.error('Erro ao abrir modal de responsável:', error);
-        this.showAlert('Erro ao carregar dados do responsável: ' + error.message, 'danger');
+            console.log('Modal aberto com sucesso');
+
+        } catch (error) {
+            console.error('Erro ao abrir modal de responsável:', error);
+            this.showAlert('Erro ao carregar dados do responsável: ' + error.message, 'danger');
+        }
     }
-}
 
     // ✅ MÉTODO CORRIGIDO PARA SALVAR RESPONSÁVEL
     async saveResponsavel() {
-    try {
-        console.log('🟡 INICIANDO saveResponsavel...');
+        try {
+            console.log('🟡 INICIANDO saveResponsavel...');
 
-        // Capturar dados do formulário
-        const responsavelId = document.getElementById('responsavelId')?.value || '';
-        const nome = document.getElementById('responsavelNome')?.value || '';
-        const email = document.getElementById('responsavelEmail')?.value || '';
-        const telefone = document.getElementById('responsavelTelefone')?.value || '';
-        const funcao = document.getElementById('responsavelFuncao')?.value || '';
-        const empresa_id = document.getElementById('responsavelEmpresaId')?.value || '';
+            // Capturar dados do formulário
+            const responsavelId = document.getElementById('responsavelId')?.value || '';
+            const nome = document.getElementById('responsavelNome')?.value || '';
+            const email = document.getElementById('responsavelEmail')?.value || '';
+            const telefone = document.getElementById('responsavelTelefone')?.value || '';
+            const funcao = document.getElementById('responsavelFuncao')?.value || '';
+            const empresa_id = document.getElementById('responsavelEmpresaId')?.value || '';
 
-        console.log('📝 Dados capturados do formulário:', {
-            responsavelId,
-            nome,
-            email,
-            telefone,
-            funcao,
-            empresa_id
-        });
+            console.log('📝 Dados capturados do formulário:', {
+                responsavelId,
+                nome,
+                email,
+                telefone,
+                funcao,
+                empresa_id
+            });
 
-        // Validação dos campos obrigatórios
-        const camposObrigatorios = { nome, email, telefone, funcao, empresa_id };
-        for (const [campo, valor] of Object.entries(camposObrigatorios)) {
-            if (!valor.trim()) {
-                const mensagem = `Preencha o campo: ${campo}`;
-                console.log(`❌ ${mensagem}`);
-                this.showAlert(mensagem, 'warning');
-                return;
+            // Validação dos campos obrigatórios
+            const camposObrigatorios = { nome, email, telefone, funcao, empresa_id };
+            for (const [campo, valor] of Object.entries(camposObrigatorios)) {
+                if (!valor.trim()) {
+                    const mensagem = `Preencha o campo: ${campo}`;
+                    console.log(`❌ ${mensagem}`);
+                    this.showAlert(mensagem, 'warning');
+                    return;
+                }
             }
+
+            const formData = {
+                nome: nome.trim(),
+                email: email.trim(),
+                telefone: telefone.trim(),
+                funcao: funcao,
+                empresa_id: parseInt(empresa_id)
+                // Removido observacoes
+            };
+
+            console.log('📤 Dados que serão enviados para API:', formData);
+
+            const isEdicao = !!responsavelId;
+            const url = isEdicao ? `/responsaveis/${responsavelId}` : '/responsaveis';
+            const method = isEdicao ? 'PUT' : 'POST';
+
+            console.log(`🔄 Fazendo requisição: ${method} ${url}`);
+
+            const response = await this.apiRequest(url, {
+                method: method,
+                body: formData
+            });
+
+            console.log('✅ Resposta da API:', response);
+
+            this.showAlert(
+                `Responsável ${isEdicao ? 'atualizado' : 'criado'} com sucesso!`,
+                'success'
+            );
+
+            // Fechar modal e recarregar
+            const modal = bootstrap.Modal.getInstance(document.getElementById('dynamicModal'));
+            if (modal) modal.hide();
+
+            setTimeout(() => {
+                this.loadPage('responsaveis');
+            }, 1000);
+
+        } catch (error) {
+            console.error('❌ ERRO DETALHADO no saveResponsavel:', error);
+            this.showAlert(`Erro ao salvar responsável: ${error.message}`, 'danger');
         }
-
-        const formData = {
-            nome: nome.trim(),
-            email: email.trim(),
-            telefone: telefone.trim(),
-            funcao: funcao,
-            empresa_id: parseInt(empresa_id)
-            // Removido observacoes
-        };
-
-        console.log('📤 Dados que serão enviados para API:', formData);
-
-        const isEdicao = !!responsavelId;
-        const url = isEdicao ? `/responsaveis/${responsavelId}` : '/responsaveis';
-        const method = isEdicao ? 'PUT' : 'POST';
-
-        console.log(`🔄 Fazendo requisição: ${method} ${url}`);
-
-        const response = await this.apiRequest(url, {
-            method: method,
-            body: formData
-        });
-
-        console.log('✅ Resposta da API:', response);
-
-        this.showAlert(
-            `Responsável ${isEdicao ? 'atualizado' : 'criado'} com sucesso!`, 
-            'success'
-        );
-
-        // Fechar modal e recarregar
-        const modal = bootstrap.Modal.getInstance(document.getElementById('dynamicModal'));
-        if (modal) modal.hide();
-
-        setTimeout(() => {
-            this.loadPage('responsaveis');
-        }, 1000);
-
-    } catch (error) {
-        console.error('❌ ERRO DETALHADO no saveResponsavel:', error);
-        this.showAlert(`Erro ao salvar responsável: ${error.message}`, 'danger');
     }
-}
 
     // ✅ MÉTODO PARA FORMATAR TELEFONE
     formatarTelefone(input) {
@@ -2322,8 +2644,8 @@ async openResponsavelModal(responsavel = null) {
         }
     }
 
-  renderResponsaveisTable(responsaveis) {
-    return `
+    renderResponsaveisTable(responsaveis) {
+        return `
         <div class="table-responsive">
             <table class="table table-hover">
                 <thead>
@@ -2360,7 +2682,7 @@ async openResponsavelModal(responsavel = null) {
             </table>
         </div>
     `;
-}
+    }
 
     // ✅ MÉTODO SIMPLIFICADO PARA TESTE
     async openResponsavelModal(responsavel = null) {
@@ -2424,56 +2746,56 @@ async openResponsavelModal(responsavel = null) {
     }
 
 
-   // ✅ MÉTODO PARA EDITAR RESPONSÁVEL
-async editarResponsavel(id) {
-    try {
-        console.log(`Editando responsável ID: ${id}`);
-        
-        // Buscar dados do responsável
-        const responsavel = await this.apiRequest(`/responsaveis/${id}`);
-        console.log('Dados do responsável:', responsavel);
-        
-        // Abrir modal de edição
-        await this.openResponsavelModal(responsavel);
-        
-    } catch (error) {
-        console.error('Erro ao carregar responsável para edição:', error);
-        this.showAlert(`Erro ao carregar responsável: ${error.message}`, 'danger');
+    // ✅ MÉTODO PARA EDITAR RESPONSÁVEL
+    async editarResponsavel(id) {
+        try {
+            console.log(`Editando responsável ID: ${id}`);
+
+            // Buscar dados do responsável
+            const responsavel = await this.apiRequest(`/responsaveis/${id}`);
+            console.log('Dados do responsável:', responsavel);
+
+            // Abrir modal de edição
+            await this.openResponsavelModal(responsavel);
+
+        } catch (error) {
+            console.error('Erro ao carregar responsável para edição:', error);
+            this.showAlert(`Erro ao carregar responsável: ${error.message}`, 'danger');
+        }
     }
-}
 
     // ✅ MÉTODO PARA EXCLUIR RESPONSÁVEL
-async excluirResponsavel(id) {
-    try {
-        console.log(`Tentando excluir responsável ID: ${id}`);
-        
-        if (!confirm('Tem certeza que deseja excluir este responsável?')) {
-            return;
-        }
+    async excluirResponsavel(id) {
+        try {
+            console.log(`Tentando excluir responsável ID: ${id}`);
 
-        // Buscar dados do responsável para confirmar
-        const responsavel = await this.apiRequest(`/responsaveis/${id}`);
-        
-        if (!confirm(`Confirmar exclusão do responsável: ${responsavel.nome}?`)) {
-            return;
-        }
+            if (!confirm('Tem certeza que deseja excluir este responsável?')) {
+                return;
+            }
 
-        await this.apiRequest(`/responsaveis/${id}`, { method: 'DELETE' });
-        this.showAlert('Responsável excluído com sucesso!', 'success');
-        
-        // Recarregar a lista
-        this.loadPage('responsaveis');
-        
-    } catch (error) {
-        console.error('Erro ao excluir responsável:', error);
-        
-        if (error.message.includes('documentos vinculados')) {
-            this.showAlert('Não é possível excluir: existem documentos vinculados a este responsável', 'warning');
-        } else {
-            this.showAlert(`Erro ao excluir responsável: ${error.message}`, 'danger');
+            // Buscar dados do responsável para confirmar
+            const responsavel = await this.apiRequest(`/responsaveis/${id}`);
+
+            if (!confirm(`Confirmar exclusão do responsável: ${responsavel.nome}?`)) {
+                return;
+            }
+
+            await this.apiRequest(`/responsaveis/${id}`, { method: 'DELETE' });
+            this.showAlert('Responsável excluído com sucesso!', 'success');
+
+            // Recarregar a lista
+            this.loadPage('responsaveis');
+
+        } catch (error) {
+            console.error('Erro ao excluir responsável:', error);
+
+            if (error.message.includes('documentos vinculados')) {
+                this.showAlert('Não é possível excluir: existem documentos vinculados a este responsável', 'warning');
+            } else {
+                this.showAlert(`Erro ao excluir responsável: ${error.message}`, 'danger');
+            }
         }
     }
-}
 
     // ✅ MÉTODOS AUXILIARES
     getDocumentStatus(documento) {
