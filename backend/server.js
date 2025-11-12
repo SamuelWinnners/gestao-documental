@@ -209,6 +209,51 @@ app.get('/api/consulta-cnpj/:cnpj', async (req, res) => {
     }
 });
 
+// ✅ ROTA CALENDÁRIO COM MÊS/ANO
+app.get('/api/calendario/:ano?/:mes?', async (req, res) => {
+    try {
+        let { ano, mes } = req.params;
+
+        // Se não especificado, usar mês atual
+        const hoje = new Date();
+        ano = ano ? parseInt(ano) : hoje.getFullYear();
+        mes = mes ? parseInt(mes) : hoje.getMonth() + 1;
+
+        console.log(`📅 Calendário: ${mes}/${ano}`);
+
+        const [documentos] = await pool.execute(`
+            SELECT 
+                id,
+                nome,
+                tipo,
+                data_vencimento,
+                DAY(data_vencimento) as dia
+            FROM documentos 
+            WHERE MONTH(data_vencimento) = ? AND YEAR(data_vencimento) = ?
+            ORDER BY data_vencimento ASC
+        `, [mes, ano]);
+
+        // Agrupar por dia
+        const porDia = {};
+        documentos.forEach(doc => {
+            const dia = doc.dia;
+            if (!porDia[dia]) porDia[dia] = [];
+            porDia[dia].push(doc);
+        });
+
+        res.json({
+            ano: ano,
+            mes: mes,
+            documentosPorDia: porDia,
+            total: documentos.length
+        });
+
+    } catch (error) {
+        console.error('Erro calendário:', error);
+        res.status(500).json({ error: 'Erro' });
+    }
+});
+
 // ✅ ROTAS DE EMPRESAS
 app.get('/api/empresas', async (req, res) => {
     try {
@@ -416,7 +461,7 @@ app.get('/api/empresas/:id', async (req, res) => {
 app.get('/api/alertas', async (req, res) => {
     try {
         console.log('🔔 Alertas chamado');
-        
+
         // Documentos vencidos
         const [vencidos] = await pool.execute(`
             SELECT id, nome, tipo, data_vencimento 
