@@ -129,6 +129,75 @@ function injetarCSSCalendario() {
     }
 }
 
+// ============================
+// ✅ CLASSE DE AUTENTICAÇÃO
+// ============================
+class Auth {
+    constructor() {
+        this.token = localStorage.getItem('token');
+        this.usuario = JSON.parse(localStorage.getItem('usuario') || '{}');
+        this.checkAuth();
+    }
+
+    checkAuth() {
+        if (!this.token) {
+            this.redirectToLogin();
+        }
+    }
+
+    redirectToLogin() {
+        window.location.href = '/login.html';
+    }
+
+    async login(email, senha) {
+        try {
+            const response = await fetch(`${API_BASE}/auth/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, senha })
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'Erro ao fazer login');
+            }
+
+            const data = await response.json();
+            
+            // Salvar token e usuário
+            localStorage.setItem('token', data.token);
+            localStorage.setItem('usuario', JSON.stringify(data.usuario));
+            
+            this.token = data.token;
+            this.usuario = data.usuario;
+
+            return data;
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    logout() {
+        localStorage.removeItem('token');
+        localStorage.removeItem('usuario');
+        this.token = null;
+        this.usuario = {};
+        this.redirectToLogin();
+    }
+
+    getToken() {
+        return this.token;
+    }
+
+    getUsuario() {
+        return this.usuario;
+    }
+
+    isLogado() {
+        return !!this.token;
+    }
+}
+
 class App {
     constructor() {
         this.currentPage = 'dashboard';
@@ -144,7 +213,7 @@ class App {
         this.bindEvents();
         this.loadPage('dashboard');
         this.inicializarMenuMobile();
-        injetarCSSCalendario();
+        
 
         setTimeout(() => {
             this.notificacoesSimples();
@@ -931,20 +1000,24 @@ class App {
 
     // ✅ MÉTODOS AUXILIARES PARA VERIFICAÇÃO DE STATUS
     isDocumentoVencido(documento) {
-        const vencimento = new Date(documento.data_vencimento);
+        const vencimento = new Date(documento.data_vencimento.split('T')[0]);
         const hoje = new Date();
-        hoje.setHours(0, 0, 0, 0);
-        vencimento.setHours(0, 0, 0, 0);
-        return vencimento < hoje;
+
+        // Converter para UTC (só data, sem horário)
+        const vencimentoUTC = new Date(Date.UTC(vencimento.getUTCFullYear(), vencimento.getUTCMonth(), vencimento.getUTCDate()));
+        const hojeUTC = new Date(Date.UTC(hoje.getUTCFullYear(), hoje.getUTCMonth(), hoje.getUTCDate()));
+
+        return vencimentoUTC < hojeUTC;
     }
-
     isDocumentoProximo(documento) {
-        const vencimento = new Date(documento.data_vencimento);
+        const vencimento = new Date(documento.data_vencimento.split('T')[0]);
         const hoje = new Date();
-        hoje.setHours(0, 0, 0, 0);
-        vencimento.setHours(0, 0, 0, 0);
 
-        const diffTime = vencimento - hoje;
+        // Converter para UTC (só data, sem horário)
+        const vencimentoUTC = new Date(Date.UTC(vencimento.getUTCFullYear(), vencimento.getUTCMonth(), vencimento.getUTCDate()));
+        const hojeUTC = new Date(Date.UTC(hoje.getUTCFullYear(), hoje.getUTCMonth(), hoje.getUTCDate()));
+
+        const diffTime = vencimentoUTC - hojeUTC;
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
         return diffDays >= 0 && diffDays <= 30;
@@ -2594,20 +2667,25 @@ class App {
     calculateDiasRestantes(dataVencimento) {
         if (!dataVencimento) return 0;
 
-        // ✅ CORRIGIDO: Extrair apenas a data, sem timezone
-        const dataVencimentoStr = dataVencimento.split('T')[0];
+        // ✅ CORRIGIDO: Usar apenas a data (YYYY-MM-DD) sem timezone
+        const dataVencimentoStr = dataVencimento.split('T')[0]; // Pega apenas YYYY-MM-DD
         const [ano, mes, dia] = dataVencimentoStr.split('-');
 
-        // Criar data sem timezone (00:00 UTC)
-        const vencimento = new Date(ano, parseInt(mes) - 1, parseInt(dia));
+        // Criar data em UTC sem ajustes de timezone
+        const vencimento = new Date(Date.UTC(parseInt(ano), parseInt(mes) - 1, parseInt(dia)));
         const hoje = new Date();
-        hoje.setHours(0, 0, 0, 0);
-        vencimento.setHours(0, 0, 0, 0);
 
-        const diffTime = vencimento - hoje;
-        return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        // Converter "hoje" para UTC também (só a parte de data)
+        const hojeUTC = new Date(Date.UTC(hoje.getUTCFullYear(), hoje.getUTCMonth(), hoje.getUTCDate()));
+
+        // Calcular diferença
+        const diffTime = vencimento - hojeUTC;
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        console.log(`📅 Data vencimento: ${dataVencimentoStr}, Hoje (UTC): ${hojeUTC.toISOString().split('T')[0]}, Dias restantes: ${diffDays}`);
+
+        return diffDays;
     }
-
     // No método renderFormularioDocumento, substitua a parte do tipo:
     async renderFormularioDocumento() {
         try {
