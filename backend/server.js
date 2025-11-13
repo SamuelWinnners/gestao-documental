@@ -1,5 +1,3 @@
-// backend/server.js
-
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
@@ -11,18 +9,20 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-// ✅ PATHS CORRETOS PARA ESTRUTURA ATUAL
+// ✅ CONFIGURAÇÃO DE PATHS
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const projectRoot = path.join(__dirname, '..'); // Raiz do projeto
+const projectRoot = path.join(__dirname, '..');
 
 console.log('📁 Project Root:', projectRoot);
 console.log('📁 Backend Dir:', __dirname);
 
-// ✅ INICIALIZAR APP PRIMEIRO - ESTA É A CORREÇÃO PRINCIPAL
+// ✅ INICIALIZAR APP
 const app = express();
 
-// ✅ CONFIGURAÇÃO DO UPLOAD
+// =============================================
+// CONFIGURAÇÃO DO UPLOAD
+// =============================================
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
         const uploadsDir = path.join(projectRoot, 'uploads/documentos');
@@ -50,14 +50,15 @@ const upload = multer({
     }
 });
 
-// ✅ MIDDLEWARE - AGORA APP JÁ ESTÁ DEFINIDO
-// ✅ CORS para desenvolvimento
+// =============================================
+// MIDDLEWARE GLOBAL
+// =============================================
 app.use(cors({
     origin: [
         'http://localhost:3000',
-        'https://gestao-documental-gold.vercel.app', // ✅ NOVO DOMÍNIO
-        'https://gestao-documental.vercel.app',      // ✅ DOMÍNIO ANTIGO
-        'https://gestao-documental-three.vercel.app' // ✅ OUTRO DOMÍNIO
+        'https://gestao-documental-gold.vercel.app',
+        'https://gestao-documental.vercel.app',
+        'https://gestao-documental-three.vercel.app'
     ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
@@ -73,27 +74,22 @@ app.use((req, res, next) => {
     next();
 });
 
-// ✅ FUNÇÃO DE VALIDAÇÃO DE CNPJ
+// =============================================
+// FUNÇÕES AUXILIARES
+// =============================================
+
 function validarCNPJ(cnpj) {
     cnpj = cnpj.replace(/[^\d]+/g, '');
 
     if (cnpj === '') return false;
     if (cnpj.length !== 14) return false;
 
-    // Elimina CNPJs invalidos conhecidos
-    if (cnpj === "00000000000000" ||
-        cnpj === "11111111111111" ||
-        cnpj === "22222222222222" ||
-        cnpj === "33333333333333" ||
-        cnpj === "44444444444444" ||
-        cnpj === "55555555555555" ||
-        cnpj === "66666666666666" ||
-        cnpj === "77777777777777" ||
-        cnpj === "88888888888888" ||
+    if (cnpj === "00000000000000" || cnpj === "11111111111111" || cnpj === "22222222222222" ||
+        cnpj === "33333333333333" || cnpj === "44444444444444" || cnpj === "55555555555555" ||
+        cnpj === "66666666666666" || cnpj === "77777777777777" || cnpj === "88888888888888" ||
         cnpj === "99999999999999")
         return false;
 
-    // Valida DVs
     let tamanho = cnpj.length - 2;
     let numeros = cnpj.substring(0, tamanho);
     let digitos = cnpj.substring(tamanho);
@@ -124,7 +120,6 @@ function validarCNPJ(cnpj) {
     return true;
 }
 
-// ✅ FUNÇÃO PARA FORMATAR ENDEREÇO
 function formatarEndereco(data) {
     const parts = [];
     if (data.logradouro) parts.push(data.logradouro);
@@ -134,15 +129,51 @@ function formatarEndereco(data) {
     if (data.municipio) parts.push(data.municipio);
     if (data.uf) parts.push(data.uf);
     if (data.cep) parts.push(`CEP: ${data.cep}`);
-
     return parts.join(', ');
 }
 
-// =============================================
-// ✅ ROTAS DA API - TODAS PRIMEIRO
-// =============================================
+// ✅ HELPER - Query base de documentos
+function getDocumentosSelectQuery(whereClause = '') {
+    return `
+        SELECT 
+            d.*,
+            e.razao_social,
+            e.nome_fantasia,
+            e.cnpj as empresa_cnpj,
+            r.nome as responsavel_nome,
+            r.funcao as responsavel_funcao,
+            CASE 
+                WHEN d.data_vencimento < CURDATE() THEN 'vencido'
+                WHEN d.data_vencimento BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY) THEN 'proximo'
+                ELSE 'valido'
+            END as status
+        FROM documentos d 
+        LEFT JOIN empresas e ON d.empresa_id = e.id 
+        LEFT JOIN responsaveis r ON d.responsavel_id = r.id 
+        ${whereClause}
+    `;
+}
 
-// Health check
+// ✅ HELPER - Estatísticas do dashboard
+async function getEstatisticasDashboard() {
+    const [[empresas]] = await pool.execute('SELECT COUNT(*) as total FROM empresas');
+    const [[documentos]] = await pool.execute('SELECT COUNT(*) as total FROM documentos');
+    const [[vencidos]] = await pool.execute('SELECT COUNT(*) as total FROM documentos WHERE data_vencimento < CURDATE()');
+    const [[proximos]] = await pool.execute('SELECT COUNT(*) as total FROM documentos WHERE data_vencimento BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY)');
+    const [[validos]] = await pool.execute('SELECT COUNT(*) as total FROM documentos WHERE data_vencimento > DATE_ADD(CURDATE(), INTERVAL 30 DAY)');
+
+    return {
+        empresas: empresas.total,
+        documentos: documentos.total,
+        vencidos: vencidos.total,
+        proximos: proximos.total,
+        validos: validos.total
+    };
+}
+
+// =============================================
+// ROTAS - HEALTH CHECK
+// =============================================
 app.get('/api/health', (req, res) => {
     res.json({
         status: 'OK',
@@ -151,27 +182,23 @@ app.get('/api/health', (req, res) => {
     });
 });
 
-// ✅ CONSULTA DE CNPJ
+// =============================================
+// ROTAS - CONSULTA DE CNPJ
+// =============================================
 app.get('/api/consulta-cnpj/:cnpj', async (req, res) => {
     try {
         const { cnpj } = req.params;
-
-        // Limpar o CNPJ (remover caracteres não numéricos)
         const cnpjLimpo = cnpj.replace(/\D/g, '');
 
         console.log(`Consultando CNPJ: ${cnpjLimpo}`);
 
-        // Validar CNPJ
         if (!validarCNPJ(cnpjLimpo)) {
             return res.status(400).json({ error: 'CNPJ inválido' });
         }
 
-        // Fazer requisição para a API da Receita WS
         const response = await fetch(`https://receitaws.com.br/v1/cnpj/${cnpjLimpo}`, {
             method: 'GET',
-            headers: {
-                'Accept': 'application/json',
-            }
+            headers: { 'Accept': 'application/json' }
         });
 
         if (!response.ok) {
@@ -180,14 +207,12 @@ app.get('/api/consulta-cnpj/:cnpj', async (req, res) => {
 
         const data = await response.json();
 
-        // Verificar se a consulta foi bem sucedida
         if (data.status === 'ERROR') {
             return res.status(400).json({
                 error: data.message || 'CNPJ não encontrado ou inválido'
             });
         }
 
-        // Formatar os dados para nosso sistema
         const empresaData = {
             cnpj: data.cnpj,
             razao_social: data.nome,
@@ -209,12 +234,12 @@ app.get('/api/consulta-cnpj/:cnpj', async (req, res) => {
     }
 });
 
-// ✅ ROTA CALENDÁRIO COM MÊS/ANO
+// =============================================
+// ROTAS - CALENDÁRIO
+// =============================================
 app.get('/api/calendario/:ano?/:mes?', async (req, res) => {
     try {
         let { ano, mes } = req.params;
-
-        // Se não especificado, usar mês atual
         const hoje = new Date();
         ano = ano ? parseInt(ano) : hoje.getFullYear();
         mes = mes ? parseInt(mes) : hoje.getMonth() + 1;
@@ -223,17 +248,13 @@ app.get('/api/calendario/:ano?/:mes?', async (req, res) => {
 
         const [documentos] = await pool.execute(`
             SELECT 
-                id,
-                nome,
-                tipo,
-                data_vencimento,
+                id, nome, tipo, data_vencimento,
                 DAY(data_vencimento) as dia
             FROM documentos 
             WHERE MONTH(data_vencimento) = ? AND YEAR(data_vencimento) = ?
             ORDER BY data_vencimento ASC
         `, [mes, ano]);
 
-        // Agrupar por dia
         const porDia = {};
         documentos.forEach(doc => {
             const dia = doc.dia;
@@ -250,11 +271,13 @@ app.get('/api/calendario/:ano?/:mes?', async (req, res) => {
 
     } catch (error) {
         console.error('Erro calendário:', error);
-        res.status(500).json({ error: 'Erro' });
+        res.status(500).json({ error: 'Erro ao obter calendário' });
     }
 });
 
-// ✅ ROTAS DE EMPRESAS
+// =============================================
+// ROTAS - EMPRESAS
+// =============================================
 app.get('/api/empresas', async (req, res) => {
     try {
         console.log('Buscando empresas...');
@@ -267,184 +290,12 @@ app.get('/api/empresas', async (req, res) => {
     }
 });
 
-app.post('/api/empresas', async (req, res) => {
-    try {
-        console.log('=== TENTANDO CRIAR EMPRESA ===');
-        console.log('Body recebido:', req.body);
-
-        const {
-            razao_social,
-            nome_fantasia,
-            cnpj,
-            telefone,
-            email,
-            endereco,
-            login_municipal,
-            senha_municipal,
-            login_estadual,
-            senha_estadual,
-            simples_nacional,
-            observacoes
-        } = req.body;
-
-        // Validação dos campos obrigatórios
-        if (!razao_social || !cnpj || !telefone || !email) {
-            console.log('Campos obrigatórios faltando:', {
-                razao_social: !!razao_social,
-                cnpj: !!cnpj,
-                telefone: !!telefone,
-                email: !!email
-            });
-            return res.status(400).json({
-                error: 'Preencha todos os campos obrigatórios'
-            });
-        }
-
-        // Validar CNPJ
-        if (!validarCNPJ(cnpj)) {
-            return res.status(400).json({ error: 'CNPJ inválido' });
-        }
-
-        console.log('Inserindo no banco de dados...');
-        const [result] = await pool.execute(
-            `INSERT INTO empresas 
-            (razao_social, nome_fantasia, cnpj, telefone, email, endereco, 
-             login_municipal, senha_municipal, login_estadual, senha_estadual, 
-             simples_nacional, observacoes) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [
-                razao_social,
-                nome_fantasia || null,
-                cnpj,
-                telefone,
-                email,
-                endereco || null,
-                login_municipal || null,
-                senha_municipal || null,
-                login_estadual || null,
-                senha_estadual || null,
-                simples_nacional || false,
-                observacoes || null
-            ]
-        );
-
-        console.log('✅ EMPRESA CRIADA COM SUCESSO - ID:', result.insertId);
-        res.status(201).json({
-            id: result.insertId,
-            message: 'Empresa criada com sucesso'
-        });
-
-    } catch (error) {
-        console.error('❌ ERRO AO CRIAR EMPRESA:', error);
-        console.error('Stack trace:', error.stack);
-
-        if (error.code === 'ER_DUP_ENTRY') {
-            return res.status(400).json({ error: 'CNPJ já cadastrado' });
-        }
-        if (error.code === 'ER_DATA_TOO_LONG') {
-            return res.status(400).json({ error: 'Dados muito longos para algum campo' });
-        }
-
-        res.status(500).json({
-            error: 'Erro interno do servidor',
-            details: error.message
-        });
-    }
-});
-
-app.put('/api/empresas/:id', async (req, res) => {
-    try {
-        const empresaId = req.params.id;
-        const {
-            razao_social,
-            nome_fantasia,
-            cnpj,
-            telefone,
-            email,
-            endereco,
-            login_municipal,
-            senha_municipal,
-            login_estadual,
-            senha_estadual,
-            simples_nacional,
-            observacoes
-        } = req.body;
-
-        console.log(`Atualizando empresa ID: ${empresaId}`, req.body);
-
-        const [result] = await pool.execute(
-            `UPDATE empresas SET 
-                razao_social = ?, nome_fantasia = ?, cnpj = ?, 
-                telefone = ?, email = ?, endereco = ?,
-                login_municipal = ?, senha_municipal = ?,
-                login_estadual = ?, senha_estadual = ?,
-                simples_nacional = ?, observacoes = ?
-            WHERE id = ?`,
-            [
-                razao_social,
-                nome_fantasia || null,
-                cnpj,
-                telefone,
-                email,
-                endereco || null,
-                login_municipal || null,
-                senha_municipal || null,
-                login_estadual || null,
-                senha_estadual || null,
-                simples_nacional || false,
-                observacoes || null,
-                empresaId
-            ]
-        );
-
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ error: 'Empresa não encontrada' });
-        }
-
-        console.log('Empresa atualizada com sucesso');
-        res.json({ message: 'Empresa atualizada com sucesso' });
-
-    } catch (error) {
-        console.error('Erro ao atualizar empresa:', error);
-        if (error.code === 'ER_DUP_ENTRY') {
-            return res.status(400).json({ error: 'CNPJ já cadastrado' });
-        }
-        res.status(500).json({ error: 'Erro ao atualizar empresa' });
-    }
-});
-
-app.delete('/api/empresas/:id', async (req, res) => {
-    try {
-        const empresaId = req.params.id;
-        console.log(`Excluindo empresa ID: ${empresaId}`);
-
-        const [result] = await pool.execute(
-            'DELETE FROM empresas WHERE id = ?',
-            [empresaId]
-        );
-
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ error: 'Empresa não encontrada' });
-        }
-
-        console.log('Empresa excluída com sucesso');
-        res.json({ message: 'Empresa excluída com sucesso' });
-
-    } catch (error) {
-        console.error('Erro ao excluir empresa:', error);
-        res.status(500).json({ error: 'Erro ao excluir empresa' });
-    }
-});
-
 app.get('/api/empresas/:id', async (req, res) => {
     try {
         const empresaId = req.params.id;
         console.log(`Buscando empresa ID: ${empresaId}`);
 
-        const [rows] = await pool.execute(
-            'SELECT * FROM empresas WHERE id = ?',
-            [empresaId]
-        );
+        const [rows] = await pool.execute('SELECT * FROM empresas WHERE id = ?', [empresaId]);
 
         if (rows.length === 0) {
             return res.status(404).json({ error: 'Empresa não encontrada' });
@@ -457,19 +308,125 @@ app.get('/api/empresas/:id', async (req, res) => {
     }
 });
 
-// ✅ ROTA SIMPLES PARA ALERTAS - ADICIONE ISSO
+app.post('/api/empresas', async (req, res) => {
+    try {
+        console.log('=== CRIANDO EMPRESA ===');
+        console.log('Body recebido:', req.body);
+
+        const {
+            razao_social, nome_fantasia, cnpj, telefone, email, endereco,
+            login_municipal, senha_municipal, login_estadual, senha_estadual,
+            simples_nacional, observacoes
+        } = req.body;
+
+        if (!razao_social || !cnpj || !telefone || !email) {
+            return res.status(400).json({ error: 'Preencha todos os campos obrigatórios' });
+        }
+
+        if (!validarCNPJ(cnpj)) {
+            return res.status(400).json({ error: 'CNPJ inválido' });
+        }
+
+        const [result] = await pool.execute(
+            `INSERT INTO empresas 
+            (razao_social, nome_fantasia, cnpj, telefone, email, endereco, 
+             login_municipal, senha_municipal, login_estadual, senha_estadual, 
+             simples_nacional, observacoes) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+                razao_social, nome_fantasia || null, cnpj, telefone, email,
+                endereco || null, login_municipal || null, senha_municipal || null,
+                login_estadual || null, senha_estadual || null,
+                simples_nacional || false, observacoes || null
+            ]
+        );
+
+        console.log('✅ EMPRESA CRIADA - ID:', result.insertId);
+        res.status(201).json({
+            id: result.insertId,
+            message: 'Empresa criada com sucesso'
+        });
+
+    } catch (error) {
+        console.error('❌ ERRO AO CRIAR EMPRESA:', error);
+        if (error.code === 'ER_DUP_ENTRY') {
+            return res.status(400).json({ error: 'CNPJ já cadastrado' });
+        }
+        res.status(500).json({ error: 'Erro ao criar empresa' });
+    }
+});
+
+app.put('/api/empresas/:id', async (req, res) => {
+    try {
+        const empresaId = req.params.id;
+        const {
+            razao_social, nome_fantasia, cnpj, telefone, email, endereco,
+            login_municipal, senha_municipal, login_estadual, senha_estadual,
+            simples_nacional, observacoes
+        } = req.body;
+
+        console.log(`Atualizando empresa ID: ${empresaId}`);
+
+        const [result] = await pool.execute(
+            `UPDATE empresas SET 
+                razao_social = ?, nome_fantasia = ?, cnpj = ?, 
+                telefone = ?, email = ?, endereco = ?,
+                login_municipal = ?, senha_municipal = ?,
+                login_estadual = ?, senha_estadual = ?,
+                simples_nacional = ?, observacoes = ?
+            WHERE id = ?`,
+            [
+                razao_social, nome_fantasia || null, cnpj, telefone, email,
+                endereco || null, login_municipal || null, senha_municipal || null,
+                login_estadual || null, senha_estadual || null,
+                simples_nacional || false, observacoes || null, empresaId
+            ]
+        );
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: 'Empresa não encontrada' });
+        }
+
+        res.json({ message: 'Empresa atualizada com sucesso' });
+
+    } catch (error) {
+        console.error('Erro ao atualizar empresa:', error);
+        res.status(500).json({ error: 'Erro ao atualizar empresa' });
+    }
+});
+
+app.delete('/api/empresas/:id', async (req, res) => {
+    try {
+        const empresaId = req.params.id;
+        console.log(`Excluindo empresa ID: ${empresaId}`);
+
+        const [result] = await pool.execute('DELETE FROM empresas WHERE id = ?', [empresaId]);
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: 'Empresa não encontrada' });
+        }
+
+        res.json({ message: 'Empresa excluída com sucesso' });
+
+    } catch (error) {
+        console.error('Erro ao excluir empresa:', error);
+        res.status(500).json({ error: 'Erro ao excluir empresa' });
+    }
+});
+
+// =============================================
+// ROTAS - ALERTAS
+// =============================================
 app.get('/api/alertas', async (req, res) => {
     try {
-        console.log('🔔 Alertas chamado');
+        console.log('🔔 Buscando alertas');
 
-        // Documentos vencidos
         const [vencidos] = await pool.execute(`
             SELECT id, nome, tipo, data_vencimento 
             FROM documentos 
             WHERE data_vencimento < CURDATE()
         `);
 
-        // Documentos próximos (7 dias)
         const [proximos] = await pool.execute(`
             SELECT id, nome, tipo, data_vencimento 
             FROM documentos 
@@ -485,59 +442,39 @@ app.get('/api/alertas', async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Erro alertas:', error);
-        res.status(500).json({ error: 'Erro' });
+        console.error('Erro ao buscar alertas:', error);
+        res.status(500).json({ error: 'Erro ao buscar alertas' });
     }
 });
 
-// ✅ ROTAS DE DOCUMENTOS
+// =============================================
+// ROTAS - DOCUMENTOS
+// =============================================
 app.post('/api/documentos', upload.single('arquivo'), async (req, res) => {
     try {
-        console.log('=== TENTANDO CRIAR DOCUMENTO ===');
+        console.log('=== CRIANDO DOCUMENTO ===');
         console.log('Body recebido:', req.body);
-        console.log('Arquivo recebido:', req.file ? req.file.filename : 'Nenhum arquivo');
+        console.log('Arquivo:', req.file ? req.file.filename : 'Nenhum');
 
         const {
-            nome,
-            tipo,
-            empresa_id,
-            responsavel_id,
-            data_emissao,
-            data_vencimento,
-            observacoes
+            nome, tipo, empresa_id, responsavel_id,
+            data_emissao, data_vencimento, observacoes
         } = req.body;
 
-        // Validação dos campos obrigatórios
         if (!nome || !tipo || !empresa_id || !responsavel_id || !data_emissao || !data_vencimento) {
-            console.log('Campos obrigatórios faltando:', {
-                nome: !!nome, tipo: !!tipo, empresa_id: !!empresa_id,
-                responsavel_id: !!responsavel_id, data_emissao: !!data_emissao,
-                data_vencimento: !!data_vencimento
-            });
-            return res.status(400).json({
-                error: 'Preencha todos os campos obrigatórios'
-            });
+            return res.status(400).json({ error: 'Preencha todos os campos obrigatórios' });
         }
 
-        // Verificar se empresa existe
-        const [empresas] = await pool.execute(
-            'SELECT id, razao_social FROM empresas WHERE id = ?',
-            [empresa_id]
-        );
+        const [empresas] = await pool.execute('SELECT id FROM empresas WHERE id = ?', [empresa_id]);
         if (empresas.length === 0) {
             return res.status(400).json({ error: 'Empresa não encontrada' });
         }
 
-        // Verificar se responsável existe
-        const [responsaveis] = await pool.execute(
-            'SELECT id, nome FROM responsaveis WHERE id = ?',
-            [responsavel_id]
-        );
+        const [responsaveis] = await pool.execute('SELECT id FROM responsaveis WHERE id = ?', [responsavel_id]);
         if (responsaveis.length === 0) {
             return res.status(400).json({ error: 'Responsável não encontrado' });
         }
 
-        // Inserir documento
         const arquivoPath = req.file ? req.file.filename : null;
 
         const [result] = await pool.execute(
@@ -547,16 +484,13 @@ app.post('/api/documentos', upload.single('arquivo'), async (req, res) => {
             [nome, tipo, empresa_id, responsavel_id, data_emissao, data_vencimento, observacoes || null, arquivoPath]
         );
 
-        console.log('✅ DOCUMENTO CRIADO COM SUCESSO - ID:', result.insertId);
+        console.log('✅ DOCUMENTO CRIADO - ID:', result.insertId);
 
-        // Buscar documento criado para retornar
         const [novoDocumento] = await pool.execute(`
             SELECT 
                 d.*,
-                e.razao_social,
-                e.nome_fantasia,
-                r.nome as responsavel_nome,
-                r.funcao as responsavel_funcao
+                e.razao_social, e.nome_fantasia,
+                r.nome as responsavel_nome, r.funcao as responsavel_funcao
             FROM documentos d
             LEFT JOIN empresas e ON d.empresa_id = e.id
             LEFT JOIN responsaveis r ON d.responsavel_id = r.id
@@ -567,34 +501,15 @@ app.post('/api/documentos', upload.single('arquivo'), async (req, res) => {
 
     } catch (error) {
         console.error('❌ ERRO AO CRIAR DOCUMENTO:', error);
-        res.status(500).json({
-            error: 'Erro interno do servidor',
-            details: error.message
-        });
+        res.status(500).json({ error: 'Erro ao criar documento' });
     }
 });
 
 app.get('/api/documentos', async (req, res) => {
     try {
         console.log('Buscando documentos...');
-        const [rows] = await pool.execute(`
-            SELECT 
-                d.*,
-                e.razao_social,
-                e.nome_fantasia,
-                e.cnpj as empresa_cnpj,
-                r.nome as responsavel_nome,
-                r.funcao as responsavel_funcao,
-                CASE 
-                    WHEN d.data_vencimento < CURDATE() THEN 'vencido'
-                    WHEN d.data_vencimento BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY) THEN 'proximo'
-                    ELSE 'valido'
-                END as status_vencimento
-            FROM documentos d 
-            LEFT JOIN empresas e ON d.empresa_id = e.id 
-            LEFT JOIN responsaveis r ON d.responsavel_id = r.id 
-            ORDER BY d.data_vencimento ASC
-        `);
+        const query = getDocumentosSelectQuery('ORDER BY d.data_vencimento ASC');
+        const [rows] = await pool.execute(query);
         console.log(`Encontrados ${rows.length} documentos`);
         res.json(rows);
     } catch (error) {
@@ -603,7 +518,6 @@ app.get('/api/documentos', async (req, res) => {
     }
 });
 
-// ✅ NOVAS ROTAS PARA FILTROS DO DASHBOARD
 app.get('/api/documentos/filtros', async (req, res) => {
     try {
         const { status, search, empresa_id } = req.query;
@@ -612,7 +526,6 @@ app.get('/api/documentos/filtros', async (req, res) => {
         let whereConditions = [];
         let queryParams = [];
 
-        // Filtro por status
         if (status === 'vencidos') {
             whereConditions.push('d.data_vencimento < CURDATE()');
         } else if (status === 'proximos') {
@@ -621,13 +534,11 @@ app.get('/api/documentos/filtros', async (req, res) => {
             whereConditions.push('d.data_vencimento > DATE_ADD(CURDATE(), INTERVAL 30 DAY)');
         }
 
-        // Filtro por empresa
         if (empresa_id) {
             whereConditions.push('d.empresa_id = ?');
             queryParams.push(empresa_id);
         }
 
-        // Filtro por pesquisa
         if (search) {
             whereConditions.push('(d.nome LIKE ? OR e.razao_social LIKE ? OR d.tipo LIKE ?)');
             const searchTerm = `%${search}%`;
@@ -635,32 +546,14 @@ app.get('/api/documentos/filtros', async (req, res) => {
         }
 
         const whereClause = whereConditions.length > 0
-            ? `WHERE ${whereConditions.join(' AND ')}`
-            : '';
+            ? `WHERE ${whereConditions.join(' AND ')} ORDER BY d.data_vencimento ASC`
+            : 'ORDER BY d.data_vencimento ASC';
 
-        const query = `
-            SELECT 
-                d.*,
-                e.razao_social,
-                e.nome_fantasia,
-                e.cnpj as empresa_cnpj,
-                r.nome as responsavel_nome,
-                r.funcao as responsavel_funcao,
-                CASE 
-                    WHEN d.data_vencimento < CURDATE() THEN 'vencido'
-                    WHEN d.data_vencimento BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY) THEN 'proximo'
-                    ELSE 'valido'
-                END as status
-            FROM documentos d 
-            LEFT JOIN empresas e ON d.empresa_id = e.id 
-            LEFT JOIN responsaveis r ON d.responsavel_id = r.id 
-            ${whereClause}
-            ORDER BY d.data_vencimento ASC
-        `;
-
+        const query = getDocumentosSelectQuery(whereClause);
         const [rows] = await pool.execute(query, queryParams);
         console.log(`Encontrados ${rows.length} documentos com filtros`);
         res.json(rows);
+
     } catch (error) {
         console.error('Erro ao filtrar documentos:', error);
         res.status(500).json({ error: 'Erro ao filtrar documentos' });
@@ -675,16 +568,11 @@ app.get('/api/documentos/:id', async (req, res) => {
         const [rows] = await pool.execute(`
             SELECT 
                 d.*,
-                e.razao_social,
-                e.nome_fantasia,
-                e.cnpj as empresa_cnpj,
-                e.telefone as empresa_telefone,
-                e.email as empresa_email,
+                e.razao_social, e.nome_fantasia, e.cnpj as empresa_cnpj,
+                e.telefone as empresa_telefone, e.email as empresa_email,
                 e.endereco as empresa_endereco,
-                r.nome as responsavel_nome,
-                r.funcao as responsavel_funcao,
-                r.email as responsavel_email,
-                r.telefone as responsavel_telefone
+                r.nome as responsavel_nome, r.funcao as responsavel_funcao,
+                r.email as responsavel_email, r.telefone as responsavel_telefone
             FROM documentos d 
             LEFT JOIN empresas e ON d.empresa_id = e.id 
             LEFT JOIN responsaveis r ON d.responsavel_id = r.id 
@@ -696,6 +584,7 @@ app.get('/api/documentos/:id', async (req, res) => {
         }
 
         res.json(rows[0]);
+
     } catch (error) {
         console.error('Erro ao buscar documento:', error);
         res.status(500).json({ error: 'Erro ao buscar documento' });
@@ -705,32 +594,17 @@ app.get('/api/documentos/:id', async (req, res) => {
 app.put('/api/documentos/:id', upload.single('arquivo'), async (req, res) => {
     try {
         const documentoId = req.params.id;
-        console.log(`Atualizando documento ID: ${documentoId}`, req.body);
+        const { nome, tipo, empresa_id, responsavel_id, data_emissao, data_vencimento, observacoes } = req.body;
 
-        const {
-            nome,
-            tipo,
-            empresa_id,
-            responsavel_id,
-            data_emissao,
-            data_vencimento,
-            observacoes
-        } = req.body;
+        console.log(`Atualizando documento ID: ${documentoId}`);
 
-        // Buscar documento atual
-        const [documentos] = await pool.execute(
-            'SELECT * FROM documentos WHERE id = ?',
-            [documentoId]
-        );
+        const [documentos] = await pool.execute('SELECT * FROM documentos WHERE id = ?', [documentoId]);
 
         if (documentos.length === 0) {
             return res.status(404).json({ error: 'Documento não encontrado' });
         }
 
-        const documentoAtual = documentos[0];
-
-        // Atualizar documento
-        const arquivoPath = req.file ? req.file.filename : documentoAtual.arquivo_path;
+        const arquivoPath = req.file ? req.file.filename : documentos[0].arquivo_path;
 
         await pool.execute(
             `UPDATE documentos SET 
@@ -740,8 +614,7 @@ app.put('/api/documentos/:id', upload.single('arquivo'), async (req, res) => {
             [nome, tipo, empresa_id, responsavel_id, data_emissao, data_vencimento, observacoes || null, arquivoPath, documentoId]
         );
 
-        console.log('Documento atualizado com sucesso');
-        res.json({ message: 'Documento atualizado com sucesso', id: documentoId });
+        res.json({ message: 'Documento atualizado com sucesso' });
 
     } catch (error) {
         console.error('Erro ao atualizar documento:', error);
@@ -754,35 +627,26 @@ app.delete('/api/documentos/:id', async (req, res) => {
         const documentoId = req.params.id;
         console.log(`Excluindo documento ID: ${documentoId}`);
 
-        // Buscar documento para verificar se tem arquivo
-        const [documentos] = await pool.execute(
-            'SELECT arquivo_path FROM documentos WHERE id = ?',
-            [documentoId]
-        );
+        const [documentos] = await pool.execute('SELECT arquivo_path FROM documentos WHERE id = ?', [documentoId]);
 
         if (documentos.length === 0) {
             return res.status(404).json({ error: 'Documento não encontrado' });
         }
 
-        // Excluir arquivo físico se existir
         if (documentos[0].arquivo_path) {
             const filePath = path.join(projectRoot, 'uploads/documentos', documentos[0].arquivo_path);
             if (fs.existsSync(filePath)) {
                 fs.unlinkSync(filePath);
-                console.log('Arquivo físico excluído:', documentos[0].arquivo_path);
+                console.log('Arquivo excluído:', documentos[0].arquivo_path);
             }
         }
 
-        const [result] = await pool.execute(
-            'DELETE FROM documentos WHERE id = ?',
-            [documentoId]
-        );
+        const [result] = await pool.execute('DELETE FROM documentos WHERE id = ?', [documentoId]);
 
         if (result.affectedRows === 0) {
             return res.status(404).json({ error: 'Documento não encontrado' });
         }
 
-        console.log('Documento excluído com sucesso');
         res.json({ message: 'Documento excluído com sucesso' });
 
     } catch (error) {
@@ -794,7 +658,6 @@ app.delete('/api/documentos/:id', async (req, res) => {
 app.get('/api/documentos/:id/download', async (req, res) => {
     try {
         const documentoId = req.params.id;
-        console.log(`Download solicitado para documento ID: ${documentoId}`);
 
         const [documentos] = await pool.execute(
             'SELECT arquivo_path, nome FROM documentos WHERE id = ?',
@@ -805,16 +668,14 @@ app.get('/api/documentos/:id/download', async (req, res) => {
             return res.status(404).json({ error: 'Arquivo não encontrado' });
         }
 
-        const documento = documentos[0];
-        const filePath = path.join(projectRoot, 'uploads/documentos', documento.arquivo_path);
+        const filePath = path.join(projectRoot, 'uploads/documentos', documentos[0].arquivo_path);
 
         if (!fs.existsSync(filePath)) {
             return res.status(404).json({ error: 'Arquivo não encontrado no servidor' });
         }
 
-        // Configurar headers para download
-        const originalName = documento.arquivo_path.split('-').slice(2).join('-');
-        res.download(filePath, originalName || documento.nome + path.extname(documento.arquivo_path));
+        const originalName = documentos[0].arquivo_path.split('-').slice(2).join('-');
+        res.download(filePath, originalName || documentos[0].nome);
 
     } catch (error) {
         console.error('Erro ao fazer download:', error);
@@ -822,7 +683,9 @@ app.get('/api/documentos/:id/download', async (req, res) => {
     }
 });
 
-// ✅ ROTAS DE RESPONSÁVEIS - ADICIONAR AQUI
+// =============================================
+// ROTAS - RESPONSÁVEIS
+// =============================================
 app.get('/api/responsaveis', async (req, res) => {
     try {
         console.log('Buscando responsáveis...');
@@ -840,11 +703,9 @@ app.get('/api/responsaveis', async (req, res) => {
     }
 });
 
-// ✅ ROTA GET RESPONSÁVEL POR ID - NOVA
 app.get('/api/responsaveis/:id', async (req, res) => {
     try {
         const responsavelId = req.params.id;
-        console.log(`Buscando responsável ID: ${responsavelId}`);
 
         const [rows] = await pool.execute(`
             SELECT r.*, e.razao_social as empresa_nome 
@@ -858,32 +719,52 @@ app.get('/api/responsaveis/:id', async (req, res) => {
         }
 
         res.json(rows[0]);
+
     } catch (error) {
         console.error('Erro ao buscar responsável:', error);
         res.status(500).json({ error: 'Erro ao buscar responsável' });
     }
 });
 
-// ✅ ROTA PUT COMPLETAMENTE CORRIGIDA
+app.post('/api/responsaveis', async (req, res) => {
+    try {
+        console.log('=== CRIANDO RESPONSÁVEL ===');
+        console.log('Dados recebidos:', req.body);
+
+        const { nome, email, telefone, funcao, empresa_id } = req.body;
+
+        if (!nome || !email || !telefone || !funcao || !empresa_id) {
+            return res.status(400).json({ error: 'Preencha todos os campos obrigatórios' });
+        }
+
+        const [result] = await pool.execute(
+            'INSERT INTO responsaveis (nome, email, telefone, funcao, empresa_id) VALUES (?, ?, ?, ?, ?)',
+            [nome, email, telefone, funcao, empresa_id]
+        );
+
+        console.log('✅ RESPONSÁVEL CRIADO - ID:', result.insertId);
+        res.status(201).json({
+            id: result.insertId,
+            message: 'Responsável criado com sucesso'
+        });
+
+    } catch (error) {
+        console.error('❌ ERRO AO CRIAR RESPONSÁVEL:', error);
+        res.status(500).json({ error: 'Erro ao criar responsável' });
+    }
+});
+
 app.put('/api/responsaveis/:id', async (req, res) => {
     try {
         const responsavelId = req.params.id;
         const { nome, email, telefone, funcao, empresa_id } = req.body;
 
-        console.log('🎯 ROTA PUT /api/responsaveis/:id - DETALHES:');
-        console.log('📝 ID do responsável:', responsavelId);
-        console.log('📝 Dados recebidos:', req.body);
+        console.log(`🎯 Atualizando responsável ID: ${responsavelId}`);
 
-        // Validações básicas
         if (!nome || !email || !telefone || !funcao || !empresa_id) {
-            console.log('❌ Campos obrigatórios faltando');
-            return res.status(400).json({
-                error: 'Preencha todos os campos obrigatórios: nome, email, telefone, função, empresa'
-            });
+            return res.status(400).json({ error: 'Preencha todos os campos obrigatórios' });
         }
 
-        console.log('🔄 Executando UPDATE no banco...');
-        // ✅ QUERY CORRIGIDA - SEM observacoes
         const [result] = await pool.execute(
             `UPDATE responsaveis SET 
                 nome = ?, email = ?, telefone = ?, funcao = ?, empresa_id = ?
@@ -891,41 +772,22 @@ app.put('/api/responsaveis/:id', async (req, res) => {
             [nome, email, telefone, funcao, empresa_id, responsavelId]
         );
 
-        console.log('📊 Resultado do UPDATE:', {
-            affectedRows: result.affectedRows,
-            changedRows: result.changedRows
-        });
-
         if (result.affectedRows === 0) {
-            console.log('❌ Nenhum registro afetado - responsável não encontrado');
             return res.status(404).json({ error: 'Responsável não encontrado' });
         }
 
-        console.log('✅ Responsável atualizado com sucesso');
-        res.json({
-            message: 'Responsável atualizado com sucesso',
-            affectedRows: result.affectedRows
-        });
+        res.json({ message: 'Responsável atualizado com sucesso' });
 
     } catch (error) {
-        console.error('❌ ERRO DETALHADO ao atualizar responsável:');
-        console.error('📌 Código do erro:', error.code);
-        console.error('📌 Mensagem do erro:', error.message);
-
-        res.status(500).json({
-            error: 'Erro ao atualizar responsável',
-            details: error.message
-        });
+        console.error('Erro ao atualizar responsável:', error);
+        res.status(500).json({ error: 'Erro ao atualizar responsável' });
     }
 });
 
-// ✅ ROTA DELETE RESPONSÁVEL - NOVA
 app.delete('/api/responsaveis/:id', async (req, res) => {
     try {
         const responsavelId = req.params.id;
-        console.log(`Excluindo responsável ID: ${responsavelId}`);
 
-        // Verificar se existem documentos vinculados
         const [documentos] = await pool.execute(
             'SELECT id FROM documentos WHERE responsavel_id = ?',
             [responsavelId]
@@ -933,20 +795,16 @@ app.delete('/api/responsaveis/:id', async (req, res) => {
 
         if (documentos.length > 0) {
             return res.status(400).json({
-                error: 'Não é possível excluir: existem documentos vinculados a este responsável'
+                error: 'Não é possível excluir: existem documentos vinculados'
             });
         }
 
-        const [result] = await pool.execute(
-            'DELETE FROM responsaveis WHERE id = ?',
-            [responsavelId]
-        );
+        const [result] = await pool.execute('DELETE FROM responsaveis WHERE id = ?', [responsavelId]);
 
         if (result.affectedRows === 0) {
             return res.status(404).json({ error: 'Responsável não encontrado' });
         }
 
-        console.log('Responsável excluído com sucesso');
         res.json({ message: 'Responsável excluído com sucesso' });
 
     } catch (error) {
@@ -955,154 +813,15 @@ app.delete('/api/responsaveis/:id', async (req, res) => {
     }
 });
 
-/// ✅ ROTA POST COMPLETAMENTE CORRIGIDA
-app.post('/api/responsaveis', async (req, res) => {
-    try {
-        console.log('🎯 ROTA POST /api/responsaveis - Criando responsável...');
-        console.log('📝 Dados recebidos:', req.body);
-
-        const { nome, email, telefone, funcao, empresa_id } = req.body;
-
-        if (!nome || !email || !telefone || !funcao || !empresa_id) {
-            console.log('❌ Campos obrigatórios faltando');
-            return res.status(400).json({
-                error: 'Preencha todos os campos obrigatórios: nome, email, telefone, função, empresa'
-            });
-        }
-
-        console.log('🔄 Executando INSERT no banco...');
-        // ✅ QUERY CORRIGIDA - SEM observacoes
-        const [result] = await pool.execute(
-            'INSERT INTO responsaveis (nome, email, telefone, funcao, empresa_id) VALUES (?, ?, ?, ?, ?)',
-            [nome, email, telefone, funcao, empresa_id]
-        );
-
-        console.log('✅ Responsável criado com ID:', result.insertId);
-        res.status(201).json({
-            id: result.insertId,
-            message: 'Responsável criado com sucesso'
-        });
-
-    } catch (error) {
-        console.error('❌ ERRO DETALHADO ao criar responsável:');
-        console.error('📌 Código do erro:', error.code);
-        console.error('📌 Mensagem do erro:', error.message);
-
-        res.status(500).json({
-            error: 'Erro ao criar responsável',
-            details: error.message
-        });
-    }
-});
-
-// ✅ DASHBOARD
-app.get('/api/dashboard', async (req, res) => {
-    try {
-        console.log('Buscando dados do dashboard...');
-
-        const [[empresasCount]] = await pool.execute('SELECT COUNT(*) as total FROM empresas');
-        const [[documentosCount]] = await pool.execute('SELECT COUNT(*) as total FROM documentos');
-        const [[vencidosCount]] = await pool.execute('SELECT COUNT(*) as total FROM documentos WHERE data_vencimento < CURDATE()');
-        const [[proximosCount]] = await pool.execute('SELECT COUNT(*) as total FROM documentos WHERE data_vencimento BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY)');
-
-        const [proximosVencimentos] = await pool.execute(`
-            SELECT d.*, e.razao_social as empresa_nome 
-            FROM documentos d 
-            LEFT JOIN empresas e ON d.empresa_id = e.id 
-            WHERE d.data_vencimento BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY)
-            ORDER BY d.data_vencimento ASC
-            LIMIT 10
-        `);
-
-        const data = {
-            empresas: empresasCount.total,
-            documentos: documentosCount.total,
-            vencidos: vencidosCount.total,
-            proximos: proximosCount.total,
-            proximosVencimentos
-        };
-
-        console.log('Dados do dashboard:', data);
-        res.json(data);
-    } catch (error) {
-        console.error('Erro no dashboard:', error);
-        res.status(500).json({ error: 'Erro ao obter dados do dashboard' });
-    }
-});
-
-// ✅ ROTA PARA ESTATÍSTICAS DETALHADAS
-app.get('/api/dashboard/estatisticas', async (req, res) => {
-    try {
-        console.log('Buscando estatísticas detalhadas...');
-
-        const [[totalEmpresas]] = await pool.execute('SELECT COUNT(*) as total FROM empresas');
-        const [[totalDocumentos]] = await pool.execute('SELECT COUNT(*) as total FROM documentos');
-        const [[vencidosCount]] = await pool.execute('SELECT COUNT(*) as total FROM documentos WHERE data_vencimento < CURDATE()');
-        const [[proximosCount]] = await pool.execute('SELECT COUNT(*) as total FROM documentos WHERE data_vencimento BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY)');
-        const [[validosCount]] = await pool.execute('SELECT COUNT(*) as total FROM documentos WHERE data_vencimento > DATE_ADD(CURDATE(), INTERVAL 30 DAY)');
-
-        // Documentos vencidos
-        const [documentosVencidos] = await pool.execute(`
-            SELECT d.*, e.razao_social as empresa_nome 
-            FROM documentos d 
-            LEFT JOIN empresas e ON d.empresa_id = e.id 
-            WHERE d.data_vencimento < CURDATE()
-            ORDER BY d.data_vencimento ASC
-            LIMIT 20
-        `);
-
-        // Documentos próximos do vencimento
-        const [documentosProximos] = await pool.execute(`
-            SELECT d.*, e.razao_social as empresa_nome 
-            FROM documentos d 
-            LEFT JOIN empresas e ON d.empresa_id = e.id 
-            WHERE d.data_vencimento BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY)
-            ORDER BY d.data_vencimento ASC
-            LIMIT 20
-        `);
-
-        // Próximos vencimentos (todos para gráfico)
-        const [proximosVencimentos] = await pool.execute(`
-            SELECT d.*, e.razao_social as empresa_nome 
-            FROM documentos d 
-            LEFT JOIN empresas e ON d.empresa_id = e.id 
-            WHERE d.data_vencimento BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY)
-            ORDER BY d.data_vencimento ASC
-        `);
-
-        const data = {
-            estatisticas: {
-                empresas: totalEmpresas.total,
-                documentos: totalDocumentos.total,
-                vencidos: vencidosCount.total,
-                proximos: proximosCount.total,
-                validos: validosCount.total
-            },
-            documentosVencidos,
-            documentosProximos,
-            proximosVencimentos
-        };
-
-        console.log('Estatísticas detalhadas:', data.estatisticas);
-        res.json(data);
-    } catch (error) {
-        console.error('Erro nas estatísticas:', error);
-        res.status(500).json({ error: 'Erro ao obter estatísticas' });
-    }
-});
-
-// ✅ ROTAS PARA ACOMPANHAMENTO DE ANDAMENTO
+// =============================================
+// ROTAS - ANDAMENTOS
+// =============================================
 app.get('/api/documentos/:id/andamentos', async (req, res) => {
     try {
         const documentoId = req.params.id;
-        console.log(`🎯 ROTA API: Buscando andamentos do documento ID: ${documentoId}`);
+        console.log(`Buscando andamentos do documento ID: ${documentoId}`);
 
-        // Verificar se o documento existe
-        const [documentos] = await pool.execute(
-            'SELECT id FROM documentos WHERE id = ?',
-            [documentoId]
-        );
-
+        const [documentos] = await pool.execute('SELECT id FROM documentos WHERE id = ?', [documentoId]);
         if (documentos.length === 0) {
             return res.status(404).json({ error: 'Documento não encontrado' });
         }
@@ -1119,69 +838,43 @@ app.get('/api/documentos/:id/andamentos', async (req, res) => {
             ORDER BY da.data_criacao DESC
         `, [documentoId]);
 
-        console.log(`✅ Encontrados ${andamentos.length} andamentos para documento ${documentoId}`);
+        console.log(`Encontrados ${andamentos.length} andamentos`);
         res.json(andamentos);
 
     } catch (error) {
-        console.error('❌ Erro ao buscar andamentos:', error);
-        res.status(500).json({
-            error: 'Erro ao buscar andamentos',
-            details: error.message
-        });
+        console.error('Erro ao buscar andamentos:', error);
+        res.status(500).json({ error: 'Erro ao buscar andamentos' });
     }
 });
 
-// ✅ ROTA ADICIONAR ANDAMENTO
 app.post('/api/documentos/:id/andamentos', async (req, res) => {
     try {
         const documentoId = req.params.id;
         const { responsavel_id, descricao, status } = req.body;
 
-        console.log(`🎯 ROTA API: Adicionando andamento - Documento: ${documentoId}`, req.body);
+        console.log(`Adicionando andamento ao documento ID: ${documentoId}`);
 
-        // Validações
         if (!responsavel_id || !descricao) {
-            return res.status(400).json({
-                error: 'Responsável e descrição são obrigatórios'
-            });
+            return res.status(400).json({ error: 'Responsável e descrição são obrigatórios' });
         }
 
-        // Verificar se documento existe
-        const [documentos] = await pool.execute(
-            'SELECT id FROM documentos WHERE id = ?',
-            [documentoId]
-        );
+        const [documentos] = await pool.execute('SELECT id FROM documentos WHERE id = ?', [documentoId]);
         if (documentos.length === 0) {
             return res.status(404).json({ error: 'Documento não encontrado' });
         }
 
-        // Verificar se responsável existe
-        const [responsaveis] = await pool.execute(
-            'SELECT id FROM responsaveis WHERE id = ?',
-            [responsavel_id]
-        );
+        const [responsaveis] = await pool.execute('SELECT id FROM responsaveis WHERE id = ?', [responsavel_id]);
         if (responsaveis.length === 0) {
             return res.status(404).json({ error: 'Responsável não encontrado' });
         }
 
-        // Inserir andamento
         const [result] = await pool.execute(
             'INSERT INTO documento_andamentos (documento_id, responsavel_id, descricao, status) VALUES (?, ?, ?, ?)',
             [documentoId, responsavel_id, descricao, status || 'em_andamento']
         );
 
-        console.log('✅ Andamento inserido com ID:', result.insertId);
+        await pool.execute('UPDATE documentos SET status_geral = ? WHERE id = ?', [status, documentoId]);
 
-        // Atualizar status geral do documento
-        console.log(`🔄 Atualizando status geral do documento ${documentoId} para: ${status}`);
-        await pool.execute(
-            'UPDATE documentos SET status_geral = ? WHERE id = ?',
-            [status, documentoId]
-        );
-
-        console.log('✅ Status geral atualizado');
-
-        // Buscar andamento criado
         const [novoAndamento] = await pool.execute(`
             SELECT 
                 da.*,
@@ -1193,25 +886,18 @@ app.post('/api/documentos/:id/andamentos', async (req, res) => {
             WHERE da.id = ?
         `, [result.insertId]);
 
-        console.log('✅ Andamento adicionado com sucesso');
         res.status(201).json(novoAndamento[0]);
 
     } catch (error) {
-        console.error('❌ Erro ao adicionar andamento:', error);
-        res.status(500).json({
-            error: 'Erro ao adicionar andamento',
-            details: error.message
-        });
+        console.error('Erro ao adicionar andamento:', error);
+        res.status(500).json({ error: 'Erro ao adicionar andamento' });
     }
 });
 
-// Atualizar status do documento
 app.put('/api/documentos/:id/status', async (req, res) => {
     try {
         const documentoId = req.params.id;
         const { status_geral } = req.body;
-
-        console.log(`Atualizando status do documento ID: ${documentoId} para: ${status_geral}`);
 
         const [result] = await pool.execute(
             'UPDATE documentos SET status_geral = ? WHERE id = ?',
@@ -1226,15 +912,83 @@ app.put('/api/documentos/:id/status', async (req, res) => {
 
     } catch (error) {
         console.error('Erro ao atualizar status:', error);
-        res.status(500).json({
-            error: 'Erro ao atualizar status',
-            details: error.message
-        });
+        res.status(500).json({ error: 'Erro ao atualizar status' });
     }
 });
 
 // =============================================
-// ✅ MIDDLEWARE DE ERRO
+// ROTAS - DASHBOARD
+// =============================================
+app.get('/api/dashboard', async (req, res) => {
+    try {
+        console.log('Buscando dados do dashboard...');
+
+        const stats = await getEstatisticasDashboard();
+
+        const [proximosVencimentos] = await pool.execute(`
+            SELECT d.*, e.razao_social as empresa_nome 
+            FROM documentos d 
+            LEFT JOIN empresas e ON d.empresa_id = e.id 
+            WHERE d.data_vencimento BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY)
+            ORDER BY d.data_vencimento ASC
+            LIMIT 10
+        `);
+
+        res.json({ ...stats, proximosVencimentos });
+
+    } catch (error) {
+        console.error('Erro no dashboard:', error);
+        res.status(500).json({ error: 'Erro ao obter dados do dashboard' });
+    }
+});
+
+app.get('/api/dashboard/estatisticas', async (req, res) => {
+    try {
+        console.log('Buscando estatísticas detalhadas...');
+
+        const stats = await getEstatisticasDashboard();
+
+        const [documentosVencidos] = await pool.execute(`
+            SELECT d.*, e.razao_social as empresa_nome 
+            FROM documentos d 
+            LEFT JOIN empresas e ON d.empresa_id = e.id 
+            WHERE d.data_vencimento < CURDATE()
+            ORDER BY d.data_vencimento ASC
+            LIMIT 20
+        `);
+
+        const [documentosProximos] = await pool.execute(`
+            SELECT d.*, e.razao_social as empresa_nome 
+            FROM documentos d 
+            LEFT JOIN empresas e ON d.empresa_id = e.id 
+            WHERE d.data_vencimento BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY)
+            ORDER BY d.data_vencimento ASC
+            LIMIT 20
+        `);
+
+        const [proximosVencimentos] = await pool.execute(`
+            SELECT d.*, e.razao_social as empresa_nome 
+            FROM documentos d 
+            LEFT JOIN empresas e ON d.empresa_id = e.id 
+            WHERE d.data_vencimento BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY)
+            ORDER BY d.data_vencimento ASC
+        `);
+
+        res.json({
+            estatisticas: stats,
+            documentosVencidos,
+            documentosProximos,
+            proximosVencimentos
+        });
+
+    } catch (error) {
+        console.error('Erro nas estatísticas:', error);
+        res.status(500).json({ error: 'Erro ao obter estatísticas' });
+    }
+});
+
+// =============================================
+// MIDDLEWARE DE ERRO
 // =============================================
 app.use((error, req, res, next) => {
     if (error instanceof multer.MulterError) {
@@ -1246,27 +1000,22 @@ app.use((error, req, res, next) => {
 });
 
 // =============================================
-// ✅ ROTAS DO FRONTEND - ÚLTIMAS!
+// ROTAS DO FRONTEND
 // =============================================
 app.get('/', (req, res) => {
-    console.log('🏠 Servindo frontend para rota /');
-    res.sendFile(path.join(projectRoot, 'frontend/index.html'));
+    res.sendFile(path.join(projectRoot, 'frontend/public/index.html'));
 });
 
-// Rota catch-all para SPA - DEVE SER A ÚLTIMA!
 app.get('*', (req, res) => {
-    console.log('🏠 Rota catch-all servindo frontend para:', req.url);
-    res.sendFile(path.join(projectRoot, 'frontend', 'public', 'index.html'));
+    res.sendFile(path.join(projectRoot, 'frontend/public/index.html'));
 });
 
 // =============================================
-// ✅ INICIAR SERVIDOR
+// INICIAR SERVIDOR
 // =============================================
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`🚀 Servidor rodando na porta ${PORT}`);
     console.log(`📊 Acesse: http://localhost:${PORT}`);
     console.log(`🔧 Health check: http://localhost:${PORT}/api/health`);
-    console.log(`📁 Uploads: http://localhost:${PORT}/uploads/documentos/`);
-    console.log(`📋 API Andamentos: http://localhost:${PORT}/api/documentos/1/andamentos`);
 });

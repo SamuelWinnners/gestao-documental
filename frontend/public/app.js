@@ -6,100 +6,304 @@ const API_BASE = window.location.hostname === 'localhost'
     ? 'http://localhost:3000/api'
     : 'https://gestao-documental-production.up.railway.app/api';
 
+// ✅ CSS PARA CALENDÁRIO
+const calendarioCSS = `
+<style id="calendario-css">
+.calendario-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 1px;
+    background-color: #dee2e6;
+    border: 1px solid #dee2e6;
+}
+
+.calendario-dia {
+    background: white;
+    min-height: 100px;
+    padding: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 2px solid transparent;
+}
+
+.calendario-dia:hover {
+    background: #f8f9fa;
+    border-color: #007bff;
+}
+
+.calendario-dia.hoje {
+    background: #e7f3ff;
+    border-color: #007bff;
+}
+
+.calendario-dia.com-vencimentos {
+    background: #ffe6e6;
+    border-color: #dc3545;
+}
+
+.calendario-dia.com-proximos {
+    background: #fff3cd;
+    border-color: #ffc107;
+}
+
+.calendario-dia.com-documentos {
+    background: #f8f9fa;
+}
+
+.dia-numero {
+    font-weight: bold;
+    margin-bottom: 4px;
+}
+
+.documentos-info {
+    font-size: 0.75rem;
+}
+
+.indicadores-status {
+    display: flex;
+    gap: 2px;
+    margin-top: 2px;
+}
+
+.indicador-vencido, .indicador-proximo, .indicador-normal {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.indicador-vencido {
+    background-color: #dc3545;
+}
+
+.indicador-proximo {
+    background-color: #ffc107;
+}
+
+.indicador-normal {
+    background-color: #28a745;
+}
+
+.calendario-header {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    background: #343a40;
+    color: white;
+    font-weight: bold;
+}
+
+.calendario-dia-header {
+    padding: 8px;
+    text-align: center;
+    font-size: 0.875rem;
+}
+
+.calendario-dia.vazio {
+    background: #f8f9fa;
+    cursor: default;
+}
+
+.calendario-dia.vazio:hover {
+    background: #f8f9fa;
+    border-color: transparent;
+}
+
+/* Cards de documentos no modal */
+.documentos-dia .card {
+    transition: transform 0.2s ease;
+}
+
+.documentos-dia .card:hover {
+    transform: translateY(-2px);
+}
+</style>
+`;
+
+// ✅ INJETAR CSS NO HEAD
+function injetarCSSCalendario() {
+    if (!document.getElementById('calendario-css')) {
+        const style = document.createElement('style');
+        style.id = 'calendario-css';
+        style.textContent = calendarioCSS;
+        document.head.appendChild(style);
+    }
+}
+
 class App {
-    co// ✅ CONSTRUTOR
     constructor() {
         this.currentPage = 'dashboard';
+        this.documentoAtual = null;
+        this.arquivoSelecionado = null;
+        this.alertas = { totalAlertas: 0 };
+        this.calendarioAtual = null;
         this.init();
     }
 
-    // ✅ INIT
     init() {
         this.testConnection();
         this.bindEvents();
         this.loadPage('dashboard');
+        this.inicializarMenuMobile();
+        injetarCSSCalendario();
 
-        // Notificações após 3 segundos
         setTimeout(() => {
             this.notificacoesSimples();
-        }, 3000);
+        }, 2000);
     }
 
     // ✅ SISTEMA SIMPLES DE NOTIFICAÇÕES
     async notificacoesSimples() {
         try {
             console.log('🔔 Verificando alertas...');
-
             const response = await fetch('/api/alertas');
             const alertas = await response.json();
-
             console.log('📊 Alertas:', alertas.totalAlertas);
 
             if (alertas.totalAlertas > 0) {
                 this.mostrarNotificacao(alertas);
             }
-
         } catch (error) {
             console.log('Erro alertas:', error);
         }
     }
 
-    // ✅ NOTIFICAÇÃO SIMPLES
+    // ✅ FALLBACK - ALERTA NA TELA
+    mostrarAlertaTela(alertas, motivo) {
+        console.log('📱 MOSTRANDO ALERTA NA TELA - Motivo:', motivo);
+
+        let mensagem = '';
+        let tipo = 'info';
+
+        if (alertas.totalVencidos > 0 && alertas.totalProximos > 0) {
+            mensagem = `🚨 ${alertas.totalVencidos} DOCUMENTOS VENCIDOS + ${alertas.totalProximos} PRÓXIMOS DO VENCIMENTO`;
+            tipo = 'danger';
+        } else if (alertas.totalVencidos > 0) {
+            mensagem = `🚨 ${alertas.totalVencidos} DOCUMENTO(S) VENCIDO(S) - ATENÇÃO URGENTE`;
+            tipo = 'danger';
+        } else if (alertas.totalProximos > 0) {
+            mensagem = `⚠️ ${alertas.totalProximos} documento(s) próximo(s) do vencimento`;
+            tipo = 'warning';
+        } else {
+            return; // Não mostrar se não há alertas
+        }
+
+        // Adicionar link para documentos
+        mensagem += ` - <a href="javascript:app.loadPage('documentos')" class="alert-link">Ver Documentos</a>`;
+        this.showAlert(mensagem, tipo);
+
+        // Manter o alerta por mais tempo
+        setTimeout(() => {
+            const alerts = document.querySelectorAll('.alert');
+            alerts.forEach(alert => {
+                if (alert.textContent.includes('DOCUMENTOS')) {
+                    const bsAlert = new bootstrap.Alert(alert);
+                    // Não fechar automaticamente - deixar usuário fechar
+                }
+            });
+        }, 100);
+    }
+
+    // ✅ MÉTODO ATUALIZADO
     mostrarNotificacao(alertas) {
+        console.log('🔔 MOSTRAR NOTIFICAÇÃO - Status permissão:', Notification.permission);
+
         // Verificar se o navegador suporta
         if (!("Notification" in window)) {
-            console.log('Navegador não suporta notificações');
+            console.log('❌ Navegador não suporta notificações');
+            this.mostrarAlertaTela(alertas, 'navegador_nao_suporta');
             return;
         }
 
         // Se já tem permissão
         if (Notification.permission === "granted") {
+            console.log('✅ PERMISSÃO CONCEDIDA - Criando notificação...');
             this.criarNoti(alertas);
         }
         // Se precisa pedir permissão
         else if (Notification.permission === "default") {
+            console.log('🔄 PEDINDO PERMISSÃO...');
             Notification.requestPermission().then(permissao => {
+                console.log('📋 RESPOSTA PERMISSÃO:', permissao);
                 if (permissao === "granted") {
+                    console.log('✅ PERMISSÃO OBTIDA - Criando notificação...');
                     this.criarNoti(alertas);
+                } else {
+                    console.log('❌ PERMISSÃO NEGADA - Mostrando alerta na tela');
+                    this.mostrarAlertaTela(alertas, 'permissao_negada');
                 }
             });
+        } else {
+            console.log('❌ PERMISSÃO BLOQUEADA - Mostrando alerta na tela');
+            this.mostrarAlertaTela(alertas, 'permissao_bloqueada');
         }
     }
 
-    // ✅ CRIAR NOTIFICAÇÃO
+    // ✅ MÉTODO CORRIGIDO - SEM ACTIONS
     criarNoti(alertas) {
         let mensagem = '';
+        let isUrgent = false;
 
         if (alertas.totalVencidos > 0 && alertas.totalProximos > 0) {
             mensagem = `${alertas.totalVencidos} vencidos + ${alertas.totalProximos} próximos`;
+            isUrgent = true;
         } else if (alertas.totalVencidos > 0) {
             mensagem = `${alertas.totalVencidos} documento(s) VENCIDO(S)`;
+            isUrgent = true;
         } else {
             mensagem = `${alertas.totalProximos} documento(s) próximo(s)`;
         }
 
-        // Criar notificação
-        const notificacao = new Notification("📋 Gestão Documental", {
+        // ✅ CONFIGURAÇÃO SIMPLES SEM ACTIONS
+        const options = {
             body: mensagem,
-            icon: "/icon.png"
-        });
-
-        // Quando clicar, abrir documentos
-        notificacao.onclick = () => {
-            window.focus();
-            this.loadPage('documentos');
+            icon: "/icon.png",
+            tag: "gestao-documental-alertas",
+            requireInteraction: isUrgent, // ⭐ Permanece se for urgente
+            silent: false,
+            badge: "/icon.png"
         };
 
-        // Fechar após 5 segundos
-        setTimeout(() => {
-            notificacao.close();
-        }, 5000);
+        // ⭐ Para alertas urgentes, adicionar vibração (se suportado)
+        if (isUrgent && 'vibrate' in navigator) {
+            options.vibrate = [200, 100, 200];
+        }
+
+        console.log('📨 CRIANDO NOTIFICAÇÃO:', options);
+
+        try {
+            const notificacao = new Notification("📋 Gestão Documental", options);
+
+            notificacao.onclick = () => {
+                console.log('👆 NOTIFICAÇÃO CLICADA - Abrindo documentos...');
+                window.focus();
+                this.loadPage('documentos');
+                notificacao.close();
+            };
+
+            // ⏰ Fechar após mais tempo apenas se não for urgente
+            if (!isUrgent) {
+                setTimeout(() => {
+                    console.log('⏰ FECHANDO NOTIFICAÇÃO NÃO URGENTE');
+                    notificacao.close();
+                }, 10000);
+            } else {
+                console.log('🚨 NOTIFICAÇÃO URGENTE - Permanece até interação');
+            }
+
+            return notificacao;
+
+        } catch (error) {
+            console.error('❌ ERRO AO CRIAR NOTIFICAÇÃO:', error);
+            // Fallback: mostrar alerta na tela
+            this.mostrarAlertaTela(alertas, 'erro_notificacao');
+        }
     }
 
+    // ✅ TESTAR CONEXÃO COM SERVIDOR
     async testConnection() {
         try {
             console.log('Testando conexão com o servidor...');
-            const response = await fetch(`${API_BASE}/health`); // <-- aqui
+            const response = await fetch(`${API_BASE}/health`);
             if (response.ok) {
                 const data = await response.json();
                 console.log('✅ Conexão com servidor OK:', data);
@@ -112,53 +316,132 @@ class App {
         }
     }
 
+    // ✅ EVENTOS MOBILE COMPACTOS
     bindEvents() {
         // Navegação do sidebar
         document.addEventListener('click', (e) => {
             if (e.target.closest('.sidebar-nav .nav-link')) {
                 e.preventDefault();
                 const link = e.target.closest('.nav-link');
-                this.setActiveLink(link);
+
+                // ✅ Fechar menu no mobile
+                if (window.innerWidth <= 768) {
+                    this.toggleMenuMobile();
+                }
 
                 const page = link.getAttribute('data-page');
                 this.loadPage(page);
             }
         });
-    }
 
-    setActiveLink(activeLink) {
-        document.querySelectorAll('.sidebar-nav .nav-link').forEach(link => {
-            link.classList.remove('active');
+        // ✅ Fechar menu ao clicar fora (mobile)
+        document.addEventListener('click', (e) => {
+            if (window.innerWidth <= 768 &&
+                !e.target.closest('.sidebar') &&
+                !e.target.closest('#menuToggle') &&
+                !e.target.closest('.navbar')) {
+                document.querySelector('.sidebar')?.classList.remove('mobile-open');
+            }
         });
-        activeLink.classList.add('active');
+
+        // Remover mobile-open automaticamente ao redimensionar acima de 768px
+        window.addEventListener('resize', () => {
+            if (window.innerWidth > 768) {
+                document.querySelector('.sidebar')?.classList.remove('mobile-open');
+                const mt = document.getElementById('menuToggle');
+                if (mt) mt.setAttribute('aria-expanded', 'false');
+            }
+        });
     }
 
-// ✅ MÉTODOS DO CALENDÁRIO COMPLETOS E CORRIGIDOS
+    // ✅ INICIALIZAR MENU MOBILE
+    inicializarMenuMobile() {
+        if (!document.getElementById('menuToggle')) {
+            // Tenta localizar o container da navbar de forma mais flexível
+            let navbarContainer = document.querySelector('.navbar .container-fluid') || document.querySelector('.navbar') || document.querySelector('header');
+            if (!navbarContainer) {
+                console.warn('Navbar não encontrada para inserir botão de menu mobile');
+                return;
+            }
 
-// ✅ RENDERIZAR CALENDÁRIO PRINCIPAL
-async renderCalendario() {
-    try {
-        const hoje = new Date();
-        const ano = hoje.getFullYear();
-        const mes = hoje.getMonth() + 1;
-        
-        return await this.renderCalendarioComDados(ano, mes);
-    } catch (error) {
-        return this.renderError('calendário', error);
+            const menuToggle = document.createElement('button');
+            menuToggle.id = 'menuToggle';
+            menuToggle.type = 'button';
+            menuToggle.className = 'navbar-toggler d-md-none';
+            menuToggle.setAttribute('aria-label', 'Abrir menu lateral');
+            menuToggle.setAttribute('aria-expanded', 'false');
+            menuToggle.setAttribute('aria-controls', 'sidebar');
+            menuToggle.innerHTML = '<i class="fas fa-bars" aria-hidden="true"></i>';
+
+            // usar event listener e stopPropagation para evitar fechamento imediato
+            menuToggle.addEventListener('click', (ev) => {
+                ev.stopPropagation();
+                console.log('menuToggle clicado');
+                this.toggleMenuMobile();
+            });
+
+            // Acessibilidade: abrir com Enter / Space
+            menuToggle.addEventListener('keydown', (ev) => {
+                if (ev.key === 'Enter' || ev.key === ' ') {
+                    ev.preventDefault();
+                    ev.stopPropagation();
+                    this.toggleMenuMobile();
+                }
+            });
+
+            // Inserir no início do container (prepend)
+            navbarContainer.prepend(menuToggle);
+            console.log('menuToggle criado e inserido no DOM');
+        }
     }
-}
 
-// ✅ RENDERIZAR CALENDÁRIO COM DADOS ESPECÍFICOS
-async renderCalendarioComDados(ano, mes) {
-    try {
-        console.log(`📅 Carregando calendário: ${mes}/${ano}`);
-        
-        const calendario = await this.apiRequest(`/calendario/${ano}/${mes}`);
-        
-        // Salvar estado atual
-        this.calendarioAtual = { ano: calendario.ano, mes: calendario.mes };
-        
-        return `
+    // ✅ TOGGLE MENU MOBILE
+    toggleMenuMobile() {
+        const sidebar = document.querySelector('.sidebar');
+        const btn = document.getElementById('menuToggle');
+
+        if (!sidebar) {
+            console.warn('Sidebar não encontrada ao tentar abrir/fechar menu mobile');
+            return;
+        }
+
+        sidebar.classList.toggle('mobile-open');
+        const isOpen = sidebar.classList.contains('mobile-open');
+
+        // Atualizar atributo aria-expanded do botão (se existir)
+        if (btn) {
+            btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+        }
+
+        console.log('toggleMenuMobile chamado — aberto:', isOpen);
+    }
+
+    // ============================
+    // ✅ SISTEMA DE CALENDÁRIO MELHORADO
+    // ============================
+
+    // ✅ RENDERIZAR CALENDÁRIO PRINCIPAL
+    async renderCalendario() {
+        try {
+            const hoje = new Date();
+            const ano = hoje.getFullYear();
+            const mes = hoje.getMonth() + 1;
+            return await this.renderCalendarioComDados(ano, mes);
+        } catch (error) {
+            return this.renderError('calendário', error);
+        }
+    }
+
+    // ✅ RENDERIZAR CALENDÁRIO COM DADOS ESPECÍFICOS
+    async renderCalendarioComDados(ano, mes) {
+        try {
+            console.log(`📅 Carregando calendário: ${mes}/${ano}`);
+            const calendario = await this.apiRequest(`/calendario/${ano}/${mes}`);
+
+            // Salvar estado atual
+            this.calendarioAtual = { ano: calendario.ano, mes: calendario.mes };
+
+            return `
             <div class="calendario-container">
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <h1 class="page-title">
@@ -214,7 +497,7 @@ async renderCalendarioComDados(ano, mes) {
                                 <div class="col-md-6">
                                     <label class="form-label">Mês</label>
                                     <select class="form-select" id="selectMes" onchange="app.irParaMes(this.value)">
-                                        ${Array.from({length: 12}, (_, i) => `
+                                        ${Array.from({ length: 12 }, (_, i) => `
                                             <option value="${i + 1}" ${calendario.mes === i + 1 ? 'selected' : ''}>
                                                 ${this.getNomeMes(i + 1)}
                                             </option>
@@ -224,14 +507,7 @@ async renderCalendarioComDados(ano, mes) {
                                 <div class="col-md-6">
                                     <label class="form-label">Ano</label>
                                     <select class="form-select" id="selectAno" onchange="app.irParaAno(this.value)">
-                                        ${Array.from({length: 5}, (_, i) => {
-                                            const anoOpcao = new Date().getFullYear() - 2 + i;
-                                            return `
-                                                <option value="${anoOpcao}" ${calendario.ano === anoOpcao ? 'selected' : ''}>
-                                                    ${anoOpcao}
-                                                </option>
-                                            `;
-                                        }).join('')}
+                                        ${this.renderOpcoesAno(calendario.ano)}
                                     </select>
                                 </div>
                             </div>
@@ -240,9 +516,9 @@ async renderCalendarioComDados(ano, mes) {
                 </div>
             </div>
         `;
-    } catch (error) {
-        console.error('❌ Erro no calendário:', error);
-        return `
+        } catch (error) {
+            console.error('❌ Erro no calendário:', error);
+            return `
             <div class="alert alert-danger">
                 <h4>Erro ao carregar calendário</h4>
                 <p>${error.message}</p>
@@ -251,140 +527,34 @@ async renderCalendarioComDados(ano, mes) {
                 </button>
             </div>
         `;
-    }
-}
-
-// ✅ FUNÇÕES AUXILIARES DO CALENDÁRIO
-getNomeMes(mes) {
-    const meses = [
-        'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
-        'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
-    ];
-    return meses[mes - 1] || 'Mês Inválido';
-}
-
-getDataAtual() {
-    const hoje = new Date();
-    return {
-        ano: hoje.getFullYear(),
-        mes: hoje.getMonth() + 1
-    };
-}
-
-// ✅ NAVEGAÇÃO DO CALENDÁRIO
-async navegarMesAnterior() {
-    try {
-        let { ano, mes } = this.calendarioAtual || this.getDataAtual();
-        
-        mes--;
-        if (mes < 1) {
-            mes = 12;
-            ano--;
         }
-        
-        console.log(`◀️ Navegando para: ${mes}/${ano}`);
-        await this.atualizarCalendario(ano, mes);
-        
-    } catch (error) {
-        console.error('❌ Erro navegação anterior:', error);
     }
-}
 
-async navegarProximoMes() {
-    try {
-        let { ano, mes } = this.calendarioAtual || this.getDataAtual();
-        
-        mes++;
-        if (mes > 12) {
-            mes = 1;
-            ano++;
-        }
-        
-        console.log(`▶️ Navegando para: ${mes}/${ano}`);
-        await this.atualizarCalendario(ano, mes);
-        
-    } catch (error) {
-        console.error('❌ Erro navegação próximo:', error);
+    // ✅ RENDERIZAR OPÇÕES DE ANO (MAIS ANOS)
+    renderOpcoesAno(anoAtual) {
+        const anoBase = new Date().getFullYear();
+        // Mostrar 10 anos para trás e 5 anos para frente
+        const anos = Array.from({ length: 16 }, (_, i) => anoBase - 10 + i);
+
+        return anos.map(ano => `
+            <option value="${ano}" ${anoAtual === ano ? 'selected' : ''}>
+                ${ano}
+            </option>
+        `).join('');
     }
-}
 
-async irParaMesAtual() {
-    try {
-        const { ano, mes } = this.getDataAtual();
-        console.log(`🗓️ Indo para mês atual: ${mes}/${ano}`);
-        await this.atualizarCalendario(ano, mes);
-        
-    } catch (error) {
-        console.error('❌ Erro mês atual:', error);
-    }
-}
+    // ✅ RENDERIZAR GRID DO CALENDÁRIO MELHORADO
+    renderCalendarioGrid(calendario) {
+        const hoje = new Date();
+        const ano = calendario.ano;
+        const mes = calendario.mes - 1;
 
-async irParaMes(novoMes) {
-    try {
-        const { ano } = this.calendarioAtual || this.getDataAtual();
-        console.log(`📅 Indo para mês: ${novoMes}/${ano}`);
-        await this.atualizarCalendario(ano, parseInt(novoMes));
-        
-    } catch (error) {
-        console.error('❌ Erro ir para mês:', error);
-    }
-}
+        const primeiroDia = new Date(ano, mes, 1);
+        const ultimoDia = new Date(ano, mes + 1, 0);
+        const diasNoMes = ultimoDia.getDate();
+        const primeiroDiaSemana = primeiroDia.getDay();
 
-async irParaAno(novoAno) {
-    try {
-        const { mes } = this.calendarioAtual || this.getDataAtual();
-        console.log(`📅 Indo para ano: ${mes}/${novoAno}`);
-        await this.atualizarCalendario(parseInt(novoAno), mes);
-        
-    } catch (error) {
-        console.error('❌ Erro ir para ano:', error);
-    }
-}
-
-async atualizarCalendario(ano, mes) {
-    try {
-        console.log(`🔄 Atualizando calendário para: ${mes}/${ano}`);
-        
-        // Mostrar loading
-        const pageContent = document.getElementById('page-content');
-        if (pageContent) {
-            pageContent.innerHTML = `
-                <div class="text-center py-5">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Carregando...</span>
-                    </div>
-                    <p class="mt-2">Carregando calendário...</p>
-                </div>
-            `;
-        }
-        
-        // Carregar novo calendário
-        const novoCalendario = await this.renderCalendarioComDados(ano, mes);
-        
-        if (pageContent) {
-            pageContent.innerHTML = novoCalendario;
-        }
-        
-        console.log('✅ Calendário atualizado com sucesso!');
-        
-    } catch (error) {
-        console.error('❌ Erro ao atualizar calendário:', error);
-        this.showAlert('Erro ao carregar calendário: ' + error.message, 'danger');
-    }
-}
-
-// ✅ RENDERIZAR GRID DO CALENDÁRIO
-renderCalendarioGrid(calendario) {
-    const hoje = new Date();
-    const ano = calendario.ano;
-    const mes = calendario.mes - 1;
-    
-    const primeiroDia = new Date(ano, mes, 1);
-    const ultimoDia = new Date(ano, mes + 1, 0);
-    const diasNoMes = ultimoDia.getDate();
-    const primeiroDiaSemana = primeiroDia.getDay();
-
-    let html = `
+        let html = `
         <div class="calendario-header">
             <div class="calendario-dia-header">Dom</div>
             <div class="calendario-dia-header">Seg</div>
@@ -396,62 +566,503 @@ renderCalendarioGrid(calendario) {
         </div>
         <div class="calendario-grid">
     `;
-    
-    // Dias vazios no início
-    for (let i = 0; i < primeiroDiaSemana; i++) {
-        html += '<div class="calendario-dia vazio"></div>';
-    }
 
-    // Dias do mês
-    for (let dia = 1; dia <= diasNoMes; dia++) {
-        const documentos = calendario.documentosPorDia[dia] || [];
-        const isHoje = dia === hoje.getDate() && 
-                      mes === hoje.getMonth() && 
-                      ano === hoje.getFullYear();
-        
-        let classe = 'calendario-dia';
-        if (isHoje) classe += ' hoje';
-        if (documentos.length > 0) classe += ' com-documentos';
-        
-        html += `
-            <div class="${classe}" onclick="app.verDia(${dia}, ${calendario.mes}, ${calendario.ano})">
+        // Dias vazios no início
+        for (let i = 0; i < primeiroDiaSemana; i++) {
+            html += '<div class="calendario-dia vazio"></div>';
+        }
+
+        // Dias do mês
+        for (let dia = 1; dia <= diasNoMes; dia++) {
+            const documentos = calendario.documentosPorDia[dia] || [];
+            const isHoje = dia === hoje.getDate() &&
+                mes === hoje.getMonth() &&
+                ano === hoje.getFullYear();
+
+            let classe = 'calendario-dia';
+            if (isHoje) classe += ' hoje';
+            if (documentos.length > 0) classe += ' com-documentos';
+
+            // Verificar se há documentos vencidos
+            const documentosVencidos = documentos.filter(doc => this.isDocumentoVencido(doc));
+            const documentosProximos = documentos.filter(doc => this.isDocumentoProximo(doc));
+
+            if (documentosVencidos.length > 0) {
+                classe += ' com-vencimentos';
+            } else if (documentosProximos.length > 0) {
+                classe += ' com-proximos';
+            }
+
+            html += `
+            <div class="${classe}" onclick="app.verDetalhesDia(${dia}, ${calendario.mes}, ${calendario.ano})">
                 <div class="dia-numero">${dia}</div>
                 ${documentos.length > 0 ? `
                     <div class="documentos-info">
                         <small>${documentos.length} doc(s)</small>
-                        <div class="tipos-documentos">
-                            ${documentos.slice(0, 2).map(doc => 
-                                `<span class="tipo-badge">${doc.tipo}</span>`
-                            ).join('')}
-                            ${documentos.length > 2 ? '<span class="tipo-badge">...</span>' : ''}
+                        <div class="indicadores-status">
+                            ${documentosVencidos.length > 0 ? '<span class="indicador-vencido" title="Documentos vencidos"></span>' : ''}
+                            ${documentosProximos.length > 0 ? '<span class="indicador-proximo" title="Documentos próximos"></span>' : ''}
+                            ${documentos.length > documentosVencidos.length + documentosProximos.length ? '<span class="indicador-normal" title="Documentos em dia"></span>' : ''}
                         </div>
                     </div>
                 ` : ''}
             </div>
         `;
+        }
+
+        html += '</div>';
+        return html;
     }
 
-    html += '</div>';
-    return html;
-}
+    // ✅ VER DETALHES DO DIA - MELHORADO
+    async verDetalhesDia(dia, mes, ano) {
+        try {
+            const dataFormatada = `${dia.toString().padStart(2, '0')}/${mes.toString().padStart(2, '0')}/${ano}`;
+            const dataISO = `${ano}-${mes.toString().padStart(2, '0')}-${dia.toString().padStart(2, '0')}`;
 
-// ✅ VER DETALHES DO DIA
-verDia(dia, mes, ano) {
-    const dataFormatada = `${dia.toString().padStart(2, '0')}/${mes.toString().padStart(2, '0')}/${ano}`;
-    
-    this.showModal(`Documentos do dia ${dataFormatada}`, `
-        <div class="alert alert-info">
-            <i class="fas fa-calendar-day me-2"></i>
-            Documentos vencendo em <strong>${dataFormatada}</strong>
+            console.log(`📋 Carregando detalhes do dia: ${dataISO}`);
+
+            // Buscar documentos do dia específico
+            const [documentos] = await Promise.all([
+                this.apiRequest('/documentos').then(docs =>
+                    docs.filter(doc => {
+                        const vencimento = new Date(doc.data_vencimento);
+                        const dataVencimento = `${vencimento.getFullYear()}-${String(vencimento.getMonth() + 1).padStart(2, '0')}-${String(vencimento.getDate()).padStart(2, '0')}`;
+                        return dataVencimento === dataISO;
+                    })
+                )
+            ]);
+
+            console.log(`📄 Encontrados ${documentos.length} documento(s) para ${dataISO}`);
+
+            let content = `
+            <div class="detalhe-dia-container">
+                <!-- Cabeçalho com data -->
+                <div class="alert alert-info mb-4">
+                    <h5 class="mb-0">
+                        <i class="fas fa-calendar-day me-2"></i>
+                        <strong>${this.getNomeMes(mes)} de ${ano}</strong> - Dia ${dia}
+                    </h5>
+                </div>
+        `;
+
+            if (documentos.length === 0) {
+                content += `
+                <div class="text-center py-5">
+                    <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">Nenhum documento para esta data</h5>
+                    <p class="text-muted">Não há documentos vencendo em ${dataFormatada}.</p>
+                </div>
+            `;
+            } else {
+                content += `<div class="row g-3" id="documentos-dia-container">`;
+
+                // Carregar todos os andamentos em paralelo
+                for (const doc of documentos) {
+                    let andamentos = [];
+                    try {
+                        andamentos = await this.apiRequest(`/documentos/${doc.id}/andamentos`);
+                    } catch (error) {
+                        console.log(`Erro ao carregar andamentos do doc ${doc.id}:`, error);
+                    }
+
+                    const ultimoAndamento = andamentos.length > 0 ? andamentos[0] : null;
+                    const diasRestantes = this.calculateDiasRestantes(doc.data_vencimento);
+                    const statusClass = diasRestantes < 0 ? 'danger' : diasRestantes <= 30 ? 'warning' : 'success';
+
+                    content += `
+                    <div class="col-12">
+                        <div class="card border-${statusClass} shadow-sm">
+                            <div class="card-header bg-${statusClass} text-white d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-0">
+                                        <i class="fas fa-file-alt me-2"></i>
+                                        ${this.escapeHtml(doc.nome)}
+                                    </h6>
+                                </div>
+                                <span class="badge bg-light text-dark">${doc.tipo}</span>
+                            </div>
+                            <div class="card-body">
+                                <!-- Informações do Documento -->
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <p class="mb-2">
+                                            <strong><i class="fas fa-building me-2"></i>Empresa:</strong><br>
+                                            <span class="ms-4">${this.escapeHtml(doc.razao_social || 'N/A')}</span>
+                                        </p>
+                                        <p class="mb-2">
+                                            <strong><i class="fas fa-calendar-check me-2"></i>Data Emissão:</strong><br>
+                                            <span class="ms-4">${this.formatDate(doc.data_emissao)}</span>
+                                        </p>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <p class="mb-2">
+                                            <strong><i class="fas fa-calendar-times me-2"></i>Data Vencimento:</strong><br>
+                                            <span class="ms-4 text-${statusClass}">${this.formatDate(doc.data_vencimento)}</span>
+                                        </p>
+                                        <p class="mb-0">
+                                            <strong><i class="fas fa-hourglass-half me-2"></i>Status:</strong><br>
+                                            <span class="ms-4 badge bg-${statusClass}">
+                                                ${diasRestantes < 0 ? `Vencido há ${Math.abs(diasRestantes)} dias` : `${diasRestantes} dias restantes`}
+                                            </span>
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <!-- Observações do Documento -->
+                                ${doc.observacoes ? `
+                                    <div class="alert alert-light mb-3">
+                                        <strong><i class="fas fa-sticky-note me-2"></i>Observações:</strong>
+                                        <p class="mb-0 mt-2">${this.escapeHtml(doc.observacoes)}</p>
+                                    </div>
+                                ` : ''}
+
+                                <!-- Histórico de Andamentos -->
+                                <div class="mt-4 pt-3 border-top">
+                                    <h6 class="mb-3">
+                                        <i class="fas fa-history me-2"></i>
+                                        Últimos Andamentos
+                                        <span class="badge bg-info ms-2">${andamentos.length}</span>
+                                    </h6>
+
+                                    ${andamentos.length === 0 ? `
+                                        <div class="alert alert-secondary mb-0">
+                                            <i class="fas fa-info-circle me-2"></i>
+                                            Nenhum andamento registrado ainda
+                                        </div>
+                                    ` : `
+                                        <div class="andamentos-timeline">
+                                            ${andamentos.slice(0, 3).map((andamento, index) => `
+                                                <div class="andamento-item mb-3 pb-3 ${index < andamentos.length - 1 ? 'border-bottom' : ''}">
+                                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                                        <div>
+                                                            <strong class="d-block">
+                                                                <i class="fas fa-user-circle me-1"></i>
+                                                                ${this.escapeHtml(andamento.responsavel_nome || 'Responsável')}
+                                                            </strong>
+                                                            <small class="text-muted">
+                                                                ${this.escapeHtml(andamento.responsavel_funcao || 'Função')}
+                                                            </small>
+                                                        </div>
+                                                        <span class="badge ${this.getStatusBadgeClass(andamento.status)}">
+                                                            ${this.getStatusText(andamento.status)}
+                                                        </span>
+                                                    </div>
+                                                    <p class="mb-2 small text-muted">
+                                                        <i class="fas fa-clock me-1"></i>
+                                                        ${andamento.data_formatada || this.formatDate(andamento.data_criacao)}
+                                                    </p>
+                                                    <p class="mb-0 alert alert-light py-2 px-3">
+                                                        ${this.escapeHtml(andamento.descricao)}
+                                                    </p>
+                                                </div>
+                                            `).join('')}
+                                            
+                                            ${andamentos.length > 3 ? `
+                                                <button class="btn btn-sm btn-outline-primary w-100 mt-2" 
+                                                        onclick="app.visualizarDocumento(${doc.id})">
+                                                    <i class="fas fa-expand me-1"></i>
+                                                    Ver todos os andamentos (${andamentos.length} total)
+                                                </button>
+                                            ` : ''}
+                                        </div>
+                                    `}
+                                </div>
+
+                                <!-- Botões de Ação -->
+                                <div class="mt-4 pt-3 border-top">
+                                    <div class="d-grid gap-2">
+                                        <button class="btn btn-primary" onclick="app.visualizarDocumento(${doc.id})">
+                                            <i class="fas fa-eye me-1"></i> Ver Detalhes Completos
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                }
+
+                content += `</div>`;
+            }
+
+            content += `
+                <!-- Resumo Geral -->
+                <div class="mt-4">
+                    <div class="card bg-light">
+                        <div class="card-body py-3">
+                            <div class="row text-center g-3">
+                                <div class="col-6 col-md-3">
+                                    <h5 class="text-primary mb-1">${documentos.length}</h5>
+                                    <small class="text-muted">Total de Documentos</small>
+                                </div>
+                                <div class="col-6 col-md-3">
+                                    <h5 class="text-danger mb-1">${documentos.filter(d => this.calculateDiasRestantes(d.data_vencimento) < 0).length}</h5>
+                                    <small class="text-muted">Vencidos</small>
+                                </div>
+                                <div class="col-6 col-md-3">
+                                    <h5 class="text-warning mb-1">${documentos.filter(d => {
+                const dias = this.calculateDiasRestantes(d.data_vencimento);
+                return dias >= 0 && dias <= 30;
+            }).length}</h5>
+                                    <small class="text-muted">Próximos</small>
+                                </div>
+                                <div class="col-6 col-md-3">
+                                    <h5 class="text-success mb-1">${documentos.filter(d => this.calculateDiasRestantes(d.data_vencimento) > 30).length}</h5>
+                                    <small class="text-muted">Em Dia</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+            this.showModal(`Documentos do dia ${dataFormatada}`, content, null, 'modal-xl');
+
+        } catch (error) {
+            console.error('❌ Erro ao carregar detalhes do dia:', error);
+            this.showAlert('Erro ao carregar documentos do dia: ' + error.message, 'danger');
+        }
+    }
+
+
+    // ✅ RENDERIZAR CARD DE DOCUMENTO INDIVIDUAL
+    async renderCardDocumento(documento, status) {
+        // Buscar andamentos do documento
+        let andamentos = [];
+        try {
+            andamentos = await this.apiRequest(`/documentos/${documento.id}/andamentos`);
+        } catch (error) {
+            console.log('Não foi possível carregar andamentos:', error);
+        }
+
+        const ultimoAndamento = andamentos.length > 0 ? andamentos[0] : null;
+        const diasRestantes = this.calculateDiasRestantes(documento.data_vencimento);
+
+        const statusClass = {
+            'vencido': 'border-danger',
+            'proximo': 'border-warning',
+            'normal': 'border-success'
+        }[status] || 'border-secondary';
+
+        const statusIcon = {
+            'vencido': 'fa-exclamation-triangle text-danger',
+            'proximo': 'fa-clock text-warning',
+            'normal': 'fa-check-circle text-success'
+        }[status] || 'fa-file-alt';
+
+        return `
+        <div class="col-md-6">
+            <div class="card h-100 ${statusClass}">
+                <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                    <div>
+                        <i class="fas ${statusIcon} me-2"></i>
+                        <strong class="small">${documento.tipo}</strong>
+                    </div>
+                    <span class="badge ${this.getStatusBadgeClass(documento.status_geral || 'pendente')}">
+                        ${this.getStatusText(documento.status_geral || 'pendente')}
+                    </span>
+                </div>
+                <div class="card-body">
+                    <h6 class="card-title">${documento.nome}</h6>
+                    <div class="mb-2">
+                        <small class="text-muted">
+                            <i class="fas fa-building me-1"></i>
+                            ${documento.razao_social || 'N/A'}
+                        </small>
+                    </div>
+                    <div class="mb-2">
+                        <small class="text-muted">
+                            <i class="fas fa-calendar me-1"></i>
+                            Vencimento: ${this.formatDate(documento.data_vencimento)}
+                        </small>
+                    </div>
+                    <div class="mb-2">
+                        <small class="${diasRestantes < 0 ? 'text-danger' : diasRestantes <= 30 ? 'text-warning' : 'text-success'}">
+                            <i class="fas fa-hourglass-half me-1"></i>
+                            ${diasRestantes < 0 ? `Vencido há ${Math.abs(diasRestantes)} dias` : `${diasRestantes} dias restantes`}
+                        </small>
+                    </div>
+                    
+                    ${ultimoAndamento ? `
+                    <div class="mt-3 p-2 bg-light rounded">
+                        <small class="text-muted d-block">
+                            <strong>Último andamento:</strong>
+                        </small>
+                        <small class="d-block">
+                            ${this.escapeHtml(ultimoAndamento.descricao)}
+                        </small>
+                        <small class="text-muted d-block mt-1">
+                            <i class="fas fa-user me-1"></i>
+                            ${ultimoAndamento.responsavel_nome} - 
+                            ${this.formatDate(ultimoAndamento.data_criacao)}
+                        </small>
+                    </div>
+                    ` : ''}
+
+                    ${documento.observacoes ? `
+                    <div class="mt-2">
+                        <small class="text-muted">
+                            <strong>Observações:</strong> ${this.escapeHtml(documento.observacoes)}
+                        </small>
+                    </div>
+                    ` : ''}
+                </div>
+                <div class="card-footer bg-transparent py-2">
+                    <div class="btn-group w-100">
+                        <button class="btn btn-sm btn-outline-primary" onclick="app.visualizarDocumento(${documento.id})">
+                            <i class="fas fa-history"></i> Andamentos
+                        </button>
+                        ${documento.arquivo_path ? `
+                        <button class="btn btn-sm btn-outline-success" onclick="app.downloadDocumento(${documento.id})">
+                            <i class="fas fa-download"></i>
+                        </button>
+                        ` : ''}
+                        <button class="btn btn-sm btn-outline-info" onclick="app.editarDocumento(${documento.id})">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
-        <p>Funcionalidade em desenvolvimento...</p>
-        <div class="text-center">
-            <button class="btn btn-primary" onclick="app.loadPage('documentos')">
-                <i class="fas fa-file-alt me-1"></i> Ver Todos os Documentos
-            </button>
-        </div>
-    `);
-}
+        `;
+    }
+
+    // ✅ MÉTODOS AUXILIARES PARA VERIFICAÇÃO DE STATUS
+    isDocumentoVencido(documento) {
+        const vencimento = new Date(documento.data_vencimento);
+        const hoje = new Date();
+        hoje.setHours(0, 0, 0, 0);
+        vencimento.setHours(0, 0, 0, 0);
+        return vencimento < hoje;
+    }
+
+    isDocumentoProximo(documento) {
+        const vencimento = new Date(documento.data_vencimento);
+        const hoje = new Date();
+        hoje.setHours(0, 0, 0, 0);
+        vencimento.setHours(0, 0, 0, 0);
+
+        const diffTime = vencimento - hoje;
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        return diffDays >= 0 && diffDays <= 30;
+    }
+
+    // ✅ FUNÇÕES AUXILIARES DO CALENDÁRIO
+    getNomeMes(mes) {
+        const meses = [
+            'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+            'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+        ];
+        return meses[mes - 1] || 'Mês Inválido';
+    }
+
+    getDataAtual() {
+        const hoje = new Date();
+        return {
+            ano: hoje.getFullYear(),
+            mes: hoje.getMonth() + 1
+        };
+    }
+
+    // ✅ NAVEGAÇÃO DO CALENDÁRIO
+    async navegarMesAnterior() {
+        try {
+            let { ano, mes } = this.calendarioAtual || this.getDataAtual();
+            mes--;
+            if (mes < 1) {
+                mes = 12;
+                ano--;
+            }
+            console.log(`◀️ Navegando para: ${mes}/${ano}`);
+            await this.atualizarCalendario(ano, mes);
+        } catch (error) {
+            console.error('❌ Erro navegação anterior:', error);
+        }
+    }
+
+    async navegarProximoMes() {
+        try {
+            let { ano, mes } = this.calendarioAtual || this.getDataAtual();
+            mes++;
+            if (mes > 12) {
+                mes = 1;
+                ano++;
+            }
+            console.log(`▶️ Navegando para: ${mes}/${ano}`);
+            await this.atualizarCalendario(ano, mes);
+        } catch (error) {
+            console.error('❌ Erro navegação próximo:', error);
+        }
+    }
+
+    async irParaMesAtual() {
+        try {
+            const { ano, mes } = this.getDataAtual();
+            console.log(`🗓️ Indo para mês atual: ${mes}/${ano}`);
+            await this.atualizarCalendario(ano, mes);
+        } catch (error) {
+            console.error('❌ Erro mês atual:', error);
+        }
+    }
+
+    async irParaMes(novoMes) {
+        try {
+            const { ano } = this.calendarioAtual || this.getDataAtual();
+            console.log(`📅 Indo para mês: ${novoMes}/${ano}`);
+            await this.atualizarCalendario(ano, parseInt(novoMes));
+        } catch (error) {
+            console.error('❌ Erro ir para mês:', error);
+        }
+    }
+
+    async irParaAno(novoAno) {
+        try {
+            const { mes } = this.calendarioAtual || this.getDataAtual();
+            console.log(`📅 Indo para ano: ${mes}/${novoAno}`);
+            await this.atualizarCalendario(parseInt(novoAno), mes);
+        } catch (error) {
+            console.error('❌ Erro ir para ano:', error);
+        }
+    }
+
+    // ✅ ATUALIZAR CALENDÁRIO
+    async atualizarCalendario(ano, mes) {
+        try {
+            console.log(`🔄 Atualizando calendário para: ${mes}/${ano}`);
+
+            // Mostrar loading
+            const pageContent = document.getElementById('page-content');
+            if (pageContent) {
+                pageContent.innerHTML = `
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Carregando...</span>
+                    </div>
+                    <p class="mt-2">Carregando calendário...</p>
+                </div>
+            `;
+            }
+
+            // Carregar novo calendário
+            const novoCalendario = await this.renderCalendarioComDados(ano, mes);
+
+            if (pageContent) {
+                pageContent.innerHTML = novoCalendario;
+            }
+
+            console.log('✅ Calendário atualizado com sucesso!');
+        } catch (error) {
+            console.error('❌ Erro ao atualizar calendário:', error);
+            this.showAlert('Erro ao carregar calendário: ' + error.message, 'danger');
+        }
+    }
+
+    // ============================
+    // ✅ SISTEMA DE NAVEGAÇÃO
+    // ============================
 
     // ✅ MÉTODO LOADPAGE CORRIGIDO
     async loadPage(page) {
@@ -472,31 +1083,30 @@ verDia(dia, mes, ano) {
     `;
 
         try {
-        let content = '';
+            let content = '';
 
-        switch (page) {
-            case 'dashboard':
-                content = await this.renderDashboard();
-                break;
-            case 'empresas':
-                content = await this.renderEmpresas();
-                break;
-            case 'documentos':
-                content = await this.renderDocumentos();
-                break;
-            case 'responsaveis':
-                content = await this.renderResponsaveis();
-                break;
-            case 'calendario': // ✅ NOVO
-                content = await this.renderCalendario();
-                break;
-            default:
-                content = '<div class="alert alert-warning">Página não encontrada</div>';
-        }
+            switch (page) {
+                case 'dashboard':
+                    content = await this.renderDashboard();
+                    break;
+                case 'empresas':
+                    content = await this.renderEmpresas();
+                    break;
+                case 'documentos':
+                    content = await this.renderDocumentos();
+                    break;
+                case 'responsaveis':
+                    content = await this.renderResponsaveis();
+                    break;
+                case 'calendario':
+                    content = await this.renderCalendario();
+                    break;
+                default:
+                    content = '<div class="alert alert-warning">Página não encontrada</div>';
+            }
 
-        document.getElementById('page-content').innerHTML = content;
-
-    } catch (error) {
+            document.getElementById('page-content').innerHTML = content;
+        } catch (error) {
             console.error('Erro ao carregar página:', error);
             document.getElementById('page-content').innerHTML = `
             <div class="alert alert-danger">
@@ -527,20 +1137,9 @@ verDia(dia, mes, ano) {
         }
     }
 
-    // ✅ CORRIGIR O BIND EVENTS
-    bindEvents() {
-        // Navegação do sidebar
-        document.addEventListener('click', (e) => {
-            if (e.target.closest('.sidebar-nav .nav-link')) {
-                e.preventDefault();
-                const link = e.target.closest('.nav-link');
-                const page = link.getAttribute('data-page');
-
-                console.log(`📱 Clicou no menu: ${page}`);
-                this.loadPage(page);
-            }
-        });
-    }
+    // ============================
+    // ✅ DASHBOARD
+    // ============================
 
     async renderDashboard() {
         try {
@@ -753,7 +1352,8 @@ verDia(dia, mes, ano) {
         </div>
     `;
     }
-    // No método renderTabelaDocumentosDashboard:
+
+    // ✅ RENDERIZAR TABELA DE DOCUMENTOS NO DASHBOARD
     renderTabelaDocumentosDashboard(documentos) {
         if (!documentos || documentos.length === 0) {
             return `
@@ -911,7 +1511,6 @@ verDia(dia, mes, ano) {
             if (resultadosDiv) {
                 resultadosDiv.innerHTML = this.renderResultadosComFiltros(documentos);
             }
-
         } catch (error) {
             console.error('Erro ao aplicar filtros:', error);
             this.showAlert('Erro ao aplicar filtros: ' + error.message, 'danger');
@@ -939,6 +1538,7 @@ verDia(dia, mes, ano) {
     </div>
     `;
     }
+
     limparFiltrosDashboard() {
         // Limpar campos de filtro
         document.getElementById('filtroStatus').value = '';
@@ -952,6 +1552,11 @@ verDia(dia, mes, ano) {
     exportarDocumentos() {
         this.showAlert('Funcionalidade de exportação em desenvolvimento', 'info');
     }
+
+    // ============================
+    // ✅ GESTÃO DE DOCUMENTOS
+    // ============================
+
     // ✅ MÉTODO ADICIONAR ANDAMENTO CORRIGIDO
     async adicionarAndamento(event, documentoId) {
         event.preventDefault();
@@ -1035,7 +1640,6 @@ verDia(dia, mes, ano) {
                     this.loadPage('documentos');
                 }, 500);
             }
-
         } catch (error) {
             console.error('❌ ERRO AO ADICIONAR ANDAMENTO:', error);
             this.showAlert(`Erro: ${error.message}`, 'danger');
@@ -1190,7 +1794,6 @@ verDia(dia, mes, ano) {
     `;
 
             this.showModal(`Detalhes do Documento - ${this.escapeHtml(documento.nome)}`, content, null, 'modal-xl');
-
         } catch (error) {
             console.error('❌ Erro ao carregar detalhes do documento:', error);
             this.showAlert(`Erro ao carregar detalhes: ${error.message}`, 'danger');
@@ -1269,7 +1872,6 @@ verDia(dia, mes, ano) {
             setTimeout(() => {
                 this.loadPage('documentos');
             }, 500);
-
         } catch (error) {
             console.error('Erro ao atualizar status:', error);
             this.showAlert(`Erro ao atualizar status: ${error.message}`, 'danger');
@@ -1310,8 +1912,10 @@ verDia(dia, mes, ano) {
         }
     }
 
+    // ============================
+    // ✅ GESTÃO DE EMPRESAS
+    // ============================
 
-    // ✅ MÉTODOS PARA EMPRESAS
     async renderEmpresas() {
         try {
             const empresas = await this.apiRequest('/empresas');
@@ -1746,7 +2350,6 @@ verDia(dia, mes, ano) {
         `;
 
             this.showModal('Detalhes da Empresa', content, null);
-
         } catch (error) {
             this.showAlert(`Erro ao carregar detalhes: ${error.message}`, 'danger');
         }
@@ -1789,17 +2392,6 @@ verDia(dia, mes, ano) {
         }
     }
 
-    // ✅ MÉTODO PARA ESCAPAR HTML (segurança)
-    escapeHtml(unsafe) {
-        if (!unsafe) return '';
-        return unsafe
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;")
-            .replace(/'/g, "&#039;");
-    }
-
     // ✅ MÉTODO PARA COPIAR SENHA PARA ÁREA DE TRANSFERÊNCIA
     async copyToClipboard(text) {
         try {
@@ -1823,7 +2415,10 @@ verDia(dia, mes, ano) {
         }
     }
 
-    // ✅ MÉTODOS PARA DOCUMENTOS
+    // ============================
+    // ✅ GESTÃO DE DOCUMENTOS
+    // ============================
+
     async renderDocumentos() {
         try {
             const documentos = await this.apiRequest('/documentos');
@@ -1862,6 +2457,7 @@ verDia(dia, mes, ano) {
             `;
         }
     }
+
     // ✅ MÉTODO PARA LIMPAR FORMULÁRIO DE ANDAMENTO
     limparFormularioAndamento() {
         const form = document.getElementById('formAndamento');
@@ -1869,7 +2465,7 @@ verDia(dia, mes, ano) {
             form.reset();
         }
     }
-    // ✅ MÉTODO COMPLETO PARA RENDERIZAR LISTA DE DOCUMENTOS
+
     // ✅ MÉTODO RENDERLISTADOCUMENTOS ATUALIZADO
     renderListaDocumentos(documentos) {
         if (documentos.length === 0) {
@@ -1966,7 +2562,6 @@ verDia(dia, mes, ano) {
     }
 
     // ✅ MÉTODOS AUXILIARES PARA O RENDERLISTADOCUMENTOS
-
     getDocumentStatus(documento) {
         const vencimento = new Date(documento.data_vencimento);
         const hoje = new Date();
@@ -2006,47 +2601,6 @@ verDia(dia, mes, ano) {
 
         const diffTime = vencimento - hoje;
         return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    }
-
-    getStatusBadgeClass(status) {
-        const classes = {
-            'pendente': 'bg-warning',
-            'em_andamento': 'bg-info',
-            'concluido': 'bg-success',
-            'cancelado': 'bg-danger',
-            'valid': 'bg-success',
-            'expiring': 'bg-warning',
-            'expired': 'bg-danger'
-        };
-        return classes[status] || 'bg-secondary';
-    }
-
-    getStatusText(status) {
-        const texts = {
-            'pendente': 'Pendente',
-            'em_andamento': 'Em Andamento',
-            'concluido': 'Concluído',
-            'cancelado': 'Cancelado',
-            'valid': 'Válido',
-            'expiring': 'Vencendo',
-            'expired': 'Vencido'
-        };
-        return texts[status] || status;
-    }
-
-    formatDate(dateString) {
-        if (!dateString) return 'N/A';
-        try {
-            const date = new Date(dateString);
-            return date.toLocaleDateString('pt-BR');
-        } catch (error) {
-            return 'Data inválida';
-        }
-    }
-
-    formatCNPJ(cnpj) {
-        if (!cnpj) return 'N/A';
-        return cnpj.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
     }
 
     // No método renderFormularioDocumento, substitua a parte do tipo:
@@ -2342,7 +2896,6 @@ verDia(dia, mes, ano) {
             setTimeout(() => {
                 this.loadPage('documentos');
             }, 1000);
-
         } catch (error) {
             console.error('Erro ao salvar documento:', error);
             this.mostrarMensagemDocumento(error.message, 'error');
@@ -2384,7 +2937,6 @@ verDia(dia, mes, ano) {
 
             // Mostrar formulário
             this.abrirFormularioNovoDocumento();
-
         } catch (error) {
             this.mostrarMensagemDocumento(`Erro ao carregar documento: ${error.message}`, 'error');
         }
@@ -2426,6 +2978,10 @@ verDia(dia, mes, ano) {
         div.className = '';
         div.innerHTML = '';
     }
+
+    // ============================
+    // ✅ GESTÃO DE RESPONSÁVEIS
+    // ============================
 
     // ✅ MÉTODO COMPLETO PARA MODAL DE RESPONSÁVEIS
     async openResponsavelModal(responsavel = null) {
@@ -2503,7 +3059,6 @@ verDia(dia, mes, ano) {
             this.showModal(title, content, () => this.saveResponsavel());
 
             console.log('Modal aberto com sucesso');
-
         } catch (error) {
             console.error('Erro ao abrir modal de responsável:', error);
             this.showAlert('Erro ao carregar dados do responsável: ' + error.message, 'danger');
@@ -2579,7 +3134,6 @@ verDia(dia, mes, ano) {
             setTimeout(() => {
                 this.loadPage('responsaveis');
             }, 1000);
-
         } catch (error) {
             console.error('❌ ERRO DETALHADO no saveResponsavel:', error);
             this.showAlert(`Erro ao salvar responsável: ${error.message}`, 'danger');
@@ -2604,6 +3158,7 @@ verDia(dia, mes, ano) {
 
         input.value = value;
     }
+
     async renderResponsaveis() {
         try {
             const responsaveis = await this.apiRequest('/responsaveis');
@@ -2684,68 +3239,6 @@ verDia(dia, mes, ano) {
     `;
     }
 
-    // ✅ MÉTODO SIMPLIFICADO PARA TESTE
-    async openResponsavelModal(responsavel = null) {
-        try {
-            // Buscar empresas para o select
-            const empresas = await this.apiRequest('/empresas');
-
-            const title = responsavel ? 'Editar Responsável' : 'Novo Responsável';
-            const content = `
-            <form id="responsavelForm">
-                <input type="hidden" id="responsavelId" value="${responsavel?.id || ''}">
-                
-                <div class="mb-3">
-                    <label class="form-label">Nome Completo *</label>
-                    <input type="text" class="form-control" id="responsavelNome" 
-                           value="${responsavel?.nome || ''}" required>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label">E-mail *</label>
-                    <input type="email" class="form-control" id="responsavelEmail" 
-                           value="${responsavel?.email || ''}" required>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label">Telefone *</label>
-                    <input type="text" class="form-control" id="responsavelTelefone" 
-                           value="${responsavel?.telefone || ''}" required>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label">Função *</label>
-                    <select class="form-select" id="responsavelFuncao" required>
-                        <option value="">Selecione a função...</option>
-                        <option value="Fiscal">Fiscal</option>
-                        <option value="Contábil">Contábil</option>
-                        <option value="Departamento Pessoal">Departamento Pessoal</option>
-                    </select>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label">Empresa *</label>
-                    <select class="form-select" id="responsavelEmpresaId" required>
-                        <option value="">Selecione a empresa...</option>
-                        ${empresas.map(empresa => `
-                            <option value="${empresa.id}">
-                                ${empresa.razao_social}
-                            </option>
-                        `).join('')}
-                    </select>
-                </div>
-            </form>
-        `;
-
-            this.showModal(title, content, () => this.saveResponsavel());
-
-        } catch (error) {
-            console.error('Erro ao abrir modal de responsável:', error);
-            this.showAlert('Erro ao carregar dados do responsável', 'danger');
-        }
-    }
-
-
     // ✅ MÉTODO PARA EDITAR RESPONSÁVEL
     async editarResponsavel(id) {
         try {
@@ -2757,7 +3250,6 @@ verDia(dia, mes, ano) {
 
             // Abrir modal de edição
             await this.openResponsavelModal(responsavel);
-
         } catch (error) {
             console.error('Erro ao carregar responsável para edição:', error);
             this.showAlert(`Erro ao carregar responsável: ${error.message}`, 'danger');
@@ -2785,7 +3277,6 @@ verDia(dia, mes, ano) {
 
             // Recarregar a lista
             this.loadPage('responsaveis');
-
         } catch (error) {
             console.error('Erro ao excluir responsável:', error);
 
@@ -2797,56 +3288,9 @@ verDia(dia, mes, ano) {
         }
     }
 
-    // ✅ MÉTODOS AUXILIARES
-    getDocumentStatus(documento) {
-        const vencimento = new Date(documento.data_vencimento);
-        const hoje = new Date();
-        const diffTime = vencimento - hoje;
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-        if (diffDays < 0) return 'expired';
-        if (diffDays <= 30) return 'expiring';
-        return 'valid';
-    }
-
-    getDocumentStatusClass(status) {
-        switch (status) {
-            case 'valid': return 'status-valid';
-            case 'expiring': return 'status-expiring';
-            case 'expired': return 'status-expired';
-            default: return 'status-valid';
-        }
-    }
-
-    getDocumentStatusText(status) {
-        switch (status) {
-            case 'valid': return 'Válido';
-            case 'expiring': return 'Vencendo';
-            case 'expired': return 'Vencido';
-            default: return 'Válido';
-        }
-    }
-
-    calculateDiasRestantes(dataVencimento) {
-        const vencimento = new Date(dataVencimento);
-        const hoje = new Date();
-        const diffTime = vencimento - hoje;
-        return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    }
-
-    formatDate(dateString) {
-        if (!dateString) return 'N/A';
-        try {
-            return new Date(dateString).toLocaleDateString('pt-BR');
-        } catch (error) {
-            return 'Data inválida';
-        }
-    }
-
-    formatCNPJ(cnpj) {
-        if (!cnpj) return 'N/A';
-        return cnpj.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
-    }
+    // ============================
+    // ✅ CONSULTA CNPJ
+    // ============================
 
     // ✅ MÉTODOS PARA CONSULTA CNPJ
     async consultarCNPJ() {
@@ -2895,7 +3339,6 @@ verDia(dia, mes, ano) {
 
             // Focar no próximo campo
             document.getElementById('telefone').focus();
-
         } catch (error) {
             console.error('Erro na consulta de CNPJ:', error);
             statusDiv.innerHTML = `
@@ -2948,42 +3391,105 @@ verDia(dia, mes, ano) {
         input.value = value;
     }
 
-    // MÉTODOS GERAIS
+    // ============================
+    // ✅ MÉTODOS GERAIS
+    // ============================
+
     // ✅ MÉTODO SHOWMODAL ATUALIZADO
-    showModal(title, content, onSave, size = 'modal-lg') {
-        const modalHtml = `
-        <div class="modal fade" id="dynamicModal" tabindex="-1">
-            <div class="modal-dialog ${size}">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">${title}</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        ${content}
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                        ${onSave ? `<button type="button" class="btn btn-primary" id="modalSave">Salvar</button>` : ''}
+   showModal(title, content, onSave, size = 'modal-lg') {
+    try {
+        // Limpar backdrop e modais anteriores
+        document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+        const oldModals = document.querySelectorAll('.modal.fade');
+        oldModals.forEach(modal => {
+            const bsInstance = bootstrap.Modal.getInstance(modal);
+            if (bsInstance) bsInstance.dispose();
+            modal.remove();
+        });
+
+        // Resetar body
+        document.body.classList.remove('modal-open');
+        document.body.style.overflow = '';
+        document.body.style.paddingRight = '';
+
+        // Criar novo modal
+        const modalHTML = `
+            <div class="modal fade" id="dynamicModal" tabindex="-1" aria-labelledby="modalTitle" aria-hidden="true">
+                <div class="modal-dialog ${size} modal-dialog-scrollable">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="modalTitle">${this.escapeHtml(title)}</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                        </div>
+                        <div class="modal-body">
+                            ${content}
+                        </div>
+                        <div class="modal-footer">
+                            ${onSave ? `
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                    <i class="fas fa-times me-1"></i> Cancelar
+                                </button>
+                                <button type="button" class="btn btn-primary" id="modalSaveBtn">
+                                    <i class="fas fa-save me-1"></i> Salvar
+                                </button>
+                            ` : `
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                    <i class="fas fa-times me-1"></i> Fechar
+                                </button>
+                            `}
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
-    `;
+        `;
 
-        document.getElementById('modals-container').innerHTML = modalHtml;
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+        const modalElement = document.getElementById('dynamicModal');
 
-        const modal = new bootstrap.Modal(document.getElementById('dynamicModal'));
-        modal.show();
+        // Evento de limpeza
+        const cleanupModal = () => {
+            // Remover listeners
+            if (saveBtn) {
+                saveBtn.removeEventListener('click', onSave);
+            }
 
+            // Remover elemento
+            modalElement.remove();
+
+            // Limpar backdrop
+            document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+
+            // Resetar estilos do body
+            document.body.classList.remove('modal-open');
+            document.body.style.overflow = '';
+            document.body.style.paddingRight = '';
+
+            console.log('✅ Modal limpo com sucesso');
+        };
+
+        modalElement.addEventListener('hidden.bs.modal', cleanupModal, { once: true });
+
+        // Adicionar save listener
         if (onSave) {
-            document.getElementById('modalSave').onclick = onSave;
+            const saveBtn = document.getElementById('modalSaveBtn');
+            saveBtn.addEventListener('click', async () => {
+                await onSave();
+                // Não fechar automático, deixar o onSave decidir
+            });
         }
 
-        document.getElementById('dynamicModal').addEventListener('hidden.bs.modal', () => {
-            document.getElementById('modals-container').innerHTML = '';
+        // Mostrar modal
+        const bsModal = new bootstrap.Modal(modalElement, {
+            backdrop: 'static',
+            keyboard: false
         });
+        bsModal.show();
+
+    } catch (error) {
+        console.error('❌ Erro ao criar modal:', error);
+        this.showAlert('Erro ao abrir modal: ' + error.message, 'danger');
     }
+}
 
     // ✅ MÉTODO APIREQUEST MELHORADO
     async apiRequest(endpoint, options = {}) {
@@ -3026,7 +3532,6 @@ verDia(dia, mes, ano) {
             }
 
             return data;
-
         } catch (error) {
             console.error(`Erro na requisição para ${url}:`, error);
 
@@ -3040,6 +3545,7 @@ verDia(dia, mes, ano) {
             throw error;
         }
     }
+
     showAlert(message, type = 'info') {
         const alert = document.createElement('div');
         alert.className = `alert alert-${type} alert-dismissible fade show`;
@@ -3059,6 +3565,38 @@ verDia(dia, mes, ano) {
 
     initializePageEvents(page) {
         console.log(`Eventos inicializados para: ${page}`);
+    }
+
+    // ✅ MÉTODO DE TESTE (OPCIONAL)
+    testarNotificacao() {
+        console.log('🧪 TESTANDO NOTIFICAÇÃO...');
+
+        const alertasTeste = {
+            totalAlertas: 3,
+            totalVencidos: 1,
+            totalProximos: 2
+        };
+
+        this.mostrarNotificacao(alertasTeste);
+    }
+
+    // ✅ MÉTODO AUXILIAR PARA FORMATAR CNPJ
+    formatCNPJ(cnpj) {
+        if (!cnpj) return 'N/A';
+        return cnpj.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
+    }
+
+    // ✅ MÉTODO PARA RENDERIZAR ERRO
+    renderError(module, error) {
+        return `
+            <div class="alert alert-danger">
+                <h4>Erro ao carregar ${module}</h4>
+                <p>${error.message}</p>
+                <button class="btn btn-primary" onclick="app.loadPage('${module}')">
+                    Tentar Novamente
+                </button>
+            </div>
+        `;
     }
 }
 
