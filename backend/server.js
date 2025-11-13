@@ -246,18 +246,22 @@ app.get('/api/calendario/:ano?/:mes?', async (req, res) => {
 
         console.log(`📅 Calendário: ${mes}/${ano}`);
 
+        // Garantir que retornamos apenas a parte date (YYYY-MM-DD) e calculamos dia com DATE(...)
         const [documentos] = await pool.execute(`
             SELECT 
-                id, nome, tipo, data_vencimento,
-                DAY(data_vencimento) as dia
+                id,
+                nome,
+                tipo,
+                DATE_FORMAT(DATE(data_vencimento), '%Y-%m-%d') as data_vencimento,
+                DAY(DATE(data_vencimento)) as dia
             FROM documentos 
-            WHERE MONTH(data_vencimento) = ? AND YEAR(data_vencimento) = ?
-            ORDER BY data_vencimento ASC
+            WHERE MONTH(DATE(data_vencimento)) = ? AND YEAR(DATE(data_vencimento)) = ?
+            ORDER BY DATE(data_vencimento) ASC
         `, [mes, ano]);
 
         const porDia = {};
         documentos.forEach(doc => {
-            const dia = doc.dia;
+            const dia = Number(doc.dia);
             if (!porDia[dia]) porDia[dia] = [];
             porDia[dia].push(doc);
         });
