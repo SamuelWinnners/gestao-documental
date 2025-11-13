@@ -626,9 +626,9 @@ class App {
             const [documentos] = await Promise.all([
                 this.apiRequest('/documentos').then(docs =>
                     docs.filter(doc => {
-                        const vencimento = new Date(doc.data_vencimento);
-                        const dataVencimento = `${vencimento.getFullYear()}-${String(vencimento.getMonth() + 1).padStart(2, '0')}-${String(vencimento.getDate()).padStart(2, '0')}`;
-                        return dataVencimento === dataISO;
+                        // ✅ CORRIGIDO: Usar apenas a parte da data (YYYY-MM-DD)
+                        const vencimentoData = doc.data_vencimento.split('T')[0];
+                        return vencimentoData === dataISO;
                     })
                 )
             ]);
@@ -2593,9 +2593,14 @@ class App {
 
     calculateDiasRestantes(dataVencimento) {
         if (!dataVencimento) return 0;
-        const vencimento = new Date(dataVencimento);
+
+        // ✅ CORRIGIDO: Extrair apenas a data, sem timezone
+        const dataVencimentoStr = dataVencimento.split('T')[0];
+        const [ano, mes, dia] = dataVencimentoStr.split('-');
+
+        // Criar data sem timezone (00:00 UTC)
+        const vencimento = new Date(ano, parseInt(mes) - 1, parseInt(dia));
         const hoje = new Date();
-        // Resetar horas para comparar apenas datas
         hoje.setHours(0, 0, 0, 0);
         vencimento.setHours(0, 0, 0, 0);
 
@@ -3396,24 +3401,24 @@ class App {
     // ============================
 
     // ✅ MÉTODO SHOWMODAL ATUALIZADO
-   showModal(title, content, onSave, size = 'modal-lg') {
-    try {
-        // Limpar backdrop e modais anteriores
-        document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
-        const oldModals = document.querySelectorAll('.modal.fade');
-        oldModals.forEach(modal => {
-            const bsInstance = bootstrap.Modal.getInstance(modal);
-            if (bsInstance) bsInstance.dispose();
-            modal.remove();
-        });
+    showModal(title, content, onSave, size = 'modal-lg') {
+        try {
+            // Limpar backdrop e modais anteriores
+            document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+            const oldModals = document.querySelectorAll('.modal.fade');
+            oldModals.forEach(modal => {
+                const bsInstance = bootstrap.Modal.getInstance(modal);
+                if (bsInstance) bsInstance.dispose();
+                modal.remove();
+            });
 
-        // Resetar body
-        document.body.classList.remove('modal-open');
-        document.body.style.overflow = '';
-        document.body.style.paddingRight = '';
+            // Resetar body
+            document.body.classList.remove('modal-open');
+            document.body.style.overflow = '';
+            document.body.style.paddingRight = '';
 
-        // Criar novo modal
-        const modalHTML = `
+            // Criar novo modal
+            const modalHTML = `
             <div class="modal fade" id="dynamicModal" tabindex="-1" aria-labelledby="modalTitle" aria-hidden="true">
                 <div class="modal-dialog ${size} modal-dialog-scrollable">
                     <div class="modal-content">
@@ -3443,53 +3448,53 @@ class App {
             </div>
         `;
 
-        document.body.insertAdjacentHTML('beforeend', modalHTML);
-        const modalElement = document.getElementById('dynamicModal');
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+            const modalElement = document.getElementById('dynamicModal');
 
-        // Evento de limpeza
-        const cleanupModal = () => {
-            // Remover listeners
-            if (saveBtn) {
-                saveBtn.removeEventListener('click', onSave);
+            // Evento de limpeza
+            const cleanupModal = () => {
+                // Remover listeners
+                if (saveBtn) {
+                    saveBtn.removeEventListener('click', onSave);
+                }
+
+                // Remover elemento
+                modalElement.remove();
+
+                // Limpar backdrop
+                document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+
+                // Resetar estilos do body
+                document.body.classList.remove('modal-open');
+                document.body.style.overflow = '';
+                document.body.style.paddingRight = '';
+
+                console.log('✅ Modal limpo com sucesso');
+            };
+
+            modalElement.addEventListener('hidden.bs.modal', cleanupModal, { once: true });
+
+            // Adicionar save listener
+            if (onSave) {
+                const saveBtn = document.getElementById('modalSaveBtn');
+                saveBtn.addEventListener('click', async () => {
+                    await onSave();
+                    // Não fechar automático, deixar o onSave decidir
+                });
             }
 
-            // Remover elemento
-            modalElement.remove();
-
-            // Limpar backdrop
-            document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
-
-            // Resetar estilos do body
-            document.body.classList.remove('modal-open');
-            document.body.style.overflow = '';
-            document.body.style.paddingRight = '';
-
-            console.log('✅ Modal limpo com sucesso');
-        };
-
-        modalElement.addEventListener('hidden.bs.modal', cleanupModal, { once: true });
-
-        // Adicionar save listener
-        if (onSave) {
-            const saveBtn = document.getElementById('modalSaveBtn');
-            saveBtn.addEventListener('click', async () => {
-                await onSave();
-                // Não fechar automático, deixar o onSave decidir
+            // Mostrar modal
+            const bsModal = new bootstrap.Modal(modalElement, {
+                backdrop: 'static',
+                keyboard: false
             });
+            bsModal.show();
+
+        } catch (error) {
+            console.error('❌ Erro ao criar modal:', error);
+            this.showAlert('Erro ao abrir modal: ' + error.message, 'danger');
         }
-
-        // Mostrar modal
-        const bsModal = new bootstrap.Modal(modalElement, {
-            backdrop: 'static',
-            keyboard: false
-        });
-        bsModal.show();
-
-    } catch (error) {
-        console.error('❌ Erro ao criar modal:', error);
-        this.showAlert('Erro ao abrir modal: ' + error.message, 'danger');
     }
-}
 
     // ✅ MÉTODO APIREQUEST MELHORADO
     async apiRequest(endpoint, options = {}) {
