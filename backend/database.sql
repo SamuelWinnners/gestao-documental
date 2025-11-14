@@ -3,7 +3,7 @@ CREATE DATABASE railway;
 USE railway;
 SHOW TABLES;
 -- Tabela de empresas
-CREATE TABLE IF NOT EXISTS empresas (
+CREATE TABLE empresas (
     id INT AUTO_INCREMENT PRIMARY KEY,
     razao_social VARCHAR(255) NOT NULL,
     nome_fantasia VARCHAR(255),
@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS empresas (
 );
 
 -- Tabela de responsáveis
-CREATE TABLE IF NOT EXISTS responsaveis (
+CREATE TABLE responsaveis (
     id INT AUTO_INCREMENT PRIMARY KEY,
     nome VARCHAR(255) NOT NULL,
     email VARCHAR(255) NOT NULL,
@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS responsaveis (
 );
 
 -- Tabela de documentos
-CREATE TABLE IF NOT EXISTS documentos (
+CREATE TABLE documentos (
     id INT AUTO_INCREMENT PRIMARY KEY,
     nome VARCHAR(255) NOT NULL,
     tipo VARCHAR(100) NOT NULL,
@@ -52,7 +52,7 @@ CREATE TABLE IF NOT EXISTS documentos (
 );
 
 -- Tabela para acompanhamento do andamento dos documentos
-CREATE TABLE IF NOT EXISTS documento_andamentos (
+CREATE TABLE documento_andamentos (
     id INT AUTO_INCREMENT PRIMARY KEY,
     documento_id INT NOT NULL,
     responsavel_id INT NOT NULL,
