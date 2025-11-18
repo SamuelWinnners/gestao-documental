@@ -163,11 +163,11 @@ class Auth {
             }
 
             const data = await response.json();
-            
+
             // Salvar token e usuário
             localStorage.setItem('token', data.token);
             localStorage.setItem('usuario', JSON.stringify(data.usuario));
-            
+
             this.token = data.token;
             this.usuario = data.usuario;
 
@@ -213,7 +213,7 @@ class App {
         this.bindEvents();
         this.loadPage('dashboard');
         this.inicializarMenuMobile();
-        
+
 
         setTimeout(() => {
             this.notificacoesSimples();
@@ -1989,95 +1989,542 @@ class App {
     // ✅ GESTÃO DE EMPRESAS
     // ============================
 
+    // ✅ MÉTODO renderEmpresas ATUALIZADO COM FILTROS
     async renderEmpresas() {
         try {
             const empresas = await this.apiRequest('/empresas');
 
             return `
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h1 class="page-title">
-                        <i class="fas fa-building me-2"></i>Empresas
-                    </h1>
-                    <button class="btn btn-primary" onclick="app.openEmpresaModal()">
-                        <i class="fas fa-plus"></i> Nova Empresa
-                    </button>
-                </div>
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="page-title">
+                    <i class="fas fa-building me-2"></i>Empresas
+                </h1>
+                <button class="btn btn-primary" onclick="app.openEmpresaModal()">
+                    <i class="fas fa-plus"></i> Nova Empresa
+                </button>
+            </div>
 
-                <div class="card">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <span>Lista de Empresas</span>
-                        <span class="badge bg-primary">${empresas.length} empresas</span>
+            <!-- Filtros de Empresas -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-filter me-2"></i>Filtros e Pesquisa
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label">Buscar</label>
+                            <div class="input-group">
+                                <input type="text" 
+                                       class="form-control" 
+                                       id="buscaEmpresa" 
+                                       placeholder="Razão social, CNPJ, telefone..."
+                                       onkeyup="app.aplicarFiltrosEmpresa()">
+                                <button class="btn btn-outline-secondary" 
+                                        type="button" 
+                                        onclick="app.limparFiltrosEmpresa()">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Regime Tributário</label>
+                            <select class="form-select" id="filtroRegime" onchange="app.aplicarFiltrosEmpresa()">
+                                <option value="">Todos os regimes</option>
+                                <option value="simples">Simples Nacional</option>
+                                <option value="demais">Demais Regimes</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Ordenar por</label>
+                            <select class="form-select" id="ordenarEmpresa" onchange="app.aplicarFiltrosEmpresa()">
+                                <option value="razao_social_asc">Razão Social (A-Z)</option>
+                                <option value="razao_social_desc">Razão Social (Z-A)</option>
+                                <option value="created_at_desc">Mais Recentes</option>
+                                <option value="created_at_asc">Mais Antigas</option>
+                                <option value="cnpj_asc">CNPJ (Crescente)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Status</label>
+                            <select class="form-select" id="filtroStatus" onchange="app.aplicarFiltrosEmpresa()">
+                                <option value="">Todas</option>
+                                <option value="ativas">Ativas (com documentos)</option>
+                                <option value="inativas">Sem documentos</option>
+                            </select>
+                        </div>
                     </div>
-                    <div class="card-body">
-                        ${empresas.length === 0 ?
+                    
+                    <!-- Estatísticas dos Filtros -->
+                    <div class="row mt-3">
+                        <div class="col-md-12">
+                            <div class="d-flex gap-3 align-items-center flex-wrap">
+                                <small class="text-muted">
+                                    <strong id="totalEmpresasFiltradas">${empresas.length}</strong> empresas encontradas
+                                </small>
+                                <small class="text-muted">|</small>
+                                <small class="badge bg-success" id="empresasSimples">
+                                    ${empresas.filter(e => e.simples_nacional).length} Simples Nacional
+                                </small>
+                                <small class="badge bg-info" id="empresasDemais">
+                                    ${empresas.filter(e => !e.simples_nacional).length} Demais Regimes
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lista de Empresas -->
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span>Lista de Empresas</span>
+                    <div class="btn-group">
+                        <button class="btn btn-outline-secondary btn-sm" onclick="app.exportarEmpresas()">
+                            <i class="fas fa-download"></i> Exportar
+                        </button>
+                        <button class="btn btn-outline-primary btn-sm" onclick="app.loadPage('empresas')">
+                            <i class="fas fa-sync-alt"></i> Atualizar
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body" id="listaEmpresasContainer">
+                    ${empresas.length === 0 ?
                     '<div class="text-center py-5"><i class="fas fa-building fa-3x text-muted mb-3"></i><p class="text-muted">Nenhuma empresa cadastrada</p><button class="btn btn-primary mt-2" onclick="app.openEmpresaModal()">Cadastrar Primeira Empresa</button></div>' :
                     this.renderEmpresasTable(empresas)
                 }
-                    </div>
                 </div>
-            `;
+            </div>
+        `;
         } catch (error) {
             console.error('Erro ao carregar empresas:', error);
-            return `
-                <div class="alert alert-danger">
-                    <h4>Erro ao carregar empresas</h4>
-                    <p>${error.message}</p>
-                    <button class="btn btn-primary" onclick="app.loadPage('empresas')">
-                        Tentar Novamente
-                    </button>
-                </div>
-            `;
+            return this.renderError('empresas', error);
         }
     }
 
+    // ✅ MÉTODO aplicarFiltrosEmpresa CORRIGIDO
+    async aplicarFiltrosEmpresa() {
+        try {
+            // Buscar todas as empresas novamente
+            const todasEmpresas = await this.apiRequest('/empresas');
+
+            // Capturar valores dos filtros
+            const busca = document.getElementById('buscaEmpresa')?.value.toLowerCase().trim() || '';
+            const regime = document.getElementById('filtroRegime')?.value || '';
+            const ordenacao = document.getElementById('ordenarEmpresa')?.value || 'razao_social_asc';
+            const status = document.getElementById('filtroStatus')?.value || '';
+
+            let empresasFiltradas = [...todasEmpresas];
+
+            // 1. Filtro de busca - CORRIGIDO
+            if (busca) {
+                empresasFiltradas = empresasFiltradas.filter(empresa => {
+                    // Texto limpo para busca
+                    const textoBusca = busca.toLowerCase();
+
+                    // Campos da empresa para pesquisar
+                    const razaoSocial = (empresa.razao_social || '').toLowerCase();
+                    const nomeFantasia = (empresa.nome_fantasia || '').toLowerCase();
+                    const cnpj = (empresa.cnpj || '').replace(/\D/g, ''); // Apenas números
+                    const cnpjBusca = textoBusca.replace(/\D/g, ''); // Busca apenas números
+                    const telefone = (empresa.telefone || '').replace(/\D/g, '');
+                    const telefoneBusca = textoBusca.replace(/\D/g, '');
+                    const email = (empresa.email || '').toLowerCase();
+                    const endereco = (empresa.endereco || '').toLowerCase();
+
+                    // Verificar se a busca corresponde a algum campo
+                    return razaoSocial.includes(textoBusca) ||
+                        nomeFantasia.includes(textoBusca) ||
+                        email.includes(textoBusca) ||
+                        endereco.includes(textoBusca) ||
+                        (cnpjBusca && cnpj.includes(cnpjBusca)) ||
+                        (telefoneBusca && telefone.includes(telefoneBusca));
+                });
+            }
+
+            // 2. Filtro por regime tributário
+            if (regime) {
+                if (regime === 'simples') {
+                    empresasFiltradas = empresasFiltradas.filter(empresa => empresa.simples_nacional);
+                } else if (regime === 'demais') {
+                    empresasFiltradas = empresasFiltradas.filter(empresa => !empresa.simples_nacional);
+                }
+            }
+
+            // 3. Filtro por status (se implementado com contagem de documentos)
+            if (status === 'ativas' || status === 'inativas') {
+                try {
+                    const documentos = await this.apiRequest('/documentos');
+                    const empresasComDocumentos = [...new Set(documentos.map(d => d.empresa_id))];
+
+                    if (status === 'ativas') {
+                        empresasFiltradas = empresasFiltradas.filter(empresa =>
+                            empresasComDocumentos.includes(empresa.id)
+                        );
+                    } else if (status === 'inativas') {
+                        empresasFiltradas = empresasFiltradas.filter(empresa =>
+                            !empresasComDocumentos.includes(empresa.id)
+                        );
+                    }
+                } catch (error) {
+                    console.log('Erro ao filtrar por status:', error);
+                }
+            }
+
+            // 4. Ordenação
+            empresasFiltradas.sort((a, b) => {
+                switch (ordenacao) {
+                    case 'razao_social_asc':
+                        return (a.razao_social || '').localeCompare(b.razao_social || '');
+                    case 'razao_social_desc':
+                        return (b.razao_social || '').localeCompare(a.razao_social || '');
+                    case 'created_at_desc':
+                        return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+                    case 'created_at_asc':
+                        return new Date(a.created_at || 0) - new Date(b.created_at || 0);
+                    case 'cnpj_asc':
+                        return (a.cnpj || '').localeCompare(b.cnpj || '');
+                    default:
+                        return 0;
+                }
+            });
+
+            // Debug para verificar se está funcionando
+            console.log('🔍 Busca aplicada:', busca);
+            console.log('📊 Empresas filtradas:', empresasFiltradas.length, 'de', todasEmpresas.length);
+
+            // Atualizar a tabela
+            const container = document.getElementById('listaEmpresasContainer');
+            if (container) {
+                if (empresasFiltradas.length === 0) {
+                    container.innerHTML = `
+                    <div class="text-center py-5">
+                        <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">Nenhuma empresa encontrada</h5>
+                        <p class="text-muted">Tente ajustar os filtros de busca</p>
+                        ${busca ? `<p class="small text-info">Pesquisou por: "<strong>${busca}</strong>"</p>` : ''}
+                        <button class="btn btn-outline-primary" onclick="app.limparFiltrosEmpresa()">
+                            <i class="fas fa-times"></i> Limpar Filtros
+                        </button>
+                    </div>
+                `;
+                } else {
+                    container.innerHTML = this.renderEmpresasTable(empresasFiltradas);
+                }
+            }
+
+            // Atualizar estatísticas
+            this.atualizarEstatisticasEmpresa(empresasFiltradas);
+
+        } catch (error) {
+            console.error('Erro ao aplicar filtros:', error);
+            this.showAlert('Erro ao aplicar filtros: ' + error.message, 'danger');
+        }
+    }
+
+    // ✅ MÉTODO ALTERNATIVO MAIS ROBUSTO PARA BUSCA
+    filtrarEmpresasPorTexto(empresas, textoBusca) {
+        if (!textoBusca || textoBusca.trim() === '') return empresas;
+
+        const busca = textoBusca.toLowerCase().trim();
+
+        return empresas.filter(empresa => {
+            try {
+                // Array com todos os campos pesquisáveis
+                const camposPesquisa = [
+                    empresa.razao_social,
+                    empresa.nome_fantasia,
+                    empresa.email,
+                    empresa.endereco,
+                    empresa.cnpj?.replace(/\D/g, ''), // CNPJ apenas números
+                    empresa.telefone?.replace(/\D/g, '') // Telefone apenas números
+                ];
+
+                // Busca em qualquer campo
+                return camposPesquisa.some(campo => {
+                    if (!campo) return false;
+
+                    const campoLimpo = String(campo).toLowerCase();
+
+                    // Se a busca contém apenas números, pesquisar também como números
+                    if (/^\d+$/.test(busca)) {
+                        const campoNumerico = campoLimpo.replace(/\D/g, '');
+                        return campoNumerico.includes(busca);
+                    }
+
+                    // Busca normal de texto
+                    return campoLimpo.includes(busca);
+                });
+
+            } catch (error) {
+                console.error('Erro ao filtrar empresa:', empresa.id, error);
+                return false;
+            }
+        });
+    }
+
+
+    // ✅ MÉTODO PARA ATUALIZAR ESTATÍSTICAS
+    atualizarEstatisticasEmpresa(empresas) {
+        const totalElement = document.getElementById('totalEmpresasFiltradas');
+        const simplesElement = document.getElementById('empresasSimples');
+        const demaisElement = document.getElementById('empresasDemais');
+
+        if (totalElement) {
+            totalElement.textContent = empresas.length;
+        }
+
+        if (simplesElement) {
+            const simplesCount = empresas.filter(e => e.simples_nacional).length;
+            simplesElement.textContent = `${simplesCount} Simples Nacional`;
+        }
+
+        if (demaisElement) {
+            const demaisCount = empresas.filter(e => !e.simples_nacional).length;
+            demaisElement.textContent = `${demaisCount} Demais Regimes`;
+        }
+    }
+
+    // ✅ MÉTODO PARA LIMPAR FILTROS
+    limparFiltrosEmpresa() {
+        document.getElementById('buscaEmpresa').value = '';
+        document.getElementById('filtroRegime').value = '';
+        document.getElementById('ordenarEmpresa').value = 'razao_social_asc';
+        document.getElementById('filtroStatus').value = '';
+
+        // Reaplicar filtros (que agora estarão vazios)
+        this.aplicarFiltrosEmpresa();
+    }
+
+    // ✅ MÉTODO PARA EXPORTAR EMPRESAS
+    exportarEmpresas() {
+        this.showAlert('Funcionalidade de exportação em desenvolvimento', 'info');
+    }
+
+    // ✅ MÉTODO renderEmpresasTable MELHORADO
     renderEmpresasTable(empresas) {
         return `
-            <div class="table-responsive">
-                <table class="table table-hover">
-                    <thead>
-                        <tr>
-                            <th>Razão Social</th>
-                            <th>CNPJ</th>
-                            <th>Telefone</th>
-                            <th>Regime</th>
-                            <th>Data Cadastro</th>
-                            <th>Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${empresas.map(empresa => `
-                            <tr>
-                                <td>
-                                    <strong>${empresa.razao_social}</strong>
-                                    ${empresa.nome_fantasia ? `<br><small class="text-muted">${empresa.nome_fantasia}</small>` : ''}
-                                </td>
-                                <td>${this.formatCNPJ(empresa.cnpj)}</td>
-                                <td>${empresa.telefone}</td>
-                                <td>
-                                    <span class="badge ${empresa.simples_nacional ? 'bg-success' : 'bg-info'}">
-                                        ${empresa.simples_nacional ? 'Simples Nacional' : 'Demais Regimes'}
-                                    </span>
-                                </td>
-                                <td>${this.formatDate(empresa.created_at)}</td>
-                                <td>
-                                    <div class="btn-group btn-group-sm">
-                                        <button class="btn btn-outline-warning" onclick="app.editEmpresa(${empresa.id})" title="Editar">
-                                            <i class="fas fa-edit"></i>
-                                        </button>
-                                        <button class="btn btn-outline-info" onclick="app.viewEmpresa(${empresa.id})" title="Ver Detalhes">
-                                            <i class="fas fa-eye"></i>
-                                        </button>
-                                        <button class="btn btn-outline-danger" onclick="app.deleteEmpresa(${empresa.id})" title="Excluir">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
+        <div class="table-responsive">
+            <table class="table table-hover table-striped">
+                <thead class="table-dark">
+                    <tr>
+                        <th>
+                            <i class="fas fa-building me-1"></i>
+                            Empresa
+                        </th>
+                        <th>
+                            <i class="fas fa-id-card me-1"></i>
+                            CNPJ
+                        </th>
+                        <th>
+                            <i class="fas fa-phone me-1"></i>
+                            Contato
+                        </th>
+                        <th>
+                            <i class="fas fa-chart-line me-1"></i>
+                            Regime
+                        </th>
+                        <th>
+                            <i class="fas fa-calendar me-1"></i>
+                            Cadastro
+                        </th>
+                        <th>
+                            <i class="fas fa-file-alt me-1"></i>
+                            Documentos
+                        </th>
+                        <th>
+                            <i class="fas fa-cogs me-1"></i>
+                            Ações
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${empresas.map(empresa => this.renderEmpresaTableRow(empresa)).join('')}
+                </tbody>
+            </table>
+        </div>
+    `;
+    }
+
+    // ✅ NOVO MÉTODO PARA RENDERIZAR LINHA DA TABELA
+    renderEmpresaTableRow(empresa) {
+        return `
+        <tr>
+            <td>
+                <div class="d-flex flex-column">
+                    <strong class="text-primary">${empresa.razao_social}</strong>
+                    ${empresa.nome_fantasia ?
+                `<small class="text-muted">${empresa.nome_fantasia}</small>` :
+                '<small class="text-muted">Sem nome fantasia</small>'
+            }
+                </div>
+            </td>
+            <td>
+                <span class="font-monospace">${this.formatCNPJ(empresa.cnpj)}</span>
+            </td>
+            <td>
+                <div class="d-flex flex-column">
+                    <small>
+                        <i class="fas fa-phone text-muted me-1"></i>
+                        ${empresa.telefone || 'N/A'}
+                    </small>
+                    <small>
+                        <i class="fas fa-envelope text-muted me-1"></i>
+                        ${empresa.email || 'N/A'}
+                    </small>
+                </div>
+            </td>
+            <td>
+                <span class="badge ${empresa.simples_nacional ? 'bg-success' : 'bg-info'}">
+                    ${empresa.simples_nacional ? 'Simples Nacional' : 'Demais Regimes'}
+                </span>
+            </td>
+            <td>
+                <small class="text-muted">
+                    ${this.formatDateOnly(empresa.created_at)}
+                </small>
+            </td>
+            <td>
+                <button class="btn btn-outline-secondary btn-sm" 
+                        onclick="app.verDocumentosEmpresa(${empresa.id})"
+                        title="Ver documentos desta empresa">
+                    <i class="fas fa-file-alt"></i>
+                    <span class="d-none d-md-inline">Ver Docs</span>
+                </button>
+            </td>
+            <td>
+                <div class="btn-group btn-group-sm">
+                    <button class="btn btn-outline-info" 
+                            onclick="app.viewEmpresa(${empresa.id})" 
+                            title="Ver Detalhes">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                    <button class="btn btn-outline-warning" 
+                            onclick="app.editEmpresa(${empresa.id})" 
+                            title="Editar">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn btn-outline-danger" 
+                            onclick="app.deleteEmpresa(${empresa.id})" 
+                            title="Excluir">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </td>
+        </tr>
+    `;
+    }
+
+    // ✅ NOVO MÉTODO PARA VER DOCUMENTOS DA EMPRESA
+    async verDocumentosEmpresa(empresaId) {
+        try {
+            const [empresa, documentos] = await Promise.all([
+                this.apiRequest(`/empresas/${empresaId}`),
+                this.apiRequest('/documentos')
+            ]);
+
+            const documentosEmpresa = documentos.filter(doc => doc.empresa_id == empresaId);
+
+            const content = `
+            <div class="empresa-documentos">
+                <div class="alert alert-info mb-4">
+                    <h5 class="mb-2">
+                        <i class="fas fa-building me-2"></i>
+                        ${empresa.razao_social}
+                    </h5>
+                    <p class="mb-0">
+                        <strong>CNPJ:</strong> ${this.formatCNPJ(empresa.cnpj)} | 
+                        <strong>Total de documentos:</strong> ${documentosEmpresa.length}
+                    </p>
+                </div>
+
+                ${documentosEmpresa.length === 0 ? `
+                    <div class="text-center py-5">
+                        <i class="fas fa-file-alt fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">Nenhum documento cadastrado</h5>
+                        <p class="text-muted">Esta empresa ainda não possui documentos cadastrados</p>
+                        <button class="btn btn-primary" onclick="app.loadPage('documentos')">
+                            <i class="fas fa-plus"></i> Cadastrar Documento
+                        </button>
+                    </div>
+                ` : `
+                    <div class="table-responsive">
+                        <table class="table table-hover table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Tipo</th>
+                                    <th>Descrição</th>
+                                    <th>Emissão</th>
+                                    <th>Vencimento</th>
+                                    <th>Status</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${documentosEmpresa.map(doc => {
+                const diasRestantes = this.calculateDiasRestantes(doc.data_vencimento);
+                const statusClass = diasRestantes < 0 ? 'table-danger' :
+                    diasRestantes <= 30 ? 'table-warning' : '';
+
+                return `
+                                        <tr class="${statusClass}">
+                                            <td>
+                                                <span class="badge bg-secondary">${doc.tipo}</span>
+                                            </td>
+                                            <td>
+                                                <strong>${doc.nome}</strong>
+                                                ${doc.observacoes ? `<br><small class="text-muted">${doc.observacoes.substring(0, 50)}${doc.observacoes.length > 50 ? '...' : ''}</small>` : ''}
+                                            </td>
+                                            <td>${this.formatDateOnly(doc.data_emissao)}</td>
+                                            <td>${this.formatDateOnly(doc.data_vencimento)}</td>
+                                            <td>
+                                                <span class="badge ${diasRestantes < 0 ? 'bg-danger' : diasRestantes <= 30 ? 'bg-warning' : 'bg-success'}">
+                                                    ${diasRestantes < 0 ? 'Vencido' : diasRestantes <= 30 ? 'Vencendo' : 'Em dia'}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <div class="btn-group btn-group-sm">
+                                                    <button class="btn btn-outline-primary" onclick="app.visualizarDocumento(${doc.id})" title="Ver Detalhes">
+                                                        <i class="fas fa-eye"></i>
+                                                    </button>
+                                                    ${doc.arquivo_path ? `
+                                                        <button class="btn btn-outline-success" onclick="app.downloadDocumento(${doc.id})" title="Download">
+                                                            <i class="fas fa-download"></i>
+                                                        </button>
+                                                    ` : ''}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    `;
+            }).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `}
             </div>
         `;
+
+            this.showModal(
+                `Documentos da Empresa - ${empresa.razao_social}`,
+                content,
+                null,
+                'modal-xl'
+            );
+
+        } catch (error) {
+            console.error('Erro ao carregar documentos da empresa:', error);
+            this.showAlert('Erro ao carregar documentos: ' + error.message, 'danger');
+        }
+    }
+
+    // ✅ MÉTODO AUXILIAR PARA FORMATAR APENAS DATA
+    formatDateOnly(dateString) {
+        if (!dateString) return 'N/A';
+        try {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('pt-BR');
+        } catch (error) {
+            return 'Data inválida';
+        }
     }
 
     // ✅ MÉTODO openEmpresaModal ATUALIZADO COM OLHINHO
@@ -2492,43 +2939,610 @@ class App {
     // ✅ GESTÃO DE DOCUMENTOS
     // ============================
 
+    // ✅ MÉTODO renderDocumentos ATUALIZADO COM FILTROS
     async renderDocumentos() {
         try {
-            const documentos = await this.apiRequest('/documentos');
+            const [documentos, empresas, responsaveis] = await Promise.all([
+                this.apiRequest('/documentos'),
+                this.apiRequest('/empresas'),
+                this.apiRequest('/responsaveis')
+            ]);
 
             return `
-                <div class="documentos-module">
-                    <div class="d-flex justify-content-between align-items-center mb-4">
-                        <h1 class="page-title">
-                            <i class="fas fa-file-alt me-2"></i>Gestão de Documentos
-                        </h1>
-                        <button class="btn btn-primary" onclick="app.abrirFormularioNovoDocumento()">
-                            <i class="fas fa-plus"></i> Novo Documento
-                        </button>
-                    </div>
-
-                    <!-- Lista de Documentos -->
-                    <div id="lista-documentos">
-                        ${this.renderListaDocumentos(documentos)}
-                    </div>
-
-                    <!-- Formulário de Documento (inicialmente oculto) -->
-                    <div id="formulario-documento" style="display: none;">
-                        ${await this.renderFormularioDocumento()}
-                    </div>
-                </div>
-            `;
-        } catch (error) {
-            return `
-                <div class="alert alert-danger">
-                    <h4>Erro ao carregar documentos</h4>
-                    <p>${error.message}</p>
-                    <button class="btn btn-primary" onclick="app.loadPage('documentos')">
-                        Tentar Novamente
+            <div class="documentos-module">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h1 class="page-title">
+                        <i class="fas fa-file-alt me-2"></i>Gestão de Documentos
+                    </h1>
+                    <button class="btn btn-primary" onclick="app.abrirFormularioNovoDocumento()">
+                        <i class="fas fa-plus"></i> Novo Documento
                     </button>
                 </div>
-            `;
+
+                <!-- Filtros de Documentos -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <i class="fas fa-filter me-2"></i>Filtros e Pesquisa
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <label class="form-label">Buscar</label>
+                                <div class="input-group">
+                                    <input type="text" 
+                                           class="form-control" 
+                                           id="buscaDocumento" 
+                                           placeholder="Nome, tipo, empresa..."
+                                           onkeyup="app.aplicarFiltrosDocumento()">
+                                    <button class="btn btn-outline-secondary" 
+                                            type="button" 
+                                            onclick="app.limparFiltrosDocumento()">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Tipo de Documento</label>
+                                <select class="form-select" id="filtroTipo" onchange="app.aplicarFiltrosDocumento()">
+                                    <option value="">Todos os tipos</option>
+                                    <optgroup label="ALVARÁ">
+                                        <option value="ALVARÁ DE FUNCIONAMENTO">ALVARÁ DE FUNCIONAMENTO</option>
+                                        <option value="ALVARÁ SANITÁRIO">ALVARÁ SANITÁRIO</option>
+                                        <option value="ALVARÁ DE PUBLICIDADE">ALVARÁ DE PUBLICIDADE</option>
+                                        <option value="ALVARÁ AMBIENTAL">ALVARÁ AMBIENTAL</option>
+                                        <option value="AVCB">AVCB</option>
+                                    </optgroup>
+                                    <optgroup label="TVL">
+                                        <option value="TVL">TVL SALVADOR</option>
+                                    </optgroup>
+                                    <optgroup label="PROCURAÇÕES ELETRÔNICAS">
+                                        <option value="PROCURAÇÃO ELETRÔNICA FEDERAL">PROCURAÇÃO ELETRÔNICA FEDERAL</option>
+                                        <option value="PROCURAÇÃO ELETRÔNICA ESTADUAL">PROCURAÇÃO ELETRÔNICA ESTADUAL</option>
+                                    </optgroup>
+                                    <optgroup label="CERTIDÕES NEGATIVAS">
+                                        <option value="CERTIDÃO FEDERAL">CERTIDÃO FEDERAL</option>
+                                        <option value="CERTIDÃO ESTADUAL">CERTIDÃO ESTADUAL</option>
+                                        <option value="CERTIDÃO MUNICIPAL">CERTIDÃO MUNICIPAL</option>
+                                        <option value="CERTIDÃO TRABALHISTA">CERTIDÃO TRABALHISTA</option>
+                                        <option value="CERTIDÃO FGTS">CERTIDÃO FGTS</option>
+                                        <option value="CERTIDÃO CONCORDATA E FALÊNCIA">CERTIDÃO CONCORDATA E FALÊNCIA</option>
+                                    </optgroup>
+                                    <optgroup label="TFF">
+                                        <option value="TFF">TFF (Todos)</option>
+                                        <option value="TFF - LAURO DE FREITAS">TFF - LAURO DE FREITAS</option>
+                                        <option value="TFF - SALVADOR">TFF - SALVADOR</option>
+                                        <option value="TFF - CAMAÇARI">TFF - CAMAÇARI</option>
+                                        <option value="TFF - FEIRA DA MATA">TFF - FEIRA DA MATA</option>
+                                    </optgroup>
+                                    <optgroup label="DECLARAÇÕES">
+                                        <option value="DECLARAÇÃO SIMEI (MEI)">DECLARAÇÃO SIMEI (MEI)</option>
+                                        <option value="DECLARAÇÃO DE FATURAMENTO CAMAÇARI">DECLARAÇÃO DE FATURAMENTO CAMAÇARI</option>
+                                        <option value="DECLARAÇÃO DE FATURAMENTO DIAS D'AVILA">DECLARAÇÃO DE FATURAMENTO DIAS D'AVILA</option>
+                                    </optgroup>
+                                    <option value="OUTROS">OUTROS</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Empresa</label>
+                                <select class="form-select" id="filtroEmpresa" onchange="app.aplicarFiltrosDocumento()">
+                                    <option value="">Todas as empresas</option>
+                                    ${empresas.map(empresa => `
+                                        <option value="${empresa.id}">
+                                            ${empresa.razao_social}
+                                            ${empresa.nome_fantasia ? ` - ${empresa.nome_fantasia}` : ''}
+                                        </option>
+                                    `).join('')}
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Responsável</label>
+                                <select class="form-select" id="filtroResponsavel" onchange="app.aplicarFiltrosDocumento()">
+                                    <option value="">Todos os responsáveis</option>
+                                    ${responsaveis.map(resp => `
+                                        <option value="${resp.id}">
+                                            ${resp.nome} - ${resp.funcao}
+                                        </option>
+                                    `).join('')}
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="row g-3 mt-2">
+                            <div class="col-md-3">
+                                <label class="form-label">Status Vencimento</label>
+                                <select class="form-select" id="filtroStatusVencimento" onchange="app.aplicarFiltrosDocumento()">
+                                    <option value="">Todos os status</option>
+                                    <option value="vencidos">Documentos Vencidos</option>
+                                    <option value="proximos">Próximos do Vencimento (30 dias)</option>
+                                    <option value="validos">Documentos Válidos</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Status Geral</label>
+                                <select class="form-select" id="filtroStatusGeral" onchange="app.aplicarFiltrosDocumento()">
+                                    <option value="">Todos os status</option>
+                                    <option value="pendente">Pendente</option>
+                                    <option value="em_andamento">Em Andamento</option>
+                                    <option value="concluido">Concluído</option>
+                                    <option value="cancelado">Cancelado</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Data de Vencimento</label>
+                                <select class="form-select" id="filtroPeriodo" onchange="app.aplicarFiltrosDocumento()">
+                                    <option value="">Todos os períodos</option>
+                                    <option value="hoje">Vence hoje</option>
+                                    <option value="esta_semana">Vence esta semana</option>
+                                    <option value="este_mes">Vence este mês</option>
+                                    <option value="proximo_mes">Vence próximo mês</option>
+                                    <option value="vencidos_7_dias">Vencidos últimos 7 dias</option>
+                                    <option value="vencidos_30_dias">Vencidos últimos 30 dias</option>
+                                    <option value="personalizado">Período personalizado</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Ordenar por</label>
+                                <select class="form-select" id="ordenarDocumento" onchange="app.aplicarFiltrosDocumento()">
+                                    <option value="data_vencimento_asc">Vencimento (Próximos primeiro)</option>
+                                    <option value="data_vencimento_desc">Vencimento (Distantes primeiro)</option>
+                                    <option value="nome_asc">Nome (A-Z)</option>
+                                    <option value="nome_desc">Nome (Z-A)</option>
+                                    <option value="tipo_asc">Tipo (A-Z)</option>
+                                    <option value="created_at_desc">Mais recentes</option>
+                                    <option value="created_at_asc">Mais antigos</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Período Personalizado -->
+                        <div class="row g-3 mt-2" id="periodoPeresonalizado" style="display: none;">
+                            <div class="col-md-3">
+                                <label class="form-label">Data Início</label>
+                                <input type="date" class="form-control" id="dataInicio" onchange="app.aplicarFiltrosDocumento()">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Data Fim</label>
+                                <input type="date" class="form-control" id="dataFim" onchange="app.aplicarFiltrosDocumento()">
+                            </div>
+                        </div>
+                        
+                        <!-- Estatísticas dos Filtros -->
+                        <div class="row mt-3">
+                            <div class="col-md-12">
+                                <div class="d-flex gap-3 align-items-center flex-wrap">
+                                    <small class="text-muted">
+                                        <strong id="totalDocumentosFiltrados">${documentos.length}</strong> documentos encontrados
+                                    </small>
+                                    <small class="text-muted">|</small>
+                                    <small class="badge bg-danger" id="documentosVencidos">
+                                        ${this.contarDocumentosVencidos(documentos)} Vencidos
+                                    </small>
+                                    <small class="badge bg-warning" id="documentosProximos">
+                                        ${this.contarDocumentosProximos(documentos)} Próximos
+                                    </small>
+                                    <small class="badge bg-success" id="documentosValidos">
+                                        ${this.contarDocumentosValidos(documentos)} Válidos
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Lista de Documentos -->
+                <div id="lista-documentos">
+                    ${this.renderListaDocumentosFiltrados(documentos)}
+                </div>
+
+                <!-- Formulário de Documento (inicialmente oculto) -->
+                <div id="formulario-documento" style="display: none;">
+                    ${await this.renderFormularioDocumento()}
+                </div>
+            </div>
+        `;
+        } catch (error) {
+            return `
+            <div class="alert alert-danger">
+                <h4>Erro ao carregar documentos</h4>
+                <p>${error.message}</p>
+                <button class="btn btn-primary" onclick="app.loadPage('documentos')">
+                    Tentar Novamente
+                </button>
+            </div>
+        `;
         }
+    }
+
+    // ✅ MÉTODO PARA APLICAR FILTROS DE DOCUMENTOS
+    async aplicarFiltrosDocumento() {
+        try {
+            // Buscar todos os documentos novamente
+            const todosDocumentos = await this.apiRequest('/documentos');
+
+            // Capturar valores dos filtros
+            const busca = document.getElementById('buscaDocumento')?.value.toLowerCase().trim() || '';
+            const tipo = document.getElementById('filtroTipo')?.value || '';
+            const empresaId = document.getElementById('filtroEmpresa')?.value || '';
+            const responsavelId = document.getElementById('filtroResponsavel')?.value || '';
+            const statusVencimento = document.getElementById('filtroStatusVencimento')?.value || '';
+            const statusGeral = document.getElementById('filtroStatusGeral')?.value || '';
+            const periodo = document.getElementById('filtroPeriodo')?.value || '';
+            const ordenacao = document.getElementById('ordenarDocumento')?.value || 'data_vencimento_asc';
+
+            let documentosFiltrados = [...todosDocumentos];
+
+            // 1. Filtro de busca
+            if (busca) {
+                documentosFiltrados = documentosFiltrados.filter(doc => {
+                    const textoBusca = busca.toLowerCase();
+
+                    return (doc.nome || '').toLowerCase().includes(textoBusca) ||
+                        (doc.tipo || '').toLowerCase().includes(textoBusca) ||
+                        (doc.razao_social || '').toLowerCase().includes(textoBusca) ||
+                        (doc.observacoes || '').toLowerCase().includes(textoBusca);
+                });
+            }
+
+            // 2. Filtro por tipo
+            if (tipo) {
+                if (tipo === 'TFF') {
+                    // Filtrar todos os TFF
+                    documentosFiltrados = documentosFiltrados.filter(doc =>
+                        (doc.tipo || '').includes('TFF')
+                    );
+                } else {
+                    documentosFiltrados = documentosFiltrados.filter(doc => doc.tipo === tipo);
+                }
+            }
+
+            // 3. Filtro por empresa
+            if (empresaId) {
+                documentosFiltrados = documentosFiltrados.filter(doc =>
+                    doc.empresa_id == empresaId
+                );
+            }
+
+            // 4. Filtro por responsável
+            if (responsavelId) {
+                documentosFiltrados = documentosFiltrados.filter(doc =>
+                    doc.responsavel_id == responsavelId
+                );
+            }
+
+            // 5. Filtro por status de vencimento
+            if (statusVencimento) {
+                documentosFiltrados = documentosFiltrados.filter(doc => {
+                    const dias = this.calculateDiasRestantes(doc.data_vencimento);
+
+                    switch (statusVencimento) {
+                        case 'vencidos':
+                            return dias < 0;
+                        case 'proximos':
+                            return dias >= 0 && dias <= 30;
+                        case 'validos':
+                            return dias > 30;
+                        default:
+                            return true;
+                    }
+                });
+            }
+
+            // 6. Filtro por status geral
+            if (statusGeral) {
+                documentosFiltrados = documentosFiltrados.filter(doc =>
+                    (doc.status_geral || 'pendente') === statusGeral
+                );
+            }
+
+            // 7. Filtro por período
+            if (periodo) {
+                documentosFiltrados = this.filtrarPorPeriodo(documentosFiltrados, periodo);
+            }
+
+            // 8. Ordenação
+            documentosFiltrados.sort((a, b) => {
+                switch (ordenacao) {
+                    case 'data_vencimento_asc':
+                        return new Date(a.data_vencimento) - new Date(b.data_vencimento);
+                    case 'data_vencimento_desc':
+                        return new Date(b.data_vencimento) - new Date(a.data_vencimento);
+                    case 'nome_asc':
+                        return (a.nome || '').localeCompare(b.nome || '');
+                    case 'nome_desc':
+                        return (b.nome || '').localeCompare(a.nome || '');
+                    case 'tipo_asc':
+                        return (a.tipo || '').localeCompare(b.tipo || '');
+                    case 'created_at_desc':
+                        return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+                    case 'created_at_asc':
+                        return new Date(a.created_at || 0) - new Date(b.created_at || 0);
+                    default:
+                        return 0;
+                }
+            });
+
+            console.log('🔍 Filtros aplicados:', {
+                busca,
+                tipo,
+                empresaId,
+                statusVencimento,
+                total: documentosFiltrados.length
+            });
+
+            // Atualizar a lista
+            const container = document.getElementById('lista-documentos');
+            if (container) {
+                container.innerHTML = this.renderListaDocumentosFiltrados(documentosFiltrados);
+            }
+
+            // Atualizar estatísticas
+            this.atualizarEstatisticasDocumento(documentosFiltrados);
+
+            // Mostrar/ocultar período personalizado
+            const periodoPeresonalizadoDiv = document.getElementById('periodoPeresonalizado');
+            if (periodo === 'personalizado') {
+                periodoPeresonalizadoDiv.style.display = 'block';
+            } else {
+                periodoPeresonalizadoDiv.style.display = 'none';
+            }
+
+        } catch (error) {
+            console.error('Erro ao aplicar filtros de documento:', error);
+            this.showAlert('Erro ao aplicar filtros: ' + error.message, 'danger');
+        }
+    }
+
+    // ✅ MÉTODO PARA FILTRAR POR PERÍODO
+    filtrarPorPeriodo(documentos, periodo) {
+        const hoje = new Date();
+        const hojeDateString = hoje.toISOString().split('T')[0];
+
+        return documentos.filter(doc => {
+            const vencimento = new Date(doc.data_vencimento.split('T')[0]);
+            const vencimentoString = doc.data_vencimento.split('T')[0];
+
+            switch (periodo) {
+                case 'hoje':
+                    return vencimentoString === hojeDateString;
+
+                case 'esta_semana':
+                    const inicioSemana = new Date(hoje);
+                    inicioSemana.setDate(hoje.getDate() - hoje.getDay());
+                    const fimSemana = new Date(inicioSemana);
+                    fimSemana.setDate(inicioSemana.getDate() + 6);
+                    return vencimento >= inicioSemana && vencimento <= fimSemana;
+
+                case 'este_mes':
+                    return vencimento.getMonth() === hoje.getMonth() &&
+                        vencimento.getFullYear() === hoje.getFullYear();
+
+                case 'proximo_mes':
+                    const proximoMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 1);
+                    return vencimento.getMonth() === proximoMes.getMonth() &&
+                        vencimento.getFullYear() === proximoMes.getFullYear();
+
+                case 'vencidos_7_dias':
+                    const seteDiasAtras = new Date(hoje);
+                    seteDiasAtras.setDate(hoje.getDate() - 7);
+                    return vencimento >= seteDiasAtras && vencimento < hoje;
+
+                case 'vencidos_30_dias':
+                    const trintaDiasAtras = new Date(hoje);
+                    trintaDiasAtras.setDate(hoje.getDate() - 30);
+                    return vencimento >= trintaDiasAtras && vencimento < hoje;
+
+                case 'personalizado':
+                    const dataInicio = document.getElementById('dataInicio')?.value;
+                    const dataFim = document.getElementById('dataFim')?.value;
+
+                    if (dataInicio && dataFim) {
+                        return vencimentoString >= dataInicio && vencimentoString <= dataFim;
+                    } else if (dataInicio) {
+                        return vencimentoString >= dataInicio;
+                    } else if (dataFim) {
+                        return vencimentoString <= dataFim;
+                    }
+                    return true;
+
+                default:
+                    return true;
+            }
+        });
+    }
+
+    // ✅ MÉTODO PARA ATUALIZAR ESTATÍSTICAS DE DOCUMENTOS
+    atualizarEstatisticasDocumento(documentos) {
+        const totalElement = document.getElementById('totalDocumentosFiltrados');
+        const vencidosElement = document.getElementById('documentosVencidos');
+        const proximosElement = document.getElementById('documentosProximos');
+        const validosElement = document.getElementById('documentosValidos');
+
+        if (totalElement) {
+            totalElement.textContent = documentos.length;
+        }
+
+        if (vencidosElement) {
+            const vencidosCount = this.contarDocumentosVencidos(documentos);
+            vencidosElement.textContent = `${vencidosCount} Vencidos`;
+        }
+
+        if (proximosElement) {
+            const proximosCount = this.contarDocumentosProximos(documentos);
+            proximosElement.textContent = `${proximosCount} Próximos`;
+        }
+
+        if (validosElement) {
+            const validosCount = this.contarDocumentosValidos(documentos);
+            validosElement.textContent = `${validosCount} Válidos`;
+        }
+    }
+
+    // ✅ MÉTODOS AUXILIARES PARA CONTAR DOCUMENTOS
+    contarDocumentosVencidos(documentos) {
+        return documentos.filter(doc => this.calculateDiasRestantes(doc.data_vencimento) < 0).length;
+    }
+
+    contarDocumentosProximos(documentos) {
+        return documentos.filter(doc => {
+            const dias = this.calculateDiasRestantes(doc.data_vencimento);
+            return dias >= 0 && dias <= 30;
+        }).length;
+    }
+
+    contarDocumentosValidos(documentos) {
+        return documentos.filter(doc => this.calculateDiasRestantes(doc.data_vencimento) > 30).length;
+    }
+
+    // ✅ MÉTODO PARA LIMPAR FILTROS
+    limparFiltrosDocumento() {
+        document.getElementById('buscaDocumento').value = '';
+        document.getElementById('filtroTipo').value = '';
+        document.getElementById('filtroEmpresa').value = '';
+        document.getElementById('filtroResponsavel').value = '';
+        document.getElementById('filtroStatusVencimento').value = '';
+        document.getElementById('filtroStatusGeral').value = '';
+        document.getElementById('filtroPeriodo').value = '';
+        document.getElementById('ordenarDocumento').value = 'data_vencimento_asc';
+        document.getElementById('dataInicio').value = '';
+        document.getElementById('dataFim').value = '';
+
+        // Ocultar período personalizado
+        document.getElementById('periodoPeresonalizado').style.display = 'none';
+
+        // Reaplicar filtros (que agora estarão vazios)
+        this.aplicarFiltrosDocumento();
+    }
+
+    // ✅ MÉTODO renderListaDocumentosFiltrados (RENOMEADO para evitar conflito)
+    renderListaDocumentosFiltrados(documentos) {
+        if (documentos.length === 0) {
+            return `
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">Nenhum documento encontrado</h5>
+                    <p class="text-muted">Tente ajustar os filtros de busca ou cadastre um novo documento</p>
+                    <div class="d-flex gap-2 justify-content-center">
+                        <button class="btn btn-outline-primary" onclick="app.limparFiltrosDocumento()">
+                            <i class="fas fa-times"></i> Limpar Filtros
+                        </button>
+                        <button class="btn btn-primary" onclick="app.abrirFormularioNovoDocumento()">
+                            <i class="fas fa-plus"></i> Cadastrar Documento
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        }
+
+        return `
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Documentos Cadastrados</h5>
+                <div class="d-flex gap-2">
+                    <span class="badge bg-primary">${documentos.length} documentos</span>
+                    <button class="btn btn-outline-secondary btn-sm" onclick="app.exportarDocumentosFiltrados()">
+                        <i class="fas fa-download"></i> Exportar
+                    </button>
+                    <button class="btn btn-outline-primary btn-sm" onclick="app.loadPage('documentos')">
+                        <i class="fas fa-sync-alt"></i> Atualizar
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Tipo</th>
+                                <th>Descrição/Número</th>
+                                <th>Empresa</th>
+                                <th>Responsável</th>
+                                <th>Emissão</th>
+                                <th>Vencimento</th>
+                                <th>Status</th>
+                                <th>Dias</th>
+                                <th>Arquivo</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${documentos.map(doc => {
+            const statusVencimento = this.getDocumentStatus(doc);
+            const statusGeral = doc.status_geral || 'pendente';
+            const diasRestantes = this.calculateDiasRestantes(doc.data_vencimento);
+
+            return `
+                                    <tr class="${statusVencimento === 'expired' ? 'table-danger' : statusVencimento === 'expiring' ? 'table-warning' : ''}">
+                                        <td>
+                                            <span class="badge bg-primary">${doc.tipo}</span>
+                                        </td>
+                                        <td>
+                                            <strong>${doc.nome}</strong>
+                                            ${doc.observacoes ? `<br><small class="text-muted">${doc.observacoes.substring(0, 50)}${doc.observacoes.length > 50 ? '...' : ''}</small>` : ''}
+                                        </td>
+                                        <td>
+                                            <small class="text-muted">${doc.razao_social || 'N/A'}</small>
+                                        </td>
+                                        <td>
+                                            <small class="text-muted">${doc.responsavel_nome || 'N/A'}</small>
+                                        </td>
+                                        <td>
+                                            <small>${this.formatDateOnly(doc.data_emissao)}</small>
+                                        </td>
+                                        <td>
+                                            <small class="${diasRestantes < 0 ? 'text-danger' : diasRestantes <= 30 ? 'text-warning' : 'text-success'}">
+                                                ${this.formatDateOnly(doc.data_vencimento)}
+                                            </small>
+                                        </td>
+                                        <td>
+                                            <span class="badge ${this.getStatusBadgeClass(statusGeral)}">
+                                                ${this.getStatusText(statusGeral)}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="badge ${diasRestantes < 0 ? 'bg-danger' : diasRestantes <= 30 ? 'bg-warning' : 'bg-success'}">
+                                                ${diasRestantes < 0 ? `${Math.abs(diasRestantes)}d atraso` : `${diasRestantes}d restantes`}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            ${doc.arquivo_path ?
+                    '<i class="fas fa-file-check text-success" title="Arquivo anexado"></i>' :
+                    '<i class="fas fa-file-times text-muted" title="Sem arquivo"></i>'
+                }
+                                        </td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                <button class="btn btn-outline-info" onclick="app.visualizarDocumento(${doc.id})" title="Ver Andamentos">
+                                                    <i class="fas fa-history"></i>
+                                                </button>
+                                                ${doc.arquivo_path ? `
+                                                    <button class="btn btn-outline-success" onclick="app.downloadDocumento(${doc.id})" title="Download">
+                                                        <i class="fas fa-download"></i>
+                                                    </button>
+                                                ` : ''}
+                                                <button class="btn btn-outline-primary" onclick="app.editarDocumento(${doc.id})" title="Editar">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <button class="btn btn-outline-danger" onclick="app.excluirDocumento(${doc.id})" title="Excluir">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                `;
+        }).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    `;
+    }
+
+    // ✅ MÉTODO PARA EXPORTAR DOCUMENTOS FILTRADOS
+    exportarDocumentosFiltrados() {
+        this.showAlert('Funcionalidade de exportação de documentos em desenvolvimento', 'info');
     }
 
     // ✅ MÉTODO PARA LIMPAR FORMULÁRIO DE ANDAMENTO
