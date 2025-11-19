@@ -1972,19 +1972,35 @@ class App {
         return texts[status] || status;
     }
 
-    formatDate(dateString) {
-        if (!dateString) return 'N/A';
-        try {
-            const date = new Date(dateString);
-            return date.toLocaleDateString('pt-BR') + ' ' + date.toLocaleTimeString('pt-BR', {
-                hour: '2-digit',
-                minute: '2-digit'
-            });
-        } catch (error) {
-            return 'Data inválida';
-        }
+// ✅ MÉTODO CORRIGIDO - MOSTRAR APENAS DATA (SEM HORA)
+formatDate(dateString) {
+    if (!dateString) return 'N/A';
+    try {
+        // ✅ PEGAR APENAS YYYY-MM-DD
+        const dataStr = dateString.split('T')[0];
+        const [ano, mes, dia] = dataStr.split('-').map(Number);
+        
+        // ✅ Criar data em LOCAL
+        const date = new Date(ano, mes - 1, dia);
+        
+        // ✅ RETORNAR APENAS A DATA (sem hora)
+        return date.toLocaleDateString('pt-BR');
+    } catch (error) {
+        console.error('Erro ao formatar data:', error);
+        return 'Data inválida';
     }
-
+}
+// ✅ NOVO MÉTODO - Para quando precisar mostrar DATA + HORA
+formatDateTime(dateString) {
+    if (!dateString) return 'N/A';
+    try {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('pt-BR') + ' às ' + 
+               date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    } catch (error) {
+        return 'Data inválida';
+    }
+}
     // ============================
     // ✅ GESTÃO DE EMPRESAS
     // ============================
@@ -3678,23 +3694,28 @@ class App {
         }
     }
 
-  // ✅ LOCALIZAR e SUBSTITUIR o método calculateDiasRestantes (linha ~1234)
+// ✅ MÉTODO CORRIGIDO - SEM TIMEZONE
 calculateDiasRestantes(dataVencimento) {
     if (!dataVencimento) return 0;
 
-    // ✅ CORREÇÃO: Pegar apenas YYYY-MM-DD (sem hora)
+    // ✅ PEGAR APENAS YYYY-MM-DD (remover hora e timezone)
     const dataStr = dataVencimento.split('T')[0];
     const [ano, mes, dia] = dataStr.split('-').map(Number);
 
-    // ✅ Criar datas SEM timezone (hora local)
+    // ✅ Criar datas em LOCAL (não UTC)
     const vencimento = new Date(ano, mes - 1, dia);
     const hoje = new Date();
-    hoje.setHours(0, 0, 0, 0); // Zerar horas
+    
+    // ✅ IMPORTANTE: Zerar as horas para comparar apenas a data
+    vencimento.setHours(0, 0, 0, 0);
+    hoje.setHours(0, 0, 0, 0);
 
     // Calcular diferença em dias
     const diffTime = vencimento - hoje;
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
+    console.log(`📅 DEBUG: Data ${dataStr} -> ${diffDays} dias`);
+    
     return diffDays;
 }
 
