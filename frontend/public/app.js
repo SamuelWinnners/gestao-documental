@@ -3678,60 +3678,62 @@ class App {
         }
     }
 
-    // ✅ LOCALIZAR e SUBSTITUIR o método calculateDiasRestantes (linha ~1234)
-    calculateDiasRestantes(dataVencimento) {
-        if (!dataVencimento) return 0;
+  // ✅ LOCALIZAR e SUBSTITUIR o método calculateDiasRestantes (linha ~1234)
+calculateDiasRestantes(dataVencimento) {
+    if (!dataVencimento) return 0;
 
-        // ✅ CORREÇÃO: Pegar apenas YYYY-MM-DD (sem hora)
-        const dataStr = dataVencimento.split('T')[0];
-        const [ano, mes, dia] = dataStr.split('-').map(Number);
+    // ✅ CORREÇÃO: Pegar apenas YYYY-MM-DD (sem hora)
+    const dataStr = dataVencimento.split('T')[0];
+    const [ano, mes, dia] = dataStr.split('-').map(Number);
 
-        // ✅ Criar datas SEM timezone (hora local)
-        const vencimento = new Date(ano, mes - 1, dia);
-        const hoje = new Date();
-        hoje.setHours(0, 0, 0, 0); // Zerar horas
+    // ✅ Criar datas SEM timezone (hora local)
+    const vencimento = new Date(ano, mes - 1, dia);
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0); // Zerar horas
 
-        // Calcular diferença em dias
-        const diffTime = vencimento - hoje;
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    // Calcular diferença em dias
+    const diffTime = vencimento - hoje;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-        return diffDays;
-    }
+    return diffDays;
+}
 
-    // ✅ LOCALIZAR e SUBSTITUIR isDocumentoVencido (linha ~950)
-    isDocumentoVencido(documento) {
-        const dias = this.calculateDiasRestantes(documento.data_vencimento);
-        return dias < 0;
-    }
+// ✅ LOCALIZAR e SUBSTITUIR isDocumentoVencido (linha ~950)
+isDocumentoVencido(documento) {
+    const dias = this.calculateDiasRestantes(documento.data_vencimento);
+    return dias < 0;
+}
 
-    // ✅ LOCALIZAR e SUBSTITUIR isDocumentoProximo (linha ~960)
-    isDocumentoProximo(documento) {
-        const dias = this.calculateDiasRestantes(documento.data_vencimento);
-        return dias >= 0 && dias <= 30;
-    }
+// ✅ LOCALIZAR e SUBSTITUIR isDocumentoProximo (linha ~960)
+isDocumentoProximo(documento) {
+    const dias = this.calculateDiasRestantes(documento.data_vencimento);
+    return dias >= 0 && dias <= 30;
+}
 
-    // ✅ ADICIONAR método de debug (NOVO - adicionar após isDocumentoProximo)
-    debugData(dataVencimento) {
-        const dataStr = dataVencimento.split('T')[0];
-        const [ano, mes, dia] = dataStr.split('-').map(Number);
+// ✅ ADICIONAR método de debug (NOVO - adicionar após isDocumentoProximo)
+debugData(dataVencimento) {
+    const dataStr = dataVencimento.split('T')[0];
+    const [ano, mes, dia] = dataStr.split('-').map(Number);
+    
+    const vencimento = new Date(ano, mes - 1, dia);
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+    
+    const diffDays = this.calculateDiasRestantes(dataVencimento);
+    
+    console.log('🔍 DEBUG DATA:', {
+        dataOriginal: dataVencimento,
+        dataStr: dataStr,
+        vencimento: vencimento.toLocaleDateString('pt-BR'),
+        hoje: hoje.toLocaleDateString('pt-BR'),
+        diasRestantes: diffDays,
+        status: diffDays < 0 ? 'VENCIDO' : diffDays <= 30 ? 'PRÓXIMO' : 'VÁLIDO'
+    });
+    
+    return diffDays;
+}
 
-        const vencimento = new Date(ano, mes - 1, dia);
-        const hoje = new Date();
-        hoje.setHours(0, 0, 0, 0);
 
-        const diffDays = this.calculateDiasRestantes(dataVencimento);
-
-        console.log('🔍 DEBUG DATA:', {
-            dataOriginal: dataVencimento,
-            dataStr: dataStr,
-            vencimento: vencimento.toLocaleDateString('pt-BR'),
-            hoje: hoje.toLocaleDateString('pt-BR'),
-            diasRestantes: diffDays,
-            status: diffDays < 0 ? 'VENCIDO' : diffDays <= 30 ? 'PRÓXIMO' : 'VÁLIDO'
-        });
-
-        return diffDays;
-    }
     // No método renderFormularioDocumento, substitua a parte do tipo:
     async renderFormularioDocumento() {
         try {

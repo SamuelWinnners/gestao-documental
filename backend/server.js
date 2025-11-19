@@ -244,6 +244,7 @@ app.get('/api/consulta-cnpj/:cnpj', async (req, res) => {
 // =============================================
 // ROTAS - CALENDÁRIO
 // =============================================
+// ✅ CORREÇÃO 1: Query do calendário (procure por '/api/calendario')
 app.get('/api/calendario/:ano?/:mes?', async (req, res) => {
     try {
         let { ano, mes } = req.params;
@@ -289,6 +290,108 @@ app.get('/api/calendario/:ano?/:mes?', async (req, res) => {
     } catch (error) {
         console.error('Erro calendário:', error);
         res.status(500).json({ error: 'Erro ao obter calendário' });
+    }
+});
+
+// ✅ CORREÇÃO 2: Query de listagem de documentos
+app.get('/api/documentos', async (req, res) => {
+    try {
+        const query = `
+            SELECT 
+                d.*,
+                e.razao_social,
+                e.nome_fantasia,
+                e.cnpj as empresa_cnpj,
+                r.nome as responsavel_nome,
+                r.funcao as responsavel_funcao,
+                DATE(d.data_vencimento) as data_vencimento,
+                DATE(d.data_emissao) as data_emissao,
+                DATEDIFF(DATE(d.data_vencimento), CURDATE()) as dias_restantes,
+                CASE 
+                    WHEN DATE(d.data_vencimento) < CURDATE() THEN 'vencido'
+                    WHEN DATE(d.data_vencimento) BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY) THEN 'proximo'
+                    ELSE 'valido'
+                END as status
+            FROM documentos d 
+            LEFT JOIN empresas e ON d.empresa_id = e.id 
+            LEFT JOIN responsaveis r ON d.responsavel_id = r.id 
+            ORDER BY d.data_vencimento ASC
+        `;
+        
+        const [rows] = await pool.execute(query);
+        res.json(rows);
+    } catch (error) {
+        console.error('Erro ao listar documentos:', error);
+        res.status(500).json({ error: 'Erro ao listar documentos' });
+    }
+});
+
+// ✅ CORREÇÃO 3: Query de estatísticas do dashboard
+app.get('/api/dashboard/estatisticas', async (req, res) => {
+    try {
+        const [[{ total_empresas }]] = await pool.execute('SELECT COUNT(*) as total_empresas FROM empresas');
+        const [[{ total_documentos }]] = await pool.execute('SELECT COUNT(*) as total_documentos FROM documentos');
+        
+        const [[{ total_vencidos }]] = await pool.execute(
+            'SELECT COUNT(*) as total_vencidos FROM documentos WHERE DATE(data_vencimento) < CURDATE()'
+        );
+        
+        const [[{ total_proximos }]] = await pool.execute(
+            'SELECT COUNT(*) as total_proximos FROM documentos WHERE DATE(data_vencimento) BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY)'
+        );
+        
+        const [[{ total_validos }]] = await pool.execute(
+            'SELECT COUNT(*) as total_validos FROM documentos WHERE DATE(data_vencimento) > DATE_ADD(CURDATE(), INTERVAL 30 DAY)'
+        );
+
+        // Documentos vencidos
+        const [documentosVencidos] = await pool.execute(`
+            SELECT d.*, e.razao_social as empresa_nome,
+                   DATEDIFF(CURDATE(), DATE(d.data_vencimento)) as dias_atraso
+            FROM documentos d
+            LEFT JOIN empresas e ON d.empresa_id = e.id
+            WHERE DATE(d.data_vencimento) < CURDATE()
+            ORDER BY d.data_vencimento ASC
+            LIMIT 10
+        `);
+
+        // Documentos próximos
+        const [documentosProximos] = await pool.execute(`
+            SELECT d.*, e.razao_social as empresa_nome,
+                   DATEDIFF(DATE(d.data_vencimento), CURDATE()) as dias_restantes
+            FROM documentos d
+            LEFT JOIN empresas e ON d.empresa_id = e.id
+            WHERE DATE(d.data_vencimento) BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY)
+            ORDER BY d.data_vencimento ASC
+            LIMIT 10
+        `);
+
+        // Próximos vencimentos
+        const [proximosVencimentos] = await pool.execute(`
+            SELECT d.*, e.razao_social as empresa_nome,
+                   DATEDIFF(DATE(d.data_vencimento), CURDATE()) as dias_restantes
+            FROM documentos d
+            LEFT JOIN empresas e ON d.empresa_id = e.id
+            WHERE DATE(d.data_vencimento) >= CURDATE()
+            ORDER BY d.data_vencimento ASC
+            LIMIT 20
+        `);
+
+        res.json({
+            estatisticas: {
+                empresas: total_empresas,
+                documentos: total_documentos,
+                vencidos: total_vencidos,
+                proximos: total_proximos,
+                validos: total_validos
+            },
+            documentosVencidos,
+            documentosProximos,
+            proximosVencimentos
+        });
+    } catch (error) {
+        console.error('Erro ao buscar estatísticas:', error);
+        res.status(500).json({ error: 'Erro ao buscar estatísticas' });
     }
 });
 
