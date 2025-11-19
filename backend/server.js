@@ -1026,6 +1026,86 @@ app.get('/api/dashboard/estatisticas', async (req, res) => {
 });
 
 // =============================================
+// ROTA DE LOGIN
+// =============================================
+app.post('/api/auth/login', async (req, res) => {
+    try {
+        const { email, senha } = req.body;
+
+        // Buscar usuário
+        const [usuarios] = await pool.execute(
+            'SELECT * FROM usuarios WHERE email = ? AND ativo = TRUE',
+            [email]
+        );
+
+        if (usuarios.length === 0) {
+            return res.status(401).json({ error: 'Credenciais inválidas' });
+        }
+
+        const usuario = usuarios[0];
+
+        // Verificar senha (simplificado - em produção use bcrypt)
+        if (senha !== 'admin123') { // Senha fixa para simplicidade
+            return res.status(401).json({ error: 'Credenciais inválidas' });
+        }
+
+        // Criar token simples (em produção use JWT)
+        const token = Buffer.from(`${usuario.id}:${Date.now()}`).toString('base64');
+
+        res.json({
+            token,
+            usuario: {
+                id: usuario.id,
+                nome: usuario.nome,
+                email: usuario.email
+            }
+        });
+    } catch (error) {
+        console.error('Erro no login:', error);
+        res.status(500).json({ error: 'Erro ao realizar login' });
+    }
+});
+
+// Rota de logout
+app.post('/api/auth/logout', (req, res) => {
+    res.json({ message: 'Logout realizado com sucesso' });
+});
+
+// Middleware de autenticação
+function verificarAutenticacao(req, res, next) {
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    
+    if (!token) {
+        return res.status(401).json({ error: 'Token não fornecido' });
+    }
+    
+    // Validação simples do token
+    try {
+        const decoded = Buffer.from(token, 'base64').toString();
+        const [userId, timestamp] = decoded.split(':');
+        
+        // Token válido por 24 horas
+        const agora = Date.now();
+        const tokenTime = parseInt(timestamp);
+        const umDia = 24 * 60 * 60 * 1000;
+        
+        if (agora - tokenTime > umDia) {
+            return res.status(401).json({ error: 'Token expirado' });
+        }
+        
+        req.userId = userId;
+        next();
+    } catch (error) {
+        return res.status(401).json({ error: 'Token inválido' });
+    }
+}
+
+// ✅ Proteger rotas (exemplo)
+// app.get('/api/documentos', verificarAutenticacao, async (req, res) => {
+//     ... código existente ...
+// });
+
+// =============================================
 // MIDDLEWARE DE ERRO
 // =============================================
 app.use((error, req, res, next) => {

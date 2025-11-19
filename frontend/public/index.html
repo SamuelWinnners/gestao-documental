@@ -51,11 +51,7 @@
                             <button class="btn dropdown-toggle d-flex align-items-center" data-bs-toggle="dropdown">
                                 <!--<img src="https://github.com/mdo.png" alt="" width="32" height="32"
                                     class="rounded-circle me-2"> Imagem fictícia de usuário -->
-                                <strong>Usuário</strong>
-                            </button>
-                            <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" href="#">Sair</a></li>
-                            </ul>
+                               
                         </div>
                     </div>
                 </div>
@@ -76,6 +72,38 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="app.js"></script>
+    <script>
+        // ✅ ADICIONAR no início do script
+        // Verificar se está logado
+        const token = localStorage.getItem('token');
+        const usuario = JSON.parse(localStorage.getItem('usuario') || '{}');
+
+        if (!token) {
+            window.location.href = '/login.html';
+        }
+
+        // Exibir nome do usuário
+        document.addEventListener('DOMContentLoaded', () => {
+            const userInfo = document.createElement('div');
+            userInfo.className = 'position-fixed top-0 end-0 m-3 bg-white p-2 rounded shadow-sm';
+            userInfo.innerHTML = `
+                <small class="text-muted">
+                    <i class="fas fa-user"></i> ${usuario.nome || 'Usuário'}
+                    <button class="btn btn-sm btn-outline-danger ms-2" onclick="logout()">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </button>
+                </small>
+            `;
+            document.body.appendChild(userInfo);
+        });
+
+        // Função de logout
+        function logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('usuario');
+            window.location.href = '/login.html';
+        }
+    </script>
 </body>
 
 </html>
