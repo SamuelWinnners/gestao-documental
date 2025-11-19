@@ -142,9 +142,10 @@ function getDocumentosSelectQuery(whereClause = '') {
             e.cnpj as empresa_cnpj,
             r.nome as responsavel_nome,
             r.funcao as responsavel_funcao,
+            DATE(d.data_vencimento) as data_vencimento_date,
             CASE 
-                WHEN d.data_vencimento < CURDATE() THEN 'vencido'
-                WHEN d.data_vencimento BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY) THEN 'proximo'
+                WHEN DATE(d.data_vencimento) < CURDATE() THEN 'vencido'
+                WHEN DATE(d.data_vencimento) BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY) THEN 'proximo'
                 ELSE 'valido'
             END as status
         FROM documentos d 
@@ -158,9 +159,15 @@ function getDocumentosSelectQuery(whereClause = '') {
 async function getEstatisticasDashboard() {
     const [[empresas]] = await pool.execute('SELECT COUNT(*) as total FROM empresas');
     const [[documentos]] = await pool.execute('SELECT COUNT(*) as total FROM documentos');
-    const [[vencidos]] = await pool.execute('SELECT COUNT(*) as total FROM documentos WHERE data_vencimento < CURDATE()');
-    const [[proximos]] = await pool.execute('SELECT COUNT(*) as total FROM documentos WHERE data_vencimento BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY)');
-    const [[validos]] = await pool.execute('SELECT COUNT(*) as total FROM documentos WHERE data_vencimento > DATE_ADD(CURDATE(), INTERVAL 30 DAY)');
+    const [[vencidos]] = await pool.execute(
+        'SELECT COUNT(*) as total FROM documentos WHERE DATE(data_vencimento) < CURDATE()'
+    );
+    const [[proximos]] = await pool.execute(
+        'SELECT COUNT(*) as total FROM documentos WHERE DATE(data_vencimento) BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY)'
+    );
+    const [[validos]] = await pool.execute(
+        'SELECT COUNT(*) as total FROM documentos WHERE DATE(data_vencimento) > DATE_ADD(CURDATE(), INTERVAL 30 DAY)'
+    );
 
     return {
         empresas: empresas.total,
@@ -244,19 +251,26 @@ app.get('/api/calendario/:ano?/:mes?', async (req, res) => {
         ano = ano ? parseInt(ano) : hoje.getFullYear();
         mes = mes ? parseInt(mes) : hoje.getMonth() + 1;
 
-        console.log(`📅 Calendário: ${mes}/${ano}`);
-
-        // Garantir que retornamos apenas a parte date (YYYY-MM-DD) e calculamos dia com DATE(...)
+        // ✅ USAR DATE() para comparação sem timezone
         const [documentos] = await pool.execute(`
             SELECT 
-                id,
-                nome,
-                tipo,
-                DATE_FORMAT(DATE(data_vencimento), '%Y-%m-%d') as data_vencimento,
-                DAY(DATE(data_vencimento)) as dia
-            FROM documentos 
-            WHERE MONTH(DATE(data_vencimento)) = ? AND YEAR(DATE(data_vencimento)) = ?
-            ORDER BY DATE(data_vencimento) ASC
+                d.id,
+                d.nome,
+                d.tipo,
+                DATE(d.data_vencimento) as data_vencimento,
+                DAY(DATE(d.data_vencimento)) as dia,
+                DATEDIFF(DATE(d.data_vencimento), CURDATE()) as dias_restantes,
+                CASE 
+                    WHEN DATE(d.data_vencimento) < CURDATE() THEN 'vencido'
+                    WHEN DATE(d.data_vencimento) BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY) THEN 'proximo'
+                    ELSE 'valido'
+                END as status_vencimento,
+                e.razao_social
+            FROM documentos d
+            LEFT JOIN empresas e ON d.empresa_id = e.id
+            WHERE MONTH(DATE(d.data_vencimento)) = ? 
+              AND YEAR(DATE(d.data_vencimento)) = ?
+            ORDER BY DATE(d.data_vencimento) ASC
         `, [mes, ano]);
 
         const porDia = {};
@@ -272,7 +286,6 @@ app.get('/api/calendario/:ano?/:mes?', async (req, res) => {
             documentosPorDia: porDia,
             total: documentos.length
         });
-
     } catch (error) {
         console.error('Erro calendário:', error);
         res.status(500).json({ error: 'Erro ao obter calendário' });
@@ -512,9 +525,29 @@ app.post('/api/documentos', upload.single('arquivo'), async (req, res) => {
 app.get('/api/documentos', async (req, res) => {
     try {
         console.log('Buscando documentos...');
-        const query = getDocumentosSelectQuery('ORDER BY d.data_vencimento ASC');
+        const query = `
+            SELECT 
+                d.*,
+                e.razao_social,
+                e.nome_fantasia,
+                e.cnpj as empresa_cnpj,
+                r.nome as responsavel_nome,
+                r.funcao as responsavel_funcao,
+                DATE(d.data_vencimento) as data_vencimento,
+                DATE(d.data_emissao) as data_emissao,
+                DATEDIFF(DATE(d.data_vencimento), CURDATE()) as dias_restantes,
+                CASE 
+                    WHEN DATE(d.data_vencimento) < CURDATE() THEN 'vencido'
+                    WHEN DATE(d.data_vencimento) BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY) THEN 'proximo'
+                    ELSE 'valido'
+                END as status
+            FROM documentos d 
+            LEFT JOIN empresas e ON d.empresa_id = e.id 
+            LEFT JOIN responsaveis r ON d.responsavel_id = r.id 
+            ORDER BY d.data_vencimento ASC
+        `;
+        
         const [rows] = await pool.execute(query);
-        console.log(`Encontrados ${rows.length} documentos`);
         res.json(rows);
     } catch (error) {
         console.error('Erro ao listar documentos:', error);
@@ -974,8 +1007,9 @@ app.get('/api/dashboard/estatisticas', async (req, res) => {
             SELECT d.*, e.razao_social as empresa_nome 
             FROM documentos d 
             LEFT JOIN empresas e ON d.empresa_id = e.id 
-            WHERE d.data_vencimento BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY)
+            WHERE d.data_vencimento >= CURDATE()
             ORDER BY d.data_vencimento ASC
+            LIMIT 20
         `);
 
         res.json({
