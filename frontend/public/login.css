@@ -336,3 +336,99 @@ body {
         font-size: 11px;
     }
 }
+
+/* ============================================
+   SIDEBAR
+   ============================================ */
+.sidebar {
+    width: 260px;
+    background: linear-gradient(180deg, #2c3e50 0%, #1a252f 100%);
+    color: white;
+    height: 100vh;
+    position: fixed;
+    left: 0;
+    top: 0;
+    padding: 20px 0;
+    box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar-header {
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    margin-bottom: 30px;
+}
+
+.sidebar-header .icon {
+    font-size: 28px;
+    margin-right: 10px;
+}
+
+.sidebar-header h1 {
+    font-size: 22px;
+    font-weight: 700;
+    color: white;
+    margin-bottom: 0;
+}
+
+.sidebar-header p {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.8);
+    margin-top: 5px;
+}
+
+/* ============================================
+   NAVIGATION
+   ============================================ */
+.sidebar-nav {
+    margin-top: 30px;
+    display: flex;
+    flex-direction: column;
+    flex: 1; /* ✅ Ocupa espaço disponível */
+}
+
+.sidebar-nav .nav-link {
+    display: flex;
+    align-items: center;
+    padding: 12px 25px;
+    color: rgba(255, 255, 255, 0.8);
+    text-decoration: none;
+    transition: all 0.3s;
+    font-size: 14px;
+}
+
+.sidebar-nav .nav-link:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+.sidebar-nav .nav-link.active {
+    background: rgba(52, 152, 219, 0.2);
+    color: white;
+    border-left: 4px solid #3498db;
+}
+
+.sidebar-nav .nav-link i {
+    margin-right: 12px;
+    font-size: 16px;
+    width: 20px;
+    text-align: center;
+}
+
+/* ✅ NOVO: Estilo para link de logout */
+.sidebar-nav .nav-link.mt-auto {
+    margin-top: auto !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.sidebar-nav .nav-link.text-danger {
+    color: rgba(255, 100, 100, 0.9) !important;
+}
+
+.sidebar-nav .nav-link.text-danger:hover {
+    background: rgba(220, 53, 69, 0.2);
+    color: #ff6b6b !important;
+}

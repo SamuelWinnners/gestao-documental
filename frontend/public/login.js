@@ -83,9 +83,9 @@ loginForm.addEventListener('submit', async (e) => {
         const data = await response.json();
 
         if (response.ok) {
-            // Salvar dados do usuário
-            localStorage.setItem('token', data.token);
-            localStorage.setItem('usuario', JSON.stringify(data.usuario));
+            // ✅ USAR sessionStorage (expira ao fechar aba)
+            sessionStorage.setItem('token', data.token);
+            sessionStorage.setItem('usuario', JSON.stringify(data.usuario));
             
             showAlert('Login realizado com sucesso! Redirecionando...', 'success');
             
@@ -112,7 +112,7 @@ senhaInput.addEventListener('input', clearAlert);
 // VERIFICAR SE JÁ ESTÁ LOGADO
 // ============================================
 window.addEventListener('DOMContentLoaded', () => {
-    const token = localStorage.getItem('token');
+    const token = sessionStorage.getItem('token');
     if (token) {
         window.location.href = '/';
     }

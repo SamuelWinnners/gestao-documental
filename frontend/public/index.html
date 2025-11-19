@@ -33,9 +33,12 @@
                 <a href="#" class="nav-link" data-page="documentos">
                     <i class="fas fa-file-alt"></i> Documentos
                 </a>
-                <!-- ✅ NOVO LINK CALENDÁRIO -->
                 <a href="#" class="nav-link" data-page="calendario">
                     <i class="fas fa-calendar-alt"></i> Calendário
+                </a>
+                <!-- ✅ NOVO: Botão de Logout -->
+                <a href="#" class="nav-link text-danger mt-auto" onclick="logout(); return false;">
+                    <i class="fas fa-sign-out-alt"></i> Sair
                 </a>
             </nav>
         </div>
@@ -47,12 +50,13 @@
                 <div class="container-fluid">
                     <span class="navbar-brand">Sistema de Gestão Documental</span>
                     <div class="d-flex align-items-center">
-                        <div class="dropdown">
-                            <button class="btn dropdown-toggle d-flex align-items-center" data-bs-toggle="dropdown">
-                                <!--<img src="https://github.com/mdo.png" alt="" width="32" height="32"
-                                    class="rounded-circle me-2"> Imagem fictícia de usuário -->
-                               
-                        </div>
+                        <span id="userInfo" class="text-muted me-3">
+                            <i class="fas fa-user"></i>
+                            <span id="userName">Carregando...</span>
+                        </span>
+                        <button class="btn btn-outline-danger btn-sm" onclick="logout()">
+                            <i class="fas fa-sign-out-alt"></i> Sair
+                        </button>
                     </div>
                 </div>
             </nav>
@@ -71,39 +75,64 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="app.js"></script>
     <script>
-        // ✅ ADICIONAR no início do script
-        // Verificar se está logado
-        const token = localStorage.getItem('token');
-        const usuario = JSON.parse(localStorage.getItem('usuario') || '{}');
-
+        // ============================================
+        // VERIFICAÇÃO DE AUTENTICAÇÃO
+        // ============================================
+        
+        // ✅ Verificar se está logado (sessionStorage)
+        const token = sessionStorage.getItem('token');
+        const usuarioStr = sessionStorage.getItem('usuario');
+        
         if (!token) {
             window.location.href = '/login.html';
         }
 
-        // Exibir nome do usuário
+        // ✅ Exibir nome do usuário
+        let usuario = { nome: 'Usuário' };
+        try {
+            if (usuarioStr) {
+                usuario = JSON.parse(usuarioStr);
+            }
+        } catch (error) {
+            console.error('Erro ao parsear usuário:', error);
+        }
+
+        // Atualizar nome no navbar
         document.addEventListener('DOMContentLoaded', () => {
-            const userInfo = document.createElement('div');
-            userInfo.className = 'position-fixed top-0 end-0 m-3 bg-white p-2 rounded shadow-sm';
-            userInfo.innerHTML = `
-                <small class="text-muted">
-                    <i class="fas fa-user"></i> ${usuario.nome || 'Usuário'}
-                    <button class="btn btn-sm btn-outline-danger ms-2" onclick="logout()">
-                        <i class="fas fa-sign-out-alt"></i>
-                    </button>
-                </small>
-            `;
-            document.body.appendChild(userInfo);
+            const userNameElement = document.getElementById('userName');
+            if (userNameElement) {
+                userNameElement.textContent = usuario.nome || 'Usuário';
+            }
         });
 
-        // Função de logout
+        // ============================================
+        // FUNÇÃO DE LOGOUT
+        // ============================================
         function logout() {
-            localStorage.removeItem('token');
-            localStorage.removeItem('usuario');
-            window.location.href = '/login.html';
+            if (confirm('Deseja realmente sair do sistema?')) {
+                // Limpar sessionStorage
+                sessionStorage.removeItem('token');
+                sessionStorage.removeItem('usuario');
+                sessionStorage.clear();
+                
+                // Redirecionar para login
+                window.location.href = '/login.html';
+            }
         }
+
+        // ============================================
+        // VERIFICAR SESSÃO A CADA 1 MINUTO
+        // ============================================
+        setInterval(() => {
+            const token = sessionStorage.getItem('token');
+            if (!token) {
+                alert('Sessão expirada. Faça login novamente.');
+                window.location.href = '/login.html';
+            }
+        }, 60000); // 1 minuto
     </script>
+    <script src="app.js"></script>
 </body>
 
 </html>
