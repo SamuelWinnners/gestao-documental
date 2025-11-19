@@ -1120,12 +1120,43 @@ app.use((error, req, res, next) => {
 // =============================================
 // ROTAS DO FRONTEND
 // =============================================
+
+// ✅ Rota raiz - redirecionar para login
 app.get('/', (req, res) => {
+    res.sendFile(path.join(projectRoot, 'frontend/public/login.html'));
+});
+
+// ✅ Rota de login explícita
+app.get('/login.html', (req, res) => {
+    res.sendFile(path.join(projectRoot, 'frontend/public/login.html'));
+});
+
+// ✅ Rota do dashboard (index.html)
+app.get('/index.html', (req, res) => {
     res.sendFile(path.join(projectRoot, 'frontend/public/index.html'));
 });
 
-app.get('*', (req, res) => {
-    res.sendFile(path.join(projectRoot, 'frontend/public/index.html'));
+// ✅ Fallback - apenas para rotas que NÃO são API e NÃO são arquivos estáticos
+app.get('*', (req, res, next) => {
+    // Se for rota de API, pular
+    if (req.path.startsWith('/api')) {
+        return next();
+    }
+    
+    // Se for arquivo estático (css, js, imagens), pular
+    if (req.path.match(/\.(css|js|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$/)) {
+        return next();
+    }
+    
+    // Caso contrário, redirecionar para login
+    res.redirect('/login.html');
+});
+
+// =============================================
+// MIDDLEWARE DE ERRO 404
+// =============================================
+app.use((req, res) => {
+    res.status(404).json({ error: 'Rota não encontrada' });
 });
 
 // =============================================
