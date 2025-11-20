@@ -3,11 +3,7 @@
   "builds": [
     { 
       "src": "backend/server.js", 
-      "use": "@vercel/node" 
-    },
-    {
-      "src": "frontend/public/**/*",
-      "use": "@vercel/static"
+      "use": "@vercel/node"
     }
   ],
   "routes": [
@@ -20,6 +16,11 @@
       "dest": "/frontend/public/$1"
     }
   ],
+  "functions": {
+    "backend/server.js": {
+      "maxDuration": 30
+    }
+  },
   "env": {
     "DB_HOST": "gondola.proxy.rlwy.net",
     "DB_PORT": "22627",

@@ -4,7 +4,7 @@
 // ✅ URL para desenvolvimento vs produção
 const API_BASE = window.location.hostname === 'localhost'
     ? 'http://localhost:3000/api'
-    : 'https://gestao-documental-production.up.railway.app/api';
+    : window.location.origin + '/api';
 
 // ✅ CSS PARA CALENDÁRIO
 const calendarioCSS = `
