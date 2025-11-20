@@ -22,6 +22,7 @@
     }
   },
   "env": {
+    "NODE_ENV": "production",
     "DB_HOST": "gondola.proxy.rlwy.net",
     "DB_PORT": "22627",
     "DB_USER": "root", 
