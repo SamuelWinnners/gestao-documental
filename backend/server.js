@@ -16,6 +16,7 @@ const projectRoot = path.join(__dirname, '..');
 
 console.log('📁 Project Root:', projectRoot);
 console.log('📁 Backend Dir:', __dirname);
+console.log('🚀 Server starting at:', new Date().toISOString());
 
 // ✅ INICIALIZAR APP
 const app = express();
@@ -185,7 +186,10 @@ app.get('/api/health', (req, res) => {
     res.json({
         status: 'OK',
         message: 'API está funcionando',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        version: '1.0.1',
+        environment: process.env.NODE_ENV || 'development',
+        uptime: process.uptime()
     });
 });
 
