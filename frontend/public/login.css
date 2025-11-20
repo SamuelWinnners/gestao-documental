@@ -1,0 +1,434 @@
+/* ============================================
+   VARIÁVEIS - LOGIN
+   ============================================ */
+:root {
+    --primary: #2c3e50;
+    --secondary: #3498db;
+    --danger: #dc3545;
+    --light: #f8f9fa;
+    --border: #dee2e6;
+}
+
+/* ============================================
+   RESET E BODY
+   ============================================ */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html, body {
+    height: 100%;
+    width: 100%;
+}
+
+body {
+    background: linear-gradient(135deg, var(--primary) 0%, #1a252f 100%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    padding: 20px;
+}
+
+/* ============================================
+   CONTAINER DE LOGIN
+   ============================================ */
+.login-container {
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 15px 50px rgba(0,0,0,0.4);
+    padding: 50px 40px;
+    width: 100%;
+    max-width: 450px;
+    animation: slideDown 0.5s ease;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ============================================
+   HEADER DO LOGIN
+   ============================================ */
+.login-header {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.login-header .icon-wrapper {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 20px;
+    background: linear-gradient(135deg, var(--primary), #1a252f);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 5px 20px rgba(44, 62, 80, 0.3);
+}
+
+.login-header i {
+    font-size: 40px;
+    color: white;
+}
+
+.login-header h2 {
+    color: var(--primary);
+    font-weight: 700;
+    margin-bottom: 10px;
+    font-size: 28px;
+}
+
+.login-header p {
+    color: #6c757d;
+    font-size: 14px;
+    margin-bottom: 0;
+}
+
+/* ============================================
+   FORMULÁRIO
+   ============================================ */
+.form-label {
+    font-weight: 600;
+    color: var(--primary);
+    font-size: 13px;
+    margin-bottom: 8px;
+    display: block;
+}
+
+.input-group {
+    margin-bottom: 20px;
+    position: relative;
+}
+
+.input-group-password {
+    display: flex;
+    position: relative;
+}
+
+.form-control {
+    padding: 12px 15px;
+    border-radius: 0 8px 8px 0;
+    border: 2px solid var(--border);
+    border-left: none;
+    transition: all 0.3s;
+    font-size: 14px;
+    width: 100%;
+}
+
+.input-group-password .form-control {
+    padding-right: 45px;
+    border-radius: 0;
+}
+
+.form-control:focus {
+    border-color: var(--secondary);
+    box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
+    outline: none;
+}
+
+.input-group-text {
+    background: var(--light);
+    border: 2px solid var(--border);
+    border-right: none;
+    border-radius: 8px 0 0 8px;
+    padding: 12px 15px;
+}
+
+.input-group-text i {
+    color: var(--primary);
+    font-size: 16px;
+    width: 20px;
+    text-align: center;
+}
+
+/* Botão de toggle de senha */
+.btn-toggle-password {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    background: transparent;
+    border: 2px solid var(--border);
+    border-left: none;
+    border-radius: 0 8px 8px 0;
+    padding: 0 15px;
+    cursor: pointer;
+    transition: all 0.3s;
+    z-index: 10;
+}
+
+.btn-toggle-password:hover {
+    background: var(--light);
+}
+
+.btn-toggle-password i {
+    color: #6c757d;
+    font-size: 16px;
+    transition: color 0.3s;
+}
+
+.btn-toggle-password:hover i {
+    color: var(--primary);
+}
+
+.btn-toggle-password:focus {
+    outline: none;
+    border-color: var(--secondary);
+}
+
+/* ============================================
+   BOTÕES
+   ============================================ */
+.btn-login {
+    background: linear-gradient(135deg, var(--secondary) 0%, #2980b9 100%);
+    border: none;
+    padding: 14px;
+    border-radius: 8px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    transition: all 0.3s;
+    width: 100%;
+    color: white;
+    font-size: 14px;
+    margin-top: 10px;
+    cursor: pointer;
+}
+
+.btn-login:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 20px rgba(52, 152, 219, 0.4);
+    background: linear-gradient(135deg, #2980b9 0%, var(--secondary) 100%);
+}
+
+.btn-login:active {
+    transform: translateY(0);
+}
+
+.btn-login:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+/* ============================================
+   ALERTAS
+   ============================================ */
+.alert {
+    border-radius: 8px;
+    border: none;
+    padding: 12px 15px;
+    font-size: 13px;
+    margin-bottom: 20px;
+}
+
+.alert-success {
+    background: #d4edda;
+    color: #155724;
+}
+
+.alert-danger {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+/* ============================================
+   FOOTER DO LOGIN
+   ============================================ */
+.login-footer {
+    text-align: center;
+    margin-top: 25px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+}
+
+.login-footer small {
+    color: #6c757d;
+    font-size: 12px;
+    display: block;
+    line-height: 1.6;
+}
+
+.login-footer .credentials {
+    background: var(--light);
+    padding: 10px 15px;
+    border-radius: 8px;
+    margin-top: 10px;
+    border-left: 3px solid var(--secondary);
+}
+
+.login-footer .credentials strong {
+    color: var(--primary);
+}
+
+/* ============================================
+   LOADING SPINNER
+   ============================================ */
+.spinner {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.btn-login .spinner {
+    margin-right: 8px;
+}
+
+/* ============================================
+   RESPONSIVO - MOBILE
+   ============================================ */
+@media (max-width: 576px) {
+    .login-container {
+        padding: 40px 30px;
+    }
+
+    .login-header h2 {
+        font-size: 24px;
+    }
+
+    .login-header .icon-wrapper {
+        width: 70px;
+        height: 70px;
+    }
+
+    .login-header i {
+        font-size: 35px;
+    }
+
+    .form-control {
+        font-size: 16px; /* Previne zoom no iOS */
+    }
+
+    .btn-login {
+        padding: 12px;
+        font-size: 13px;
+    }
+}
+
+@media (max-width: 400px) {
+    .login-container {
+        padding: 30px 20px;
+    }
+
+    .login-header h2 {
+        font-size: 22px;
+    }
+
+    .credentials {
+        font-size: 11px;
+    }
+}
+
+/* ============================================
+   SIDEBAR
+   ============================================ */
+.sidebar {
+    width: 260px;
+    background: linear-gradient(180deg, #2c3e50 0%, #1a252f 100%);
+    color: white;
+    height: 100vh;
+    position: fixed;
+    left: 0;
+    top: 0;
+    padding: 20px 0;
+    box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar-header {
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    margin-bottom: 30px;
+}
+
+.sidebar-header .icon {
+    font-size: 28px;
+    margin-right: 10px;
+}
+
+.sidebar-header h1 {
+    font-size: 22px;
+    font-weight: 700;
+    color: white;
+    margin-bottom: 0;
+}
+
+.sidebar-header p {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.8);
+    margin-top: 5px;
+}
+
+/* ============================================
+   NAVIGATION
+   ============================================ */
+.sidebar-nav {
+    margin-top: 30px;
+    display: flex;
+    flex-direction: column;
+    flex: 1; /* ✅ Ocupa espaço disponível */
+}
+
+.sidebar-nav .nav-link {
+    display: flex;
+    align-items: center;
+    padding: 12px 25px;
+    color: rgba(255, 255, 255, 0.8);
+    text-decoration: none;
+    transition: all 0.3s;
+    font-size: 14px;
+}
+
+.sidebar-nav .nav-link:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+.sidebar-nav .nav-link.active {
+    background: rgba(52, 152, 219, 0.2);
+    color: white;
+    border-left: 4px solid #3498db;
+}
+
+.sidebar-nav .nav-link i {
+    margin-right: 12px;
+    font-size: 16px;
+    width: 20px;
+    text-align: center;
+}
+
+/* ✅ NOVO: Estilo para link de logout */
+.sidebar-nav .nav-link.mt-auto {
+    margin-top: auto !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.sidebar-nav .nav-link.text-danger {
+    color: rgba(255, 100, 100, 0.9) !important;
+}
+
+.sidebar-nav .nav-link.text-danger:hover {
+    background: rgba(220, 53, 69, 0.2);
+    color: #ff6b6b !important;
+}
