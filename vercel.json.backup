@@ -1,0 +1,6 @@
+{
+  "framework": null,
+  "installCommand": "cd backend && npm install",
+  "buildCommand": "echo 'Build completed'",
+  "outputDirectory": "frontend/public"
+}
