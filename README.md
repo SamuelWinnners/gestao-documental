@@ -1,53 +1,61 @@
-📋 Sistema de Gestão Documental – Documentação Oficial
-📖 1. Sobre o Sistema
+# Gestão Documental
 
-O Sistema de Gestão Documental é uma plataforma web completa para controle de documentos empresariais, responsáveis e empresas, incluindo:
+Sistema de Gestão Documental — plataforma web para armazenar, organizar e acompanhar documentos empresariais.
 
-Controle de prazos e vencimentos
+Demo: https://gestao-documental-gold.vercel.app
+Repositório: https://github.com/SamuelWinnners/gestao-documental
 
-Upload e armazenamento de arquivos
+Badges
+- Build: (adicione badge do CI se houver)
+- Deploy: Vercel
+- License: (nenhuma definida)
 
-Relatórios e dashboard
+## Índice
+- [Sobre](#sobre)
+- [Funcionalidades](#funcionalidades)
+- [Tecnologias](#tecnologias)
+- [Arquitetura e Estrutura](#arquitetura-e-estrutura)
+- [Pré-requisitos](#pré-requisitos)
+- [Instalação rápida](#instalação-rápida)
+- [Variáveis de ambiente](#variáveis-de-ambiente)
+- [Scripts úteis](#scripts-úteis)
+- [API (endpoints principais)](#api-endpoints-principais)
+- [Deploy](#deploy)
+- [Segurança](#segurança)
+- [Troubleshooting](#troubleshooting)
+- [Contribuição](#contribuição)
+- [Roadmap](#roadmap)
+- [Licença](#licença)
+- [Contato](#contato)
 
-Filtros avançados
+## Sobre
+Gestão Documental é uma aplicação web desenvolvida para facilitar o controle de documentos de empresas e responsáveis, com foco em escritórios contábeis, departamentos administrativos e equipes de compliance. Permite upload, organização por empresas/responsáveis, cálculo de status por vencimento, buscas e dashboards de acompanhamento.
 
-Integração com API de consulta de CNPJ
+## Funcionalidades
+- Dashboard com estatísticas (total de empresas, documentos, vencimentos, gráficos por status)
+- CRUD de Empresas (validação de CNPJ e integração com serviço de consulta)
+- CRUD de Responsáveis (associação à empresa, validação de contato)
+- CRUD de Documentos (upload, download, preview, metadados)
+- Cálculo automático de status por vencimento (normal / próximo / vencido)
+- Filtros avançados e pesquisa por metadados
+- Limite de upload (10 MB) e validação de tipos de arquivo
+- Notificações locais (sucesso/erro) e alertas no dashboard
 
-O sistema foi projetado para facilitar o trabalho de escritórios contábeis, departamentos administrativos e equipes de compliance.
+> Observação: atualize esta lista conforme novas funcionalidades forem adicionadas.
 
-🏗️ 2. Arquitetura do Sistema
-2.1 Stack Tecnológica
-Frontend
+## Tecnologias
+- Linguagem principal: JavaScript (Frontend e Backend)
+- Estilos: CSS (Bootstrap 5.3)
+- Backend: Node.js, Express
+- Banco de Dados: MySQL
+- Uploads: Multer
+- Deploy: Railway (backend + MySQL) e Vercel (frontend)
 
-HTML5, CSS3, JavaScript (Vanilla)
+## Arquitetura e Estrutura
+Estrutura básica do repositório:
 
-Bootstrap 5.3
-
-SPA (Single Page Application)
-
-Comunicação via API REST
-
-Backend
-
-Node.js 18+
-
-Express.js
-
-MySQL 8.0
-
-Multer (upload)
-
-dotenv (variáveis de ambiente)
-
-Infraestrutura
-
-Railway: Backend + MySQL
-
-Vercel: Frontend estático + proxy para API
-
-📁 3. Estrutura do Projeto
+```
 gestao-documental/
-│
 ├── backend/
 │   ├── server.js
 │   ├── database.js
@@ -56,128 +64,62 @@ gestao-documental/
 │   ├── .env
 │   ├── .env.example
 │   └── package.json
-│
 ├── frontend/
 │   └── public/
 │       ├── index.html
 │       ├── app.js
 │       ├── style.css
 │       └── icon.png
-│
 ├── uploads/
 │   └── documentos/
-│
 ├── vercel.json
 ├── railway.toml
 ├── package.json
 └── README.md
+```
 
-⚙️ 4. Funcionalidades Principais
-4.1 Dashboard
+Descrição rápida:
+- backend/: API REST em Node/Express responsável pela lógica, upload e conexão com MySQL.
+- frontend/public/: interface SPA (HTML/CSS/JS) consumindo a API.
+- uploads/: pasta onde os arquivos enviados são armazenados (evite versionar arquivos reais aqui).
 
-Total de empresas
+## Pré-requisitos
+- Node.js >= 18
+- npm ou yarn
+- MySQL 8+
+- Git (opcional)
 
-Total de documentos
+## Instalação rápida (desenvolvimento)
+1. Clone o repositório
 
-Documentos próximos do vencimento
+```bash
+git clone https://github.com/SamuelWinnners/gestao-documental.git
+cd gestao-documental
+```
 
-Documentos vencidos
+2. Backend: instalar dependências e configurar banco
 
-Gráfico por status
+```bash
+cd backend
+npm install
+# Importar o esquema inicial no MySQL
+mysql -u root -p railway < database.sql
+```
 
-4.2 Gestão de Empresas
+3. Criar arquivo .env (exemplo em backend/.env.example)
 
-CRUD completo
+4. Iniciar backend
 
-Consulta automática do CNPJ (ReceitaWS)
+```bash
+npm start
+```
 
-Busca e filtros
+5. Frontend: abrir frontend/public/index.html no navegador ou servir localmente (ex.: Live Server)
 
-Validação de CNPJ
+## Variáveis de ambiente
+Crie um arquivo backend/.env com pelo menos as variáveis abaixo:
 
-4.3 Gestão de Responsáveis
-
-CRUD completo
-
-Associação à empresa
-
-Validação de e-mail e telefone
-
-Filtro por empresa
-
-4.4 Gestão de Documentos
-
-CRUD completo
-
-Upload de arquivos (PDF, DOC(X), XLS(X), JPG, PNG)
-
-Limite: 10MB
-
-Cálculo automático de status:
-
-Normal: +30 dias
-
-Próximo: 7–30 dias
-
-Vencido: <7 dias
-
-Download/visualização
-
-Filtros avançados
-
-4.5 Notificações
-
-Sucesso/erro
-
-Mensagens temporizadas
-
-Alertas de operação
-
-🗄️ 5. Modelo de Dados (Simplificado)
-empresas
-Campo	Tipo	Descrição
-id	INT	PK
-nome	VARCHAR(255)	Nome fantasia
-cnpj	VARCHAR(18)	CNPJ único
-created_at	TIMESTAMP	Criação
-updated_at	TIMESTAMP	Atualização
-responsaveis
-Campo	Tipo	Descrição
-id	INT	PK
-empresa_id	INT	FK → empresas
-nome	VARCHAR(255)	Nome
-email	VARCHAR(255)	Email
-telefone	VARCHAR(30)	Telefone
-created_at	TIMESTAMP	Criação
-documentos
-Campo	Tipo	Descrição
-id	INT	PK
-empresa_id	INT	FK
-responsavel_id	INT	FK
-titulo	VARCHAR(255)	Nome do documento
-tipo	VARCHAR(100)	Categoria
-vencimento	DATE	Data de vencimento
-arquivo_path	VARCHAR(500)	Caminho
-status	ENUM	normal/proximo/vencido
-created_at	TIMESTAMP	Criação
-🚀 6. Como Executar Localmente
-6.1 Requisitos
-
-Node.js 18+
-
-MySQL 8.0+
-
-Git (opcional)
-
-6.2 Configurar o Banco
-CREATE DATABASE railway CHARACTER SET utf8mb4;
-
-
-Terminal:
-
-mysql -u root -p railway < backend/database.sql
-
-6.3 Criar arquivo .env
+```
 DB_HOST=localhost
 DB_PORT=3306
 DB_USER=root
@@ -185,188 +127,115 @@ DB_PASSWORD=sua_senha
 DB_NAME=railway
 PORT=3000
 NODE_ENV=development
+# Variáveis opcionais
+# API_CNPJ_URL=https://servico-cnpj.example
+# JWT_SECRET=uma_chave_segura
+```
 
-6.4 Instalar Dependências
-cd backend
-npm install
+Atualize de acordo com o ambiente de produção (Railway) ou Vercel.
 
-6.5 Iniciar o Backend
-npm start
+## Scripts úteis (verificar backend/package.json)
+- npm start — iniciar servidor em produção
+- npm run dev — (se existir) iniciar servidor em modo desenvolvimento
+- npm run build — (se aplicável)
+- npm run lint — checar lint
+- npm run test — executar testes
 
-6.6 Abrir o Frontend
-
-Abrir index.html diretamente
-ou
-
-Usar Live Server do VS Code
-
-🌐 7. API REST – Endpoints
-
+## API — Endpoints principais
 Base local: http://localhost:3000/api
 Produção: https://gestao-documental-production.up.railway.app/api
 
 Empresas
-GET    /api/empresas
-GET    /api/empresas/:id
-POST   /api/empresas
-PUT    /api/empresas/:id
-DELETE /api/empresas/:id
-GET    /api/empresas/cnpj/:cnpj
+- GET    /api/empresas
+- GET    /api/empresas/:id
+- POST   /api/empresas
+- PUT    /api/empresas/:id
+- DELETE /api/empresas/:id
+- GET    /api/empresas/cnpj/:cnpj
 
 Responsáveis
-GET    /api/responsaveis
-GET    /api/responsaveis/:id
-POST   /api/responsaveis
-PUT    /api/responsaveis/:id
-DELETE /api/responsaveis/:id
-GET    /api/responsaveis/empresa/:id
+- GET    /api/responsaveis
+- GET    /api/responsaveis/:id
+- POST   /api/responsaveis
+- PUT    /api/responsaveis/:id
+- DELETE /api/responsaveis/:id
+- GET    /api/responsaveis/empresa/:id
 
 Documentos
-GET    /api/documentos
-GET    /api/documentos/:id
-POST   /api/documentos
-PUT    /api/documentos/:id
-DELETE /api/documentos/:id
-GET    /api/documentos/empresa/:id
-GET    /api/documentos/vencidos
-GET    /api/documentos/proximos
-
-Arquivos
-GET    /api/documentos/:id/download
+- GET    /api/documentos
+- GET    /api/documentos/:id
+- POST   /api/documentos
+- PUT    /api/documentos/:id
+- DELETE /api/documentos/:id
+- GET    /api/documentos/empresa/:id
+- GET    /api/documentos/vencidos
+- GET    /api/documentos/proximos
+- GET    /api/documentos/:id/download
 
 Dashboard
-GET    /api/dashboard/stats
+- GET    /api/dashboard/stats
 
-📦 8. Deploy
-8.1 Railway – Backend
+Endpoint de saúde: /api/health
 
-Serviço Node
+## Deploy
+Backend (Railway)
+- Serviço Node + MySQL
+- Variáveis de ambiente configuradas no painel do Railway
+- Configuração de build e start definida em railway.toml
 
-Serviço MySQL
+Frontend (Vercel)
+- Deploy estático usando vercel.json que roteia /api/* para o backend em Railway
+- Configure variáveis de ambiente e domínio no painel do Vercel
 
-Variáveis de ambiente
+## Segurança
+- Limite de upload: 10MB
+- Validação de tipos de arquivo
+- Uso de prepared statements para reduzir risco de SQL Injection
+- CORS configurado
 
-Arquivo railway.toml:
+Recomendações (próximo passo):
+- Autenticação (JWT) e autorização por papéis
+- Rate limiting
+- HTTPS forçado (configuração na infra)
+- Auditoria e logs mais ricos
+- Backup automático do banco
 
-[build]
-builder = "nixpacks"
-buildCommand = "npm install"
+## Troubleshooting
+- Erro: Cannot connect to database
+  - Verifique backend/.env, credenciais e se o MySQL está rodando
+- Upload não funciona
+  - Verifique existência da pasta uploads/documentos e permissões
+  - Verifique limite de 10MB e tipos aceitos
+- Frontend não carrega
+  - Checar API_BASE em app.js
+  - Abrir DevTools -> Console
 
-[deploy]
-startCommand = "npm start"
-restartPolicyType = "ON_FAILURE"
-restartPolicyMaxRetries = 10
+## Contribuição
+Obrigado por contribuir! Siga estas etapas:
+1. Fork o repositório
+2. Crie uma branch: `feature/minha-funcionalidade`
+3. Faça commits pequenos e claros
+4. Abra um Pull Request descrevendo as mudanças
 
-8.2 Vercel – Frontend
+Sugestões:
+- Adicionar templates para ISSUE e PULL_REQUEST
+- Adotar Conventional Commits
+- Incluir checks de lint e testes no CI
 
-Configuração atual (proxy):
+## Roadmap
+- Autenticação via OAuth/JWT
+- Permissões por grupos e papéis
+- Motor de OCR para indexação de conteúdo
+- Integração com S3/Cloud Storage
+- Relatórios PDF e envio automático de e-mails
 
-{
-  "version": 2,
-  "builds": [
-    { "src": "frontend/public/**/*", "use": "@vercel/static" }
-  ],
-  "routes": [
-    { "src": "/api/(.*)", "dest": "https://gestao-documental-production.up.railway.app/api/$1" },
-    { "src": "/(.*)", "dest": "/frontend/public/$1" }
-  ]
-}
+## Licença
+Atualmente: Projeto de uso interno. Todos os direitos reservados.
 
-🔒 9. Segurança
-Implementado
+> Recomenda-se adicionar uma licença (ex.: MIT) se desejar tornar o projeto open-source.
 
-.env protegido
+## Contato
+Samuel Winnners — https://github.com/SamuelWinnners
 
-Validação de arquivos
-
-Limite 10MB
-
-SQL Injection protegido (prepared statements)
-
-Sanitização de inputs
-
-CORS configurado
-
-Recomendado (Roadmap)
-
-Autenticação JWT
-
-Rate limiting
-
-HTTPS obrigatório
-
-Controle de permissões
-
-Auditoria
-
-Backup automático
-
-🐛 10. Troubleshooting
-Erro: Cannot connect to database
-
-Validar .env
-
-Verificar MySQL
-
-Verificar porta
-
-Upload não funciona
-
-Verificar pasta /uploads/documentos/
-
-Validar limite de arquivo
-
-Frontend não carrega
-
-Checar API_BASE em app.js
-
-Abrir DevTools → Console
-
-📊 11. Monitoramento
-
-Logs do backend mostrados no terminal
-
-Endpoint de saúde:
-
-/api/health
-
-🤝 12. Contribuição
-
-Padronização:
-
-ES6+
-
-Indentação 4 espaços
-
-Commits descritivos:
-
-git commit -m "feat: adicionar filtro no dashboard"
-
-📝 13. Licença
-
-Projeto de uso interno. Todos os direitos reservados.
-
-🔄 14. Histórico de Versões
-v1.0.0
-
-CRUDs completos
-
-Dashboard
-
-Upload de arquivos
-
-Alertas de vencimento
-
-API REST
-
-Deploy Railway + Vercel
-
-Roadmap
-
-Autenticação JWT
-
-Relatórios PDF
-
-E-mail automático
-
-App mobile
+---
+Atualizado automaticamente via assistant em 2025-11-21
