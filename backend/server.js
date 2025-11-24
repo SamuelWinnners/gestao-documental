@@ -200,7 +200,7 @@ app.get('/api/health', async (req, res) => {
         status: 'OK',
         message: 'API está funcionando',
         timestamp: new Date().toISOString(),
-        version: '1.0.1',
+        version: '1.0.2',
         environment: process.env.NODE_ENV || 'development',
         uptime: process.uptime(),
         database: {
@@ -209,6 +209,24 @@ app.get('/api/health', async (req, res) => {
             host: process.env.DB_HOST,
             database: process.env.DB_NAME
         }
+    });
+});
+
+// Rota de teste simples
+app.get('/api/test', (req, res) => {
+    res.json({
+        message: 'Vercel está funcionando!',
+        timestamp: new Date().toISOString(),
+        routes: [
+            'GET /api/health',
+            'GET /api/test', 
+            'GET /api/debug/wake-db',
+            'POST /api/debug/wake-db',
+            'GET /api/debug/tables',
+            'GET /api/debug/users',
+            'POST /api/setup/database',
+            'POST /api/auth/login'
+        ]
     });
 });
 
@@ -272,6 +290,45 @@ app.post('/api/debug/wake-db', async (req, res) => {
                 status: 'failed'
             });
         }
+    } catch (error) {
+        console.error('❌ Erro ao acordar banco:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Versão GET da mesma rota para facilitar teste
+app.get('/api/debug/wake-db', async (req, res) => {
+    try {
+        console.log('⏰ [GET] Tentando acordar o banco Railway...');
+        
+        let connected = false;
+        let attempts = 0;
+        const maxAttempts = 3;
+        
+        while (!connected && attempts < maxAttempts) {
+            attempts++;
+            console.log(`🔄 Tentativa ${attempts}/${maxAttempts}...`);
+            
+            try {
+                const conn = await pool.getConnection();
+                await conn.execute('SELECT 1 as test');
+                connected = true;
+                conn.release();
+                console.log('✅ Banco acordado com sucesso!');
+            } catch (error) {
+                console.log(`❌ Tentativa ${attempts} falhou:`, error.message);
+                if (attempts < maxAttempts) {
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                }
+            }
+        }
+        
+        res.json({ 
+            message: connected ? 'Banco acordado!' : 'Falha ao acordar banco',
+            attempts,
+            status: connected ? 'connected' : 'failed',
+            timestamp: new Date().toISOString()
+        });
     } catch (error) {
         console.error('❌ Erro ao acordar banco:', error);
         res.status(500).json({ error: error.message });
