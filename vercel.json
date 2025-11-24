@@ -26,6 +26,7 @@
     "DB_PORT": "22627",
     "DB_USER": "root", 
     "DB_PASSWORD": "pzaHwDJucmTwZoeLITWxAASqKAGhVEHq",
-    "DB_NAME": "railway"
+    "DB_NAME": "railway",
+    "PORT": "3000"
   }
 }

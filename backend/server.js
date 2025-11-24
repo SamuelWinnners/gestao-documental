@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import pool from './database.js';
+import pool, { wakeUpDatabase } from './database.js';
 import multer from 'multer';
 import fs from 'fs';
 import dotenv from 'dotenv';
@@ -182,14 +182,33 @@ async function getEstatisticasDashboard() {
 // =============================================
 // ROTAS - HEALTH CHECK
 // =============================================
-app.get('/api/health', (req, res) => {
+app.get('/api/health', async (req, res) => {
+    let dbStatus = 'disconnected';
+    let dbError = null;
+    
+    try {
+        const conn = await pool.getConnection();
+        await conn.ping();
+        dbStatus = 'connected';
+        conn.release();
+    } catch (error) {
+        dbError = error.message;
+        console.error('❌ Banco desconectado no health check:', error.message);
+    }
+
     res.json({
         status: 'OK',
         message: 'API está funcionando',
         timestamp: new Date().toISOString(),
         version: '1.0.1',
         environment: process.env.NODE_ENV || 'development',
-        uptime: process.uptime()
+        uptime: process.uptime(),
+        database: {
+            status: dbStatus,
+            error: dbError,
+            host: process.env.DB_HOST,
+            database: process.env.DB_NAME
+        }
     });
 });
 
@@ -198,18 +217,84 @@ app.get('/api/health', (req, res) => {
 // =============================================
 app.get('/api/debug/tables', async (req, res) => {
     try {
+        console.log('🔍 Tentando listar tabelas...');
         const [tables] = await pool.execute('SHOW TABLES');
-        res.json({ tables });
+        console.log('✅ Tabelas listadas com sucesso');
+        res.json({ tables, count: tables.length });
     } catch (error) {
-        console.error('Erro ao listar tabelas:', error);
+        console.error('❌ Erro ao listar tabelas:', error);
+        res.status(500).json({ 
+            error: error.message,
+            code: error.code,
+            suggestion: 'O banco Railway pode estar em sleep. Tente novamente em alguns segundos.'
+        });
+    }
+});
+
+// Rota para acordar o banco Railway
+app.post('/api/debug/wake-db', async (req, res) => {
+    try {
+        console.log('⏰ Tentando acordar o banco Railway...');
+        
+        // Tenta conectar várias vezes
+        let connected = false;
+        let attempts = 0;
+        const maxAttempts = 5;
+        
+        while (!connected && attempts < maxAttempts) {
+            attempts++;
+            console.log(`🔄 Tentativa ${attempts}/${maxAttempts}...`);
+            
+            try {
+                const conn = await pool.getConnection();
+                await conn.execute('SELECT 1 as test');
+                connected = true;
+                conn.release();
+                console.log('✅ Banco acordado com sucesso!');
+            } catch (error) {
+                console.log(`❌ Tentativa ${attempts} falhou:`, error.message);
+                if (attempts < maxAttempts) {
+                    await new Promise(resolve => setTimeout(resolve, 3000));
+                }
+            }
+        }
+        
+        if (connected) {
+            res.json({ 
+                message: 'Banco Railway acordado com sucesso!',
+                attempts,
+                status: 'connected'
+            });
+        } else {
+            res.status(500).json({ 
+                error: 'Não foi possível acordar o banco Railway',
+                attempts,
+                status: 'failed'
+            });
+        }
+    } catch (error) {
+        console.error('❌ Erro ao acordar banco:', error);
         res.status(500).json({ error: error.message });
     }
 });
 
 app.get('/api/debug/users', async (req, res) => {
     try {
+        // Verificar se a tabela usuarios existe
+        const [tableCheck] = await pool.execute(`
+            SELECT COUNT(*) as count FROM information_schema.tables 
+            WHERE table_schema = DATABASE() AND table_name = 'usuarios'
+        `);
+        
+        if (tableCheck[0].count === 0) {
+            return res.json({ 
+                error: 'Tabela usuarios não existe',
+                solution: 'Execute POST /api/setup/database para criar as tabelas'
+            });
+        }
+
         const [users] = await pool.execute('SELECT id, nome, email, ativo FROM usuarios');
-        res.json({ users });
+        res.json({ users, count: users.length });
     } catch (error) {
         console.error('Erro ao listar usuários:', error);
         res.status(500).json({ error: error.message });
@@ -218,6 +303,19 @@ app.get('/api/debug/users', async (req, res) => {
 
 app.post('/api/setup/user', async (req, res) => {
     try {
+        // Primeiro, criar a tabela usuarios se não existir
+        await pool.execute(`
+            CREATE TABLE IF NOT EXISTS usuarios (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                nome VARCHAR(255) NOT NULL,
+                email VARCHAR(255) UNIQUE NOT NULL,
+                senha VARCHAR(255) NOT NULL,
+                ativo BOOLEAN DEFAULT TRUE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+            )
+        `);
+
         // Criar usuário admin padrão
         const [result] = await pool.execute(`
             INSERT IGNORE INTO usuarios (nome, email, senha, ativo, created_at) 
@@ -225,13 +323,79 @@ app.post('/api/setup/user', async (req, res) => {
         `, ['Administrador', 'admin@admin.com', 'admin123']);
         
         res.json({ 
-            message: 'Usuário criado com sucesso',
+            message: 'Tabela e usuário criados com sucesso',
             insertId: result.insertId,
             affectedRows: result.affectedRows
         });
     } catch (error) {
         console.error('Erro ao criar usuário:', error);
         res.status(500).json({ error: error.message });
+    }
+});
+
+// Rota para inicializar todas as tabelas
+app.post('/api/setup/database', async (req, res) => {
+    try {
+        // Criar tabela usuarios
+        await pool.execute(`
+            CREATE TABLE IF NOT EXISTS usuarios (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                nome VARCHAR(255) NOT NULL,
+                email VARCHAR(255) UNIQUE NOT NULL,
+                senha VARCHAR(255) NOT NULL,
+                ativo BOOLEAN DEFAULT TRUE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+            )
+        `);
+
+        // Inserir usuário admin padrão
+        await pool.execute(`
+            INSERT IGNORE INTO usuarios (nome, email, senha, ativo) 
+            VALUES ('Administrador', 'admin@admin.com', 'admin123', TRUE)
+        `);
+
+        // Verificar se outras tabelas já existem
+        const [empresasCheck] = await pool.execute(`
+            SELECT COUNT(*) as count FROM information_schema.tables 
+            WHERE table_schema = DATABASE() AND table_name = 'empresas'
+        `);
+
+        let tablesCreated = ['usuarios'];
+        
+        if (empresasCheck[0].count === 0) {
+            // Se não existir a tabela empresas, criar todas as outras
+            const createTablesSQL = `
+                CREATE TABLE IF NOT EXISTS empresas (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    razao_social VARCHAR(255) NOT NULL,
+                    nome_fantasia VARCHAR(255),
+                    cnpj VARCHAR(18) UNIQUE NOT NULL,
+                    telefone VARCHAR(200) NOT NULL,
+                    email VARCHAR(255) NOT NULL,
+                    endereco TEXT,
+                    login_municipal VARCHAR(100),
+                    senha_municipal VARCHAR(100),
+                    login_estadual VARCHAR(100),
+                    senha_estadual VARCHAR(100),
+                    simples_nacional BOOLEAN DEFAULT FALSE,
+                    observacoes TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+                )
+            `;
+            await pool.execute(createTablesSQL);
+            tablesCreated.push('empresas');
+        }
+
+        res.json({ 
+            message: 'Banco de dados inicializado com sucesso',
+            tablesCreated,
+            adminUser: 'admin@admin.com / admin123'
+        });
+    } catch (error) {
+        console.error('Erro ao inicializar banco:', error);
+        res.status(500).json({ error: error.message, stack: error.stack });
     }
 });
 
@@ -1191,11 +1355,30 @@ app.post('/api/auth/login', async (req, res) => {
 
         console.log('🔍 Searching user with email:', email);
 
-        // Buscar usuário
-        const [usuarios] = await pool.execute(
-            'SELECT * FROM usuarios WHERE email = ? AND ativo = TRUE',
-            [email]
-        );
+        let usuarios;
+        try {
+            // Primeira tentativa de consulta
+            [usuarios] = await pool.execute(
+                'SELECT * FROM usuarios WHERE email = ? AND ativo = TRUE',
+                [email]
+            );
+        } catch (dbError) {
+            console.log('❌ Database connection failed, trying to wake up:', dbError.message);
+            
+            // Se falhar, tenta acordar o banco e refazer a consulta
+            if (dbError.message.includes('Connection lost') || dbError.message.includes('server closed')) {
+                console.log('🛌 Tentando acordar o banco Railway...');
+                await wakeUpDatabase();
+                
+                // Segunda tentativa após acordar
+                [usuarios] = await pool.execute(
+                    'SELECT * FROM usuarios WHERE email = ? AND ativo = TRUE',
+                    [email]
+                );
+            } else {
+                throw dbError;
+            }
+        }
 
         console.log('👥 Found users:', usuarios.length);
 

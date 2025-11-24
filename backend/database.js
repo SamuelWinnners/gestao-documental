@@ -25,25 +25,64 @@ const pool = mysql.createPool({
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
+  acquireTimeout: 60000,
+  timeout: 60000,
+  enableKeepAlive: true,
+  keepAliveInitialDelay: 0,
+  reconnect: true,
+  ssl: {
+    rejectUnauthorized: false
+  }
 });
 
-// Testando conexão
-(async () => {
-  try {
-    const conn = await pool.getConnection();
-    console.log('✅ Conectado ao banco de dados MySQL!');
-    console.log('📊 Banco de dados:', process.env.DB_NAME);
-    console.log('🏠 Host:', process.env.DB_HOST);
-    console.log('👤 Usuário:', process.env.DB_USER);
-    conn.release();
-  } catch (err) {
-    console.error('❌ Erro ao conectar no MySQL:', err.message);
-    console.log('🔧 Detalhes da tentativa de conexão:');
-    console.log('- Host:', process.env.DB_HOST);
-    console.log('- Porta:', process.env.DB_PORT);
-    console.log('- Usuário:', process.env.DB_USER);
-    console.log('- Banco:', process.env.DB_NAME);
+// Testando conexão com retry e auto-wake
+async function testConnection(retries = 5) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      console.log(`🔄 Tentativa de conexão ${i + 1}/${retries}...`);
+      const conn = await pool.getConnection();
+      
+      // Teste mais robusto
+      await conn.execute('SELECT 1 as health_check');
+      
+      console.log('✅ Conectado ao banco de dados MySQL!');
+      console.log('📊 Banco de dados:', process.env.DB_NAME);
+      console.log('🏠 Host:', process.env.DB_HOST);
+      console.log('👤 Usuário:', process.env.DB_USER);
+      conn.release();
+      return true;
+    } catch (err) {
+      console.error(`❌ Tentativa ${i + 1} falhou:`, err.message);
+      
+      if (err.message.includes('Connection lost') || err.message.includes('server closed')) {
+        console.log('🛌 Banco parece estar em sleep mode. Tentando acordar...');
+      }
+      
+      if (i === retries - 1) {
+        console.error('💥 Falha definitiva na conexão com o banco!');
+        console.log('🔧 Detalhes da tentativa de conexão:');
+        console.log('- Host:', process.env.DB_HOST);
+        console.log('- Porta:', process.env.DB_PORT);
+        console.log('- Usuário:', process.env.DB_USER);
+        console.log('- Banco:', process.env.DB_NAME);
+        console.log('⚠️  O banco Railway pode estar em sleep. Ele acordará na primeira requisição.');
+        return false;
+      }
+      
+      // Aguarda progressivamente mais tempo (2s, 4s, 6s, 8s, 10s)
+      const waitTime = (i + 1) * 2000;
+      console.log(`⏳ Aguardando ${waitTime/1000}s antes da próxima tentativa...`);
+      await new Promise(resolve => setTimeout(resolve, waitTime));
+    }
   }
-})();
+}
+
+// Função para acordar o banco sob demanda
+export async function wakeUpDatabase() {
+  console.log('⏰ Acordando banco Railway...');
+  return await testConnection(3);
+}
+
+testConnection();
 
 export default pool;
