@@ -15,13 +15,15 @@ console.log('DB_HOST:', process.env.DB_HOST || '❌ NÃO CONFIGURADO');
 console.log('DB_USER:', process.env.DB_USER || '❌ NÃO CONFIGURADO');
 console.log('DB_PORT:', process.env.DB_PORT || '❌ NÃO CONFIGURADO');
 console.log('DB_NAME:', process.env.DB_NAME || '❌ NÃO CONFIGURADO');
+console.log('MYSQL_DATABASE:', process.env.MYSQL_DATABASE || '❌ NÃO CONFIGURADO');
+console.log('📊 Banco a ser usado:', process.env.MYSQL_DATABASE || process.env.DB_NAME);
 
 const pool = mysql.createPool({
   host: process.env.DB_HOST,
   port: process.env.DB_PORT,
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME,
+  database: process.env.MYSQL_DATABASE || process.env.DB_NAME,
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
