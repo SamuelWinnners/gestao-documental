@@ -207,8 +207,7 @@ app.get('/api/health', async (req, res) => {
             status: dbStatus,
             error: dbError,
             host: process.env.DB_HOST,
-            database: process.env.MYSQL_DATABASE || process.env.DB_NAME,
-            usingMySQLDatabase: !!process.env.MYSQL_DATABASE
+            database: process.env.DB_NAME
         }
     });
 });
@@ -225,7 +224,6 @@ app.get('/api/test', (req, res) => {
             'POST /api/debug/wake-db',
             'GET /api/debug/tables',
             'GET /api/debug/users',
-            'GET /api/setup/database',
             'POST /api/setup/database',
             'POST /api/auth/login'
         ]
@@ -455,76 +453,6 @@ app.post('/api/setup/database', async (req, res) => {
     } catch (error) {
         console.error('Erro ao inicializar banco:', error);
         res.status(500).json({ error: error.message, stack: error.stack });
-    }
-});
-
-// Versão GET da rota de setup para facilitar teste
-app.get('/api/setup/database', async (req, res) => {
-    try {
-        console.log('🔧 [GET] Inicializando banco de dados...');
-        
-        // Primeiro tenta acordar o banco
-        let connected = false;
-        let attempts = 0;
-        const maxAttempts = 5;
-        
-        while (!connected && attempts < maxAttempts) {
-            attempts++;
-            console.log(`🔄 Tentativa de acordar banco ${attempts}/${maxAttempts}...`);
-            
-            try {
-                const conn = await pool.getConnection();
-                await conn.execute('SELECT 1');
-                connected = true;
-                conn.release();
-                console.log('✅ Banco acordado!');
-                break;
-            } catch (error) {
-                console.log(`❌ Tentativa ${attempts} falhou:`, error.message);
-                if (attempts < maxAttempts) {
-                    await new Promise(resolve => setTimeout(resolve, 3000));
-                }
-            }
-        }
-        
-        if (!connected) {
-            return res.status(500).json({ 
-                error: 'Não foi possível acordar o banco Railway',
-                attempts 
-            });
-        }
-        
-        // Agora cria as tabelas
-        await pool.execute(`
-            CREATE TABLE IF NOT EXISTS usuarios (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                nome VARCHAR(255) NOT NULL,
-                email VARCHAR(255) UNIQUE NOT NULL,
-                senha VARCHAR(255) NOT NULL,
-                ativo BOOLEAN DEFAULT TRUE,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-            )
-        `);
-
-        // Inserir usuário admin
-        const [result] = await pool.execute(`
-            INSERT IGNORE INTO usuarios (nome, email, senha, ativo) 
-            VALUES ('Administrador', 'admin@admin.com', 'admin123', TRUE)
-        `);
-
-        res.json({ 
-            message: 'Banco inicializado com sucesso via GET',
-            wakeAttempts: attempts,
-            userCreated: result.affectedRows > 0,
-            adminCredentials: 'admin@admin.com / admin123'
-        });
-    } catch (error) {
-        console.error('❌ Erro ao inicializar banco:', error);
-        res.status(500).json({ 
-            error: error.message,
-            suggestion: 'O banco Railway pode estar em sleep mode muito profundo'
-        });
     }
 });
 
@@ -1486,27 +1414,33 @@ app.post('/api/auth/login', async (req, res) => {
 
         let usuarios;
         try {
-            // Primeira tentativa de consulta
+            // Tentar criar a tabela primeiro se não existir
+            await pool.execute(`
+                CREATE TABLE IF NOT EXISTS usuarios (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    nome VARCHAR(255) NOT NULL,
+                    email VARCHAR(255) UNIQUE NOT NULL,
+                    senha VARCHAR(255) NOT NULL,
+                    ativo BOOLEAN DEFAULT TRUE,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            `);
+            
+            // Inserir usuário admin se não existir
+            await pool.execute(`
+                INSERT IGNORE INTO usuarios (nome, email, senha, ativo) 
+                VALUES ('Administrador', 'admin@admin.com', 'admin123', TRUE)
+            `);
+            
+            // Buscar usuário
             [usuarios] = await pool.execute(
                 'SELECT * FROM usuarios WHERE email = ? AND ativo = TRUE',
                 [email]
             );
-        } catch (dbError) {
-            console.log('❌ Database connection failed, trying to wake up:', dbError.message);
             
-            // Se falhar, tenta acordar o banco e refazer a consulta
-            if (dbError.message.includes('Connection lost') || dbError.message.includes('server closed')) {
-                console.log('🛌 Tentando acordar o banco Railway...');
-                await wakeUpDatabase();
-                
-                // Segunda tentativa após acordar
-                [usuarios] = await pool.execute(
-                    'SELECT * FROM usuarios WHERE email = ? AND ativo = TRUE',
-                    [email]
-                );
-            } else {
-                throw dbError;
-            }
+        } catch (dbError) {
+            console.log('❌ Database error:', dbError.message);
+            throw dbError;
         }
 
         console.log('👥 Found users:', usuarios.length);
@@ -1520,7 +1454,7 @@ app.post('/api/auth/login', async (req, res) => {
         console.log('✅ User found:', { id: usuario.id, nome: usuario.nome, email: usuario.email });
 
         // Verificar senha (simplificado - em produção use bcrypt)
-        if (senha !== 'admin123') { // Senha fixa para simplicidade
+        if (senha !== 'admin123') {
             console.log('❌ Invalid password');
             return res.status(401).json({ error: 'Credenciais inválidas' });
         }
@@ -1533,6 +1467,7 @@ app.post('/api/auth/login', async (req, res) => {
         console.log('🎟️ Token created successfully');
 
         res.json({
+            success: true,
             token,
             usuario: {
                 id: usuario.id,
@@ -1542,14 +1477,9 @@ app.post('/api/auth/login', async (req, res) => {
         });
     } catch (error) {
         console.error('💥 Login error:', error);
-        console.error('📊 Error details:', {
-            message: error.message,
-            code: error.code,
-            errno: error.errno
-        });
         res.status(500).json({ 
             error: 'Erro ao realizar login',
-            details: process.env.NODE_ENV === 'development' ? error.message : undefined
+            details: error.message
         });
     }
 });
