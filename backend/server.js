@@ -194,6 +194,48 @@ app.get('/api/health', (req, res) => {
 });
 
 // =============================================
+// ROTAS - DEBUG E INICIALIZAÇÃO
+// =============================================
+app.get('/api/debug/tables', async (req, res) => {
+    try {
+        const [tables] = await pool.execute('SHOW TABLES');
+        res.json({ tables });
+    } catch (error) {
+        console.error('Erro ao listar tabelas:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.get('/api/debug/users', async (req, res) => {
+    try {
+        const [users] = await pool.execute('SELECT id, nome, email, ativo FROM usuarios');
+        res.json({ users });
+    } catch (error) {
+        console.error('Erro ao listar usuários:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post('/api/setup/user', async (req, res) => {
+    try {
+        // Criar usuário admin padrão
+        const [result] = await pool.execute(`
+            INSERT IGNORE INTO usuarios (nome, email, senha, ativo, created_at) 
+            VALUES (?, ?, ?, TRUE, NOW())
+        `, ['Administrador', 'admin@admin.com', 'admin123']);
+        
+        res.json({ 
+            message: 'Usuário criado com sucesso',
+            insertId: result.insertId,
+            affectedRows: result.affectedRows
+        });
+    } catch (error) {
+        console.error('Erro ao criar usuário:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// =============================================
 // ROTAS - CONSULTA DE CNPJ
 // =============================================
 app.get('/api/consulta-cnpj/:cnpj', async (req, res) => {
@@ -1137,7 +1179,17 @@ app.get('/api/dashboard/estatisticas', async (req, res) => {
 // =============================================
 app.post('/api/auth/login', async (req, res) => {
     try {
+        console.log('🔐 Login attempt:', new Date().toISOString());
+        console.log('📧 Request body:', req.body);
+        
         const { email, senha } = req.body;
+
+        if (!email || !senha) {
+            console.log('❌ Missing email or password');
+            return res.status(400).json({ error: 'Email e senha são obrigatórios' });
+        }
+
+        console.log('🔍 Searching user with email:', email);
 
         // Buscar usuário
         const [usuarios] = await pool.execute(
@@ -1145,19 +1197,28 @@ app.post('/api/auth/login', async (req, res) => {
             [email]
         );
 
+        console.log('👥 Found users:', usuarios.length);
+
         if (usuarios.length === 0) {
+            console.log('❌ No user found or inactive');
             return res.status(401).json({ error: 'Credenciais inválidas' });
         }
 
         const usuario = usuarios[0];
+        console.log('✅ User found:', { id: usuario.id, nome: usuario.nome, email: usuario.email });
 
         // Verificar senha (simplificado - em produção use bcrypt)
         if (senha !== 'admin123') { // Senha fixa para simplicidade
+            console.log('❌ Invalid password');
             return res.status(401).json({ error: 'Credenciais inválidas' });
         }
 
+        console.log('✅ Password valid');
+
         // Criar token simples (em produção use JWT)
         const token = Buffer.from(`${usuario.id}:${Date.now()}`).toString('base64');
+
+        console.log('🎟️ Token created successfully');
 
         res.json({
             token,
@@ -1168,8 +1229,16 @@ app.post('/api/auth/login', async (req, res) => {
             }
         });
     } catch (error) {
-        console.error('Erro no login:', error);
-        res.status(500).json({ error: 'Erro ao realizar login' });
+        console.error('💥 Login error:', error);
+        console.error('📊 Error details:', {
+            message: error.message,
+            code: error.code,
+            errno: error.errno
+        });
+        res.status(500).json({ 
+            error: 'Erro ao realizar login',
+            details: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
     }
 });
 
